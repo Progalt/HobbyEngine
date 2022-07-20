@@ -18,6 +18,11 @@ public:
 		glm::vec4 albedo;
 	};
 
+	void Discard() override
+	{
+		paramsBuffer.Destroy();
+	}
+
 	MaterialParams params;
 
 	void CreateDescriptor(vk::Device* device, vk::DescriptorLayout* layout)

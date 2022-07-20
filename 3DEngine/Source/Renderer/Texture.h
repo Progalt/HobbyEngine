@@ -22,6 +22,8 @@ public:
 		bool renderTarget;
 	};
 
+	virtual void Discard() = 0;
+
 	virtual void CreateFromImage(const Image& img, const bool generateMipMaps, const bool srgb) = 0;
 
 	virtual void Create(const CreateInfo& createInfo) = 0;

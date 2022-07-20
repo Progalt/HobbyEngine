@@ -43,7 +43,7 @@ public:
 		this->mRenderManager = rm;
 	}
 
-	~ResourceManager();
+	void Discard();
 
 	Handle<Texture> NewTexture();
 

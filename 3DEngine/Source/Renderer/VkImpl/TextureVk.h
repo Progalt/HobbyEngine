@@ -8,6 +8,8 @@ class TextureVk : public Texture
 {
 public:
 
+	void Discard() override;
+
 	TextureVk(vk::Device* device);
 
 	void CreateFromImage(const Image& img, const bool generateMipMaps, const bool srgb) override;

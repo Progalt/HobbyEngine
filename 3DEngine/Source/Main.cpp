@@ -125,6 +125,8 @@ public:
 
 		mesh->Destroy();
 
+		ResourceManager::GetInstance().Discard();
+
 		RenderManager::Destroy(renderManager);
 	}
 

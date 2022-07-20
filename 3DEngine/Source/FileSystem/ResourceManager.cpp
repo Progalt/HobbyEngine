@@ -4,13 +4,19 @@
 #include "../Renderer/RenderManager.h"
 #include "../Renderer/Material.h"
 
-ResourceManager::~ResourceManager()
+void ResourceManager::Discard()
 {
 	for (auto& texture : mLoadedTextures)
+	{
+		texture->Discard();
 		delete texture;
+	}
 
 	for (auto& mat : mMaterials)
+	{
+		mat->Discard();
 		delete mat;
+	}
 }
 
 Material* ResourceManager::NewMaterial()

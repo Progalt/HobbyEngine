@@ -10,5 +10,6 @@ RenderManager* RenderManager::Create(Window* window)
 
 void RenderManager::Destroy(RenderManager* rm)
 {
+	((RenderManagerVk*)rm)->~RenderManagerVk();
 	delete rm;
 }
