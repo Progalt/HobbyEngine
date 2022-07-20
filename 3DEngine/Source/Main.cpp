@@ -1,6 +1,9 @@
 
 #include "Core/Application.h"
 #include "Renderer/RenderManager.h"
+#include <iostream>
+
+#include <glm/gtc/matrix_transform.hpp>
 
 class App : public Application
 {
@@ -10,37 +13,118 @@ public:
 	{
 		renderManager = RenderManager::Create(&window);
 
+		ResourceManager::GetInstance().SetRenderManager(renderManager);
+
 		mesh = renderManager->NewMesh();
 
 		mesh->positions = {
-			{ 0.0f, -0.5f, 0.0f },
+			{ -0.5f, -0.5f, 0.0f },
+			{ 0.5f, -0.5f, 0.0f },
 			{ 0.5f, 0.5f, 0.0f },
 			{ -0.5f, 0.5f, 0.0f }
 		};
-
-		mesh->indices = {
-			0, 1, 2
+		
+		mesh->texCoords = {
+			{ 0.0f, 0.0f },
+			{ 1.0f, 0.0f }, 
+			{ 1.0f, 1.0f },
+			{ 0.0f, 1.0f }
 		};
 
+		mesh->indices = {
+			0, 1, 3,
+			1, 2, 3
+		};
+
+		mesh->CalculateNormals();
 		mesh->GenerateMesh();
 
-		mesh->material = ResourceManager::GetInstance().GetMaterial("Base");
+		mesh->material = ResourceManager::GetInstance().NewMaterial();
+
+		mesh->material->albedoColour = { 0.0f, 1.0f, 1.0f, 1.0f };
+		mesh->material->albedo = ResourceManager::GetInstance().GetErrorTexture();
+
+		proj = glm::perspective(glm::radians(60.0f), (float)window.GetWidth() / (float)window.GetHeight(), 0.01f, 1000.0f);
+		viewPos = { 0.0f, 0.0f, 0.0f };
+
 	}
 
 	void Update() override
 	{
+		static int32_t lastX = 0, lastY = 0;
+
+		static float pitch = 0.0f;
+		static float yaw = -90.0f;
+
+		glm::ivec2 mousePos = input.GetMousePosition();
+
+		int32_t offX = mousePos.x - lastX;
+		int32_t offY = mousePos.y - lastY;
+
+		glm::vec3 direction;
+		direction.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
+		direction.y = sin(glm::radians(pitch));
+		direction.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
+
+		glm::vec3 right = glm::normalize(glm::cross(direction, glm::vec3(0.0f, 1.0f, 0.0f)));
+		glm::vec3 up = glm::normalize(glm::cross(right, direction));
+
+		if (input.IsButtonPressed(MouseButton::Right))
+		{
+			pitch += (float)offY;
+			yaw += (float)offX;
+		}
+
+		float velocity = 4.0f;
+
+		if (input.IsKeyPressed(KeyCode::W))
+		{
+			viewPos += direction * velocity * time.delta;
+		}
+
+		if (input.IsKeyPressed(KeyCode::S))
+		{
+			viewPos -= direction * velocity * time.delta;
+		}
+
+		if (input.IsKeyPressed(KeyCode::A))
+		{
+			viewPos -= right * velocity * time.delta;
+		}
+
+		if (input.IsKeyPressed(KeyCode::D))
+		{
+			viewPos += right * velocity * time.delta;
+		}
+
+
+		view = glm::lookAt(viewPos, viewPos + direction, up);
+
+		lastX = mousePos.x;
+		lastY = mousePos.y;
+
 	}
+
+	glm::mat4 view;
+	glm::mat4 proj;
+	glm::vec3 viewPos;
 
 	void Render() override
 	{
 		renderManager->QueueMesh(mesh);
 
-		renderManager->Render();
+		glm::mat4 viewProj = proj * view;
+
+		renderManager->Render(viewProj);
 
 	}
 
 	void Destroy() override
 	{
+		renderManager->WaitForIdle();
+
+		mesh->Destroy();
+
 		RenderManager::Destroy(renderManager);
 	}
 

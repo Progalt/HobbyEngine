@@ -3,6 +3,8 @@
 
 #include "MeshVk.h"
 #include "../../FileSystem/FileSystem.h"
+#include "TextureVk.h"
+#include "MaterialVk.h"
 
 RenderManagerVk::RenderManagerVk(Window* window)
 {
@@ -23,7 +25,7 @@ RenderManagerVk::RenderManagerVk(Window* window)
 	{
 		vk::RenderpassCreateInfo rpCreateInfo{};
 		rpCreateInfo.type = vk::RenderpassType::Swapchain;
-		rpCreateInfo.clearColour = { 0.0f, 0.0f, 0.0f, 1.0f };
+		rpCreateInfo.clearColour = { 0.3f, 0.2f, 0.6f, 1.0f };
 
 		mRenderpasses.swapchain = mDevice.NewRenderpass(&rpCreateInfo);
 	}
@@ -52,18 +54,38 @@ RenderManagerVk::RenderManagerVk(Window* window)
 			{ 0, 2, vk::Format::FORMAT_R32G32B32_SFLOAT, sizeof(glm::vec3) + sizeof(glm::vec2)},
 		};
 
+		mBasePipeline.materialLayout = mDevice.NewLayout();
+		mBasePipeline.materialLayout.AddLayoutBinding({ 0, vk::ShaderInputType::UniformBuffer, 1, vk::ShaderStage::Fragment });
+		mBasePipeline.materialLayout.AddLayoutBinding({ 1, vk::ShaderInputType::ImageSampler, 1, vk::ShaderStage::Fragment });
+		mBasePipeline.materialLayout.Create();
+
 		vk::PipelineCreateInfo pipelineInfo{};
 		pipelineInfo.renderpass = &mRenderpasses.swapchain;
-		pipelineInfo.layout = {};
+		pipelineInfo.layout = { &mBasePipeline.materialLayout };
 		pipelineInfo.pushConstantRanges = {};
 		pipelineInfo.topologyType = vk::Topology::TriangleList;
 		pipelineInfo.vertexDesc = &vertexDesc;
 		pipelineInfo.shaders = { &vertexBlob, &fragmentBlob };
 
-		mBasePipeline = mDevice.NewPipeline(&pipelineInfo);
+		pipelineInfo.pushConstantRanges =
+		{
+			{ vk::ShaderStage::Vertex, 0, sizeof(glm::mat4) }
+		};
+
+		mBasePipeline.pipeline = mDevice.NewPipeline(&pipelineInfo);
 
 		vertexBlob.Destroy();
 		fragmentBlob.Destroy();
+	}
+
+	{
+		vk::SamplerSettings settings{};
+		settings.modeU = vk::WrapMode::Repeat;
+		settings.modeV = vk::WrapMode::Repeat;
+		settings.minFilter = vk::Filter::Nearest;
+		settings.magFilter = vk::Filter::Nearest;
+		
+		mDefaultSampler = mDevice.NewSampler(&settings);
 	}
 }
 
@@ -72,13 +94,22 @@ RenderManagerVk::~RenderManagerVk()
 	mDevice.WaitIdle();
 
 	mRenderpasses.swapchain.Destroy();
+	
+	mBasePipeline.pipeline.Destroy();
 
-	mBasePipeline.Destroy();
+	mBasePipeline.materialLayout.Destroy();
+
+	mDefaultSampler.Destroy();
 
 	mDevice.Destroy();
 }
 
-void RenderManagerVk::Render()
+void RenderManagerVk::WaitForIdle()
+{
+	mDevice.WaitIdle();
+}
+
+void RenderManagerVk::Render(const glm::mat4& view_proj)
 {
 	mDevice.NextFrame();
 
@@ -89,10 +120,21 @@ void RenderManagerVk::Render()
 	mCmdList.SetViewport(0, 0, this->mProperties.width, this->mProperties.height);
 	mCmdList.SetScissor(0, 0, this->mProperties.width, this->mProperties.height);
 
-	mCmdList.BindPipeline(&mBasePipeline);
+	mCmdList.BindPipeline(&mBasePipeline.pipeline);
 
 	for (auto& cmd : mDrawCmds)
 	{
+
+		if (!((MaterialVk*)cmd.mesh->material)->createdDescriptor)
+			((MaterialVk*)cmd.mesh->material)->CreateDescriptor(&mDevice, &mBasePipeline.materialLayout);
+		else
+			((MaterialVk*)cmd.mesh->material)->RegenDescriptor();
+
+		glm::mat4 m = view_proj * cmd.transform;
+		mCmdList.PushConstants(&mBasePipeline.pipeline, vk::ShaderStage::Vertex, sizeof(glm::mat4), 0, &m);
+
+		mCmdList.BindDescriptors({ &((MaterialVk*)cmd.mesh->material)->descriptor }, &mBasePipeline.pipeline, 0);
+
 		mCmdList.BindVertexBuffer(&((MeshVk*)cmd.mesh)->vertexBuffer, 0);
 		mCmdList.BindIndexBuffer(&((MeshVk*)cmd.mesh)->indexBuffer);
 
@@ -108,12 +150,44 @@ void RenderManagerVk::Render()
 	mDrawCmds.clear();
 }
 
-void RenderManagerVk::QueueMesh(Mesh* mesh)
+void RenderManagerVk::QueueMesh(Mesh* mesh, glm::mat4 transform)
 {
-	mDrawCmds.push_back({ mesh });
+	mDrawCmds.push_back({ mesh, transform });
+}
+
+void RenderManagerVk::QueueMesh(std::vector<Mesh*> mesh)
+{
+	for (auto& meshes : mesh)
+		mDrawCmds.push_back({ meshes });
+}
+
+void RenderManagerVk::SetSkyMaterial(SkyMaterial* material)
+{
+	sky.skyMaterial = material;
+
+	if (!sky.generated && material != nullptr)
+	{
+		// Generate the skydome
+	}
 }
 
 Mesh* RenderManagerVk::NewMesh()
 {
 	return new MeshVk(&mDevice);
+}
+
+Texture* RenderManagerVk::NewTexture()
+{
+	TextureVk* tex = new TextureVk(&mDevice);
+
+	tex->sampler = &mDefaultSampler;
+
+	return tex;
+}
+
+Material* RenderManagerVk::NewMaterial()
+{
+	MaterialVk* mat = new MaterialVk(&mDevice, &mBasePipeline.materialLayout);
+	
+	return mat;
 }

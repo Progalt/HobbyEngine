@@ -7,6 +7,8 @@
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
 
+#include <SDL2/SDL_vulkan.h>
+
 enum class WindowContext
 {
 	Vulkan
@@ -30,6 +32,8 @@ public:
 #ifdef _WIN32
 	HWND GetRawWindow();
 #endif
+
+	VkSurfaceKHR CreateSurface(VkInstance instance);
 
 private:
 

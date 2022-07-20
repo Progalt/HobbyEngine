@@ -111,6 +111,7 @@ namespace vk
 		bool depthTest = true;
 		bool depthWrite = true;
 		bool dynamicDepthBias = false;
+		bool dynamicCullMode = false;
 		CompareOp compareOp = CompareOp::Less;
 	};
 

@@ -7,6 +7,14 @@ MeshVk::MeshVk(vk::Device* dev)
 	this->device = dev;
 }
 
+void MeshVk::Destroy()
+{
+	if (vertexBuffer.Valid())
+		vertexBuffer.Destroy();
+
+	if (indexBuffer.Valid())
+		indexBuffer.Destroy();
+}
 
 void MeshVk::GenerateMesh()
 {
@@ -17,8 +25,8 @@ void MeshVk::GenerateMesh()
 	struct Vertex
 	{
 		glm::vec3 pos;
-		glm::vec2 texCoord;
-		glm::vec3 normal;
+		glm::vec2 texCoord = { 0.0f, 0.0f };
+		glm::vec3 normal = { 0.0f, 0.0f, 0.0f };
 	};
 
 	// Pack into a vertex structure

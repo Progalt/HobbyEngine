@@ -143,6 +143,9 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Source\Core\EventManager.cpp" />
+    <ClCompile Include="Source\Core\Image.cpp" />
+    <ClCompile Include="Source\Core\Input.cpp" />
     <ClCompile Include="Source\Core\Window.cpp" />
     <ClCompile Include="Source\FileSystem\FileSystem.cpp" />
     <ClCompile Include="Source\FileSystem\ResourceManager.cpp" />
@@ -150,6 +153,7 @@
     <ClCompile Include="Source\Renderer\RenderManager.cpp" />
     <ClCompile Include="Source\Renderer\VkImpl\MeshVk.cpp" />
     <ClCompile Include="Source\Renderer\VkImpl\RenderManagerVk.cpp" />
+    <ClCompile Include="Source\Renderer\VkImpl\TextureVk.cpp" />
     <ClCompile Include="Source\Renderer\Vulkan\Buffer.cpp" />
     <ClCompile Include="Source\Renderer\Vulkan\CommandList.cpp" />
     <ClCompile Include="Source\Renderer\Vulkan\ComputePipeline.cpp" />
@@ -168,9 +172,16 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\Core\Application.h" />
+    <ClInclude Include="Source\Core\EventManager.h" />
     <ClInclude Include="Source\Core\GlobalState.h" />
+    <ClInclude Include="Source\Core\Image.h" />
+    <ClInclude Include="Source\Core\Input.h" />
+    <ClInclude Include="Source\Core\KeyCodes.h" />
+    <ClInclude Include="Source\Core\Log.h" />
     <ClInclude Include="Source\Core\Platform.h" />
+    <ClInclude Include="Source\Core\Profiler.h" />
     <ClInclude Include="Source\Core\Singleton.h" />
+    <ClInclude Include="Source\Core\Timer.h" />
     <ClInclude Include="Source\Core\Window.h" />
     <ClInclude Include="Source\FileSystem\FileSystem.h" />
     <ClInclude Include="Source\FileSystem\ResourceManager.h" />
@@ -178,9 +189,12 @@
     <ClInclude Include="Source\Renderer\Material.h" />
     <ClInclude Include="Source\Renderer\Mesh.h" />
     <ClInclude Include="Source\Renderer\RenderManager.h" />
+    <ClInclude Include="Source\Renderer\SkyMaterial.h" />
     <ClInclude Include="Source\Renderer\Texture.h" />
+    <ClInclude Include="Source\Renderer\VkImpl\MaterialVk.h" />
     <ClInclude Include="Source\Renderer\VkImpl\MeshVk.h" />
     <ClInclude Include="Source\Renderer\VkImpl\RenderManagerVk.h" />
+    <ClInclude Include="Source\Renderer\VkImpl\TextureVk.h" />
     <ClInclude Include="Source\Renderer\Vulkan\Buffer.h" />
     <ClInclude Include="Source\Renderer\Vulkan\CommandList.h" />
     <ClInclude Include="Source\Renderer\Vulkan\ComputePipeline.h" />

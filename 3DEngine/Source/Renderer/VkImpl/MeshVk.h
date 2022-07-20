@@ -11,6 +11,7 @@ public:
 
 	MeshVk(vk::Device* dev);
 
+	void Destroy() override;
 
 	void GenerateMesh() override;
 

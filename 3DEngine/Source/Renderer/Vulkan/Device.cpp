@@ -428,7 +428,7 @@ namespace vk
 		appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
 		appInfo.pEngineName = "Kara GFX";
 		appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
-		appInfo.apiVersion = VK_API_VERSION_1_2;
+		appInfo.apiVersion = VK_API_VERSION_1_3;
 
 		std::vector<const char*> extensions;
 
@@ -541,7 +541,7 @@ namespace vk
 
 	void Device::CreateSurface()
 	{
-		VkWin32SurfaceCreateInfoKHR createInfo{};
+		/*VkWin32SurfaceCreateInfoKHR createInfo{};
 		createInfo.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
 		createInfo.hwnd = m_CreateInfo->window->GetRawWindow();
 		createInfo.hinstance = GetModuleHandle(nullptr);
@@ -549,7 +549,10 @@ namespace vk
 		if (vkCreateWin32SurfaceKHR(m_Instance, &createInfo, nullptr, &m_Surface) != VK_SUCCESS)
 		{
 			throw std::runtime_error("Failed to create Win32 Surface");
-		}
+		}*/
+
+		m_Surface = m_CreateInfo->window->CreateSurface(m_Instance);
+
 	}
 
 	void Device::FindQueueFamilies()
@@ -755,7 +758,7 @@ namespace vk
 	void Device::CreateAllocator()
 	{
 		VmaAllocatorCreateInfo allocatorInfo = {};
-		allocatorInfo.vulkanApiVersion = VK_API_VERSION_1_2;
+		allocatorInfo.vulkanApiVersion = VK_API_VERSION_1_3;
 		allocatorInfo.physicalDevice = m_PhysicalDevice;
 		allocatorInfo.device = m_Device;
 		allocatorInfo.instance = m_Instance;

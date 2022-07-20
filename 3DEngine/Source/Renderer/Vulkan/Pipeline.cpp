@@ -189,7 +189,8 @@ namespace vk
 			depthStencil.back = {};
 		}
 
-		VkDynamicState dynamicStates[] =
+
+		std::vector<VkDynamicState>dynamicStates =
 		{
 			VK_DYNAMIC_STATE_VIEWPORT,
 			VK_DYNAMIC_STATE_SCISSOR,
@@ -197,10 +198,15 @@ namespace vk
 			VK_DYNAMIC_STATE_DEPTH_BIAS
 		};
 
+		if (createInfo->dynamicCullMode)
+		{
+			dynamicStates.push_back(VK_DYNAMIC_STATE_CULL_MODE);
+		}
+
 		VkPipelineDynamicStateCreateInfo dynamicState{};
 		dynamicState.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
-		dynamicState.dynamicStateCount = 4;
-		dynamicState.pDynamicStates = dynamicStates;
+		dynamicState.dynamicStateCount = dynamicStates.size();
+		dynamicState.pDynamicStates = dynamicStates.data();;
 
 		VkViewport viewport{};
 		viewport.x = 0.0f;

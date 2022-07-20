@@ -13,16 +13,26 @@ public:
 
 	~RenderManagerVk();
 
-	void Render() override;
+	void WaitForIdle() override;
+
+	void Render(const glm::mat4& view_proj) override;
 
 	Mesh* NewMesh() override;
 
-	void QueueMesh(Mesh* mesh) override;
+	Texture* NewTexture() override;
 
+	Material* NewMaterial() override;
+
+	void QueueMesh(Mesh* mesh, glm::mat4 transform = glm::mat4(1.0f)) override;
+
+	void QueueMesh(std::vector<Mesh*> mesh) override;
+
+	void SetSkyMaterial(SkyMaterial* material) override;
 
 	struct DrawCmd
 	{
 		Mesh* mesh;
+		glm::mat4 transform;
 	};
 
 	std::vector<DrawCmd> mDrawCmds;
@@ -31,7 +41,16 @@ public:
 
 	vk::CommandList mCmdList;
 
-	vk::Pipeline mBasePipeline;
+	vk::Sampler mDefaultSampler;
+
+	struct
+	{
+		vk::Pipeline pipeline;
+
+		vk::DescriptorLayout materialLayout;
+
+	} mBasePipeline;
+	
 
 	struct
 	{
@@ -44,4 +63,15 @@ public:
 	{
 		uint32_t width, height;
 	} mProperties;
+
+	struct Sky
+	{
+
+		Mesh* skydome;
+
+		bool generated;
+
+		SkyMaterial* skyMaterial;
+
+	} sky;
 };

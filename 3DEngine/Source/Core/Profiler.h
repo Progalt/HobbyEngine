@@ -1,0 +1,32 @@
+#pragma once
+
+#include "Timer.h"
+
+#include <string>
+#include <unordered_map>
+
+class Profiler
+{
+public:
+
+	void BeginProfiling(const std::string& key)
+	{
+		mTimers[key].Start();
+	}
+
+	double EndProfiling(const std::string& key)
+	{
+		mTimers[key].Stop();
+
+		return mTimers[key].ElapsedMilliseconds();
+	}
+
+	double GetMilliseconds(const std::string& key)
+	{
+		return mTimers[key].ElapsedMilliseconds();
+	}
+
+private:
+
+	std::unordered_map<std::string, Timer> mTimers;
+};
