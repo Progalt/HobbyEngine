@@ -41,7 +41,7 @@ public:
 
 		mesh->material = ResourceManager::GetInstance().NewMaterial();
 
-		mesh->material->albedoColour = { 0.0f, 1.0f, 1.0f, 1.0f };
+		mesh->material->albedoColour = { 1.0f, 1.0f, 1.0f, 1.0f };
 		mesh->material->albedo = ResourceManager::GetInstance().GetErrorTexture();
 
 		proj = glm::perspective(glm::radians(60.0f), (float)window.GetWidth() / (float)window.GetHeight(), 0.01f, 1000.0f);

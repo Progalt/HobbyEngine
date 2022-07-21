@@ -37,7 +37,7 @@ namespace vk
 
 		bool m_UpdateAll = true;
 
-		bool m_AutoUpdate = true;
+		bool m_AutoUpdate = false;
 
 		VkDevice m_Device;
 

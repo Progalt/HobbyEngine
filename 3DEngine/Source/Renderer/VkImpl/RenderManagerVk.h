@@ -50,10 +50,30 @@ public:
 		vk::DescriptorLayout materialLayout;
 
 	} mBasePipeline;
-	
 
 	struct
 	{
+
+		vk::Pipeline pipeline;
+		vk::DescriptorLayout layout;
+
+		vk::Descriptor descriptor;
+
+	} mFullscreenPipeline;
+	
+	struct {
+
+		vk::Texture colourTarget;
+		vk::Texture velocityTarget;
+
+		vk::Texture depthTarget;
+
+	} mGeometryPass;
+
+	struct
+	{
+
+		vk::Renderpass geometryPass;
 
 		vk::Renderpass swapchain;
 

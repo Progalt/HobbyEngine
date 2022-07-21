@@ -23,11 +23,41 @@ RenderManagerVk::RenderManagerVk(Window* window)
 	mDevice.Create(&createInfo);
 
 	{
+		vk::SamplerSettings settings{};
+		settings.modeU = vk::WrapMode::Repeat;
+		settings.modeV = vk::WrapMode::Repeat;
+		settings.minFilter = vk::Filter::Nearest;
+		settings.magFilter = vk::Filter::Nearest;
+
+		mDefaultSampler = mDevice.NewSampler(&settings);
+	}
+
+	{
 		vk::RenderpassCreateInfo rpCreateInfo{};
 		rpCreateInfo.type = vk::RenderpassType::Swapchain;
 		rpCreateInfo.clearColour = { 0.3f, 0.2f, 0.6f, 1.0f };
 
 		mRenderpasses.swapchain = mDevice.NewRenderpass(&rpCreateInfo);
+	}
+
+	{
+		mGeometryPass.colourTarget = mDevice.NewTexture();
+		mGeometryPass.colourTarget.CreateRenderTarget(vk::FORMAT_R8G8B8A8_SRGB, window->GetWidth(), window->GetHeight());
+
+		mGeometryPass.velocityTarget = mDevice.NewTexture();
+		mGeometryPass.velocityTarget.CreateRenderTarget(vk::FORMAT_R16G16_SFLOAT, window->GetWidth(), window->GetHeight());
+
+		mGeometryPass.depthTarget = mDevice.NewTexture();
+		mGeometryPass.depthTarget.CreateRenderTarget(vk::FORMAT_D32_SFLOAT, window->GetWidth(), window->GetHeight());
+
+		vk::RenderpassCreateInfo rpCreateInfo{};
+		rpCreateInfo.type = vk::RenderpassType::Offscreen;
+		rpCreateInfo.colourAttachments = { &mGeometryPass.colourTarget , &mGeometryPass.velocityTarget };
+		rpCreateInfo.depthAttachment = &mGeometryPass.depthTarget;
+		rpCreateInfo.clearColour = { 0.3f, 0.2f, 0.6f, 1.0f };
+		rpCreateInfo.depthClear = 1.0f;
+		
+		mRenderpasses.geometryPass = mDevice.NewRenderpass(&rpCreateInfo);
 	}
 
 	mCmdList = mDevice.NewCommandList(vk::CommandListType::Primary);
@@ -60,7 +90,7 @@ RenderManagerVk::RenderManagerVk(Window* window)
 		mBasePipeline.materialLayout.Create();
 
 		vk::PipelineCreateInfo pipelineInfo{};
-		pipelineInfo.renderpass = &mRenderpasses.swapchain;
+		pipelineInfo.renderpass = &mRenderpasses.geometryPass;
 		pipelineInfo.layout = { &mBasePipeline.materialLayout };
 		pipelineInfo.pushConstantRanges = {};
 		pipelineInfo.topologyType = vk::Topology::TriangleList;
@@ -79,14 +109,39 @@ RenderManagerVk::RenderManagerVk(Window* window)
 	}
 
 	{
-		vk::SamplerSettings settings{};
-		settings.modeU = vk::WrapMode::Repeat;
-		settings.modeV = vk::WrapMode::Repeat;
-		settings.minFilter = vk::Filter::Nearest;
-		settings.magFilter = vk::Filter::Nearest;
-		
-		mDefaultSampler = mDevice.NewSampler(&settings);
+		vk::ShaderBlob vertexBlob = mDevice.NewShaderBlob();
+		vk::ShaderBlob fragmentBlob = mDevice.NewShaderBlob();
+
+		vertexBlob.CreateFromSource(vk::ShaderStage::Vertex, FileSystem::ReadBytes("Resources/Shaders/fullscreen.vert.spv"));
+		fragmentBlob.CreateFromSource(vk::ShaderStage::Fragment, FileSystem::ReadBytes("Resources/Shaders/fullscreen.frag.spv"));
+
+		vk::VertexDescription vertexDesc{};
+
+		mFullscreenPipeline.layout = mDevice.NewLayout();
+		mFullscreenPipeline.layout.AddLayoutBinding({ 0, vk::ShaderInputType::ImageSampler, 1, vk::ShaderStage::Fragment });
+
+		mFullscreenPipeline.layout.Create();
+
+		vk::PipelineCreateInfo pipelineInfo{};
+		pipelineInfo.renderpass = &mRenderpasses.swapchain;
+		pipelineInfo.layout = { &mFullscreenPipeline.layout };
+		pipelineInfo.pushConstantRanges = {};
+		pipelineInfo.topologyType = vk::Topology::TriangleList;
+		pipelineInfo.vertexDesc = nullptr;
+		pipelineInfo.shaders = { &vertexBlob, &fragmentBlob };
+
+
+		mFullscreenPipeline.pipeline = mDevice.NewPipeline(&pipelineInfo);
+
+		vertexBlob.Destroy();
+		fragmentBlob.Destroy();
+
+		mFullscreenPipeline.descriptor = mDevice.NewDescriptor(&mFullscreenPipeline.layout);
+		mFullscreenPipeline.descriptor.BindCombinedImageSampler(&mGeometryPass.colourTarget, &mDefaultSampler, 0);
+		mFullscreenPipeline.descriptor.Update();
+
 	}
+
 }
 
 RenderManagerVk::~RenderManagerVk()
@@ -94,10 +149,19 @@ RenderManagerVk::~RenderManagerVk()
 	mDevice.WaitIdle();
 
 	mRenderpasses.swapchain.Destroy();
+
+	mGeometryPass.colourTarget.Destroy();
+	mGeometryPass.depthTarget.Destroy();
+	mGeometryPass.velocityTarget.Destroy();
+
+	mRenderpasses.geometryPass.Destroy();
 	
 	mBasePipeline.pipeline.Destroy();
 
 	mBasePipeline.materialLayout.Destroy();
+
+	mFullscreenPipeline.pipeline.Destroy();
+	mFullscreenPipeline.layout.Destroy();
 
 	mDefaultSampler.Destroy();
 
@@ -115,7 +179,7 @@ void RenderManagerVk::Render(const glm::mat4& view_proj)
 
 	mCmdList.Begin();
 
-	mCmdList.BeginRenderpass(&mRenderpasses.swapchain, false);
+	mCmdList.BeginRenderpass(&mRenderpasses.geometryPass, false);
 
 	mCmdList.SetViewport(0, 0, this->mProperties.width, this->mProperties.height);
 	mCmdList.SetScissor(0, 0, this->mProperties.width, this->mProperties.height);
@@ -140,6 +204,18 @@ void RenderManagerVk::Render(const glm::mat4& view_proj)
 
 		mCmdList.DrawIndexed(cmd.mesh->indices.size(), 1, 0, 0, 0);
 	}
+
+	mCmdList.EndRenderpass();
+
+	mCmdList.BeginRenderpass(&mRenderpasses.swapchain, false);
+
+	mCmdList.SetViewport(0, 0, this->mProperties.width, this->mProperties.height);
+	mCmdList.SetScissor(0, 0, this->mProperties.width, this->mProperties.height);
+
+	mCmdList.BindPipeline(&mFullscreenPipeline.pipeline);
+
+	mCmdList.BindDescriptors({ &mFullscreenPipeline.descriptor }, &mFullscreenPipeline.pipeline, 0);
+	mCmdList.Draw(3, 1, 0, 0);
 
 	mCmdList.EndRenderpass();
 

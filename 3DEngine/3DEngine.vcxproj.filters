@@ -219,5 +219,7 @@
   <ItemGroup>
     <None Include="Resources\Shaders\base.glsl.vert" />
     <None Include="Resources\Shaders\base.glsl.frag" />
+    <None Include="Resources\Shaders\fullscreen.glsl.vert" />
+    <None Include="Resources\Shaders\fullscreen.glsl.frag" />
   </ItemGroup>
 </Project>
