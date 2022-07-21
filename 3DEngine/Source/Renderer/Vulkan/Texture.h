@@ -55,6 +55,7 @@ namespace vk
 		VkImage GetImage() { return m_Image; }
 		VkImageView GetImageView() { return m_ImageView; }
 
+
 	private:
 
 		friend Device;

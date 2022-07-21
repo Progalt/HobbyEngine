@@ -7,6 +7,8 @@
 
 #include "../Vulkan/ImguiImpl.h"
 
+#include <deque>
+
 class RenderManagerVk : public RenderManager
 {
 public:
@@ -38,7 +40,7 @@ public:
 		glm::mat4 transform;
 	};
 
-	std::vector<DrawCmd> mDrawCmds;
+	std::deque<DrawCmd> mDrawCmds;
 
 	vk::Device mDevice;
 

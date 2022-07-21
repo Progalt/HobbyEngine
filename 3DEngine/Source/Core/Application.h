@@ -1,7 +1,6 @@
 #pragma once
 
 #include "Window.h"
-#include "Profiler.h"
 
 #include "Input.h"
 
@@ -42,7 +41,6 @@ public:
 
 			time.delta = (float)((NOW - LAST) * 1000 / (float)SDL_GetPerformanceFrequency()) * 0.001f;
 
-			gProfiler.BeginProfiling("Frame");
 
 			window.PollEvents();
 
@@ -51,7 +49,6 @@ public:
 			Update();
 			Render();
 
-			gProfiler.EndProfiling("Frame");
 		}
 
 		Destroy();

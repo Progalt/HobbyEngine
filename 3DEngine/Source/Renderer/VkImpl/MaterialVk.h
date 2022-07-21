@@ -46,9 +46,14 @@ public:
 
 	void RegenDescriptor()
 	{
+		if (!setUpdate)
+			return;
+
 		params.albedo = albedoColour;
 
 		paramsBuffer.SetData(sizeof(MaterialParams), &params);
+
+		setUpdate = false;
 	}
 
 	bool createdDescriptor = false;

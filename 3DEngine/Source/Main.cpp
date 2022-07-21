@@ -1,10 +1,11 @@
 
 #include "Core/Application.h"
 #include "Renderer/RenderManager.h"
+#include "Core/Log.h"
 #include <iostream>
 
 #include <glm/gtc/matrix_transform.hpp>
-
+#include <array>
 #include <imgui.h>
 
 class App : public Application
@@ -50,10 +51,12 @@ public:
 		viewPos = { 0.0f, 0.0f, 0.0f };
 
 		renderManager->ImGuiDraw([&]() { ImGuiRender(); });
+
 	}
 
 	void Update() override
 	{
+
 		static int32_t lastX = 0, lastY = 0;
 
 		static float pitch = 0.0f;
@@ -106,7 +109,9 @@ public:
 		lastX = mousePos.x;
 		lastY = mousePos.y;
 
+		
 	}
+
 
 	glm::mat4 view;
 	glm::mat4 proj;
@@ -116,10 +121,11 @@ public:
 	{
 		ImGui::Begin("Statistics");
 
-		ImGui::Text("FPS: %d", (int)(1.0f / time.delta));
+		ImGui::Text("FPS: %d", GetFramerate((int)(1.0f / time.delta)));
 		ImGui::Separator();
 		ImGui::Text("Draw Calls: %d", renderManager->stats.drawCalls);
 		ImGui::Text("Renderpasses: %d", renderManager->stats.renderpasses);
+
 		
 		ImGui::End();
 	}
@@ -137,6 +143,7 @@ public:
 
 	void Destroy() override
 	{
+
 		renderManager->WaitForIdle();
 
 		mesh->Destroy();
@@ -149,6 +156,35 @@ public:
 	RenderManager* renderManager;
 
 	Mesh* mesh;
+
+	int GetFramerate(int newFrame)
+	{
+		// Average the framerate over 100 frames
+		const int totalFrameAvg = 100;
+		static int ptr = 0;
+		static int lastFPS = 0;
+		static std::array<int, totalFrameAvg> framerates;
+
+		framerates[ptr] = newFrame;
+		ptr++;
+
+		// Only update the framerate every 100 frames
+		if (ptr >= totalFrameAvg)
+		{
+			int total = 0;
+			for (auto& i : framerates)
+				total += i;
+
+			lastFPS = (total / framerates.size());
+
+			ptr = 0;
+		}
+
+
+		return lastFPS;
+	}
+
+	
 
 };
 

@@ -146,7 +146,6 @@
     <ClCompile Include="Source\Core\EventManager.cpp" />
     <ClCompile Include="Source\Core\Image.cpp" />
     <ClCompile Include="Source\Core\Input.cpp" />
-    <ClCompile Include="Source\Core\Profiler.cpp" />
     <ClCompile Include="Source\Core\Window.cpp" />
     <ClCompile Include="Source\FileSystem\FileSystem.cpp" />
     <ClCompile Include="Source\FileSystem\ResourceManager.cpp" />
@@ -180,9 +179,7 @@
     <ClInclude Include="Source\Core\KeyCodes.h" />
     <ClInclude Include="Source\Core\Log.h" />
     <ClInclude Include="Source\Core\Platform.h" />
-    <ClInclude Include="Source\Core\Profiler.h" />
     <ClInclude Include="Source\Core\Singleton.h" />
-    <ClInclude Include="Source\Core\Timer.h" />
     <ClInclude Include="Source\Core\Window.h" />
     <ClInclude Include="Source\FileSystem\FileSystem.h" />
     <ClInclude Include="Source\FileSystem\ResourceManager.h" />

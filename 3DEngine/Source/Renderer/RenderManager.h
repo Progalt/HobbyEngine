@@ -11,6 +11,7 @@ struct RenderStatistics
 {
 	uint32_t drawCalls;
 	uint32_t renderpasses;
+
 };
 
 // Handles the rendering of the engine

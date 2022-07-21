@@ -6,6 +6,7 @@
 #include "TextureVk.h"
 #include "MaterialVk.h"
 
+
 RenderManagerVk::RenderManagerVk(Window* window)
 {
 	vk::DeviceCreateInfo createInfo{};
@@ -14,7 +15,11 @@ RenderManagerVk::RenderManagerVk(Window* window)
 	createInfo.threadCount = 1;
 	createInfo.width = window->GetWidth();
 	createInfo.height = window->GetHeight();
+#ifdef _DEBUG
 	createInfo.debugInfo = true;
+#else 
+	createInfo.debugInfo = false;
+#endif
 	createInfo.requestSRGBBackBuffer = false;
 
 	this->mProperties.width = window->GetWidth();
@@ -44,11 +49,14 @@ RenderManagerVk::RenderManagerVk(Window* window)
 		mGeometryPass.colourTarget = mDevice.NewTexture();
 		mGeometryPass.colourTarget.CreateRenderTarget(vk::FORMAT_R8G8B8A8_SRGB, window->GetWidth(), window->GetHeight());
 
+
 		mGeometryPass.normalTarget = mDevice.NewTexture();
 		mGeometryPass.normalTarget.CreateRenderTarget(vk::FORMAT_R8G8B8A8_UNORM, window->GetWidth(), window->GetHeight());
 
+
 		mGeometryPass.velocityTarget = mDevice.NewTexture();
 		mGeometryPass.velocityTarget.CreateRenderTarget(vk::FORMAT_R16G16_SFLOAT, window->GetWidth(), window->GetHeight());
+
 
 		mGeometryPass.depthTarget = mDevice.NewTexture();
 		mGeometryPass.depthTarget.CreateRenderTarget(vk::FORMAT_D32_SFLOAT, window->GetWidth(), window->GetHeight());
@@ -190,6 +198,16 @@ void RenderManagerVk::Render(const glm::mat4& view_proj)
 
 	mCmdList.Begin();
 
+	// Begin the Geometry pass
+	// If you know about how a deferred renderer works this functions the same as that mostly.
+	// Currently it outputs: 
+	//		Target 1 : rgb = colour, a = unused
+	//		Target 2 : rg = normal, ba = unused
+	//		Target 3 : rg = velocity
+	// Thats just for now of course the ba in the target 2 is probably going to be metallic and roughness.
+	// Probably going to also store a material index that allows material data to be accessed during the lighting pass. 
+	// This works if I store all material data in a large buffer and index into it
+
 	mCmdList.BeginDebugUtilsLabel("Geometry Pass");
 
 	mCmdList.BeginRenderpass(&mRenderpasses.geometryPass, false);
@@ -204,23 +222,50 @@ void RenderManagerVk::Render(const glm::mat4& view_proj)
 	for (auto& cmd : mDrawCmds)
 	{
 
-		if (!((MaterialVk*)cmd.mesh->material)->createdDescriptor)
-			((MaterialVk*)cmd.mesh->material)->CreateDescriptor(&mDevice, &mBasePipeline.materialLayout);
+		MaterialVk* mat = (MaterialVk*)cmd.mesh->material;
+		MeshVk* mesh = (MeshVk*)cmd.mesh;
+
+		// If the descriptor isn't created. We should create it now
+		// A Just In Time sort of scenario
+		// This works when there are plenty of material combinations that can't be created in advanced 
+		// Performance does take a hit on first use though
+		if (!mat->createdDescriptor)
+			mat->CreateDescriptor(&mDevice, &mBasePipeline.materialLayout);
 		else
-			((MaterialVk*)cmd.mesh->material)->RegenDescriptor();
+			mat->RegenDescriptor();
 
-		glm::mat4 m = view_proj * cmd.transform;
-		mCmdList.PushConstants(&mBasePipeline.pipeline, vk::ShaderStage::Vertex, sizeof(glm::mat4), 0, &m);
-		mCmdList.PushConstants(&mBasePipeline.pipeline, vk::ShaderStage::Vertex, sizeof(glm::mat4), sizeof(glm::mat4), &cmd.transform);
 
-		mCmdList.BindDescriptors({ &((MaterialVk*)cmd.mesh->material)->descriptor }, &mBasePipeline.pipeline, 0);
+		// Pack all the data into a struct for now
+		// So it can be done in one call
+		// TODO: Should this be moved into a uniform buffer
+		// Or maybe mix both
+		
+		// This is exactly 128 bytes
+		// Which is the minimum required by vulkan so for now its fine.
+		struct
+		{
+			glm::mat4 mvp;
+			glm::mat4 model;
+		} data;
 
-		mCmdList.BindVertexBuffer(&((MeshVk*)cmd.mesh)->vertexBuffer, 0);
-		mCmdList.BindIndexBuffer(&((MeshVk*)cmd.mesh)->indexBuffer);
+		data.mvp = view_proj * cmd.transform;
+		data.model = cmd.transform;
+		mCmdList.PushConstants(&mBasePipeline.pipeline, vk::ShaderStage::Vertex, sizeof(data), 0, &data);
+
+		mCmdList.BindDescriptors({ &mat->descriptor }, &mBasePipeline.pipeline, 0);
+
+		// NOTE: For future I want to move this into a large vertex buffer nad large index buffer that 
+		// All drawable meshes use
+		// This means I can bind once and then offset accordingly in draw calls
+
+		mCmdList.BindVertexBuffer(&mesh->vertexBuffer, 0);
+		mCmdList.BindIndexBuffer(&mesh->indexBuffer);
 
 		mCmdList.DrawIndexed(cmd.mesh->indices.size(), 1, 0, 0, 0);
 
 		stats.drawCalls++;
+
+		mDrawCmds.pop_front();
 	}
 
 	mCmdList.EndRenderpass();
@@ -258,7 +303,6 @@ void RenderManagerVk::Render(const glm::mat4& view_proj)
 
 	mDevice.SubmitCommandListsAndPresent({ mCmdList });
 
-	mDrawCmds.clear();
 }
 
 void RenderManagerVk::QueueMesh(Mesh* mesh, glm::mat4 transform)

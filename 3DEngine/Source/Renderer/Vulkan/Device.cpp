@@ -101,12 +101,6 @@ namespace vk
 			return false;
 		}
 
-		if (result == VK_ERROR_OUT_OF_DATE_KHR)
-		{
-			m_ValidFrame = false;
-			return false;
-		}
-
 		m_ImageIndex = imageIndex;
 
 		m_ValidFrame = true;

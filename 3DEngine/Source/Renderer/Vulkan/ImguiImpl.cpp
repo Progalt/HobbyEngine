@@ -134,16 +134,16 @@ namespace vk
 		colors[ImGuiCol_NavWindowingDimBg] = ImVec4(0.000f, 0.000f, 0.000f, 0.586f);
 		colors[ImGuiCol_ModalWindowDimBg] = ImVec4(0.000f, 0.000f, 0.000f, 0.586f);
 
-		style->ChildRounding = 4.0f;
+		style->ChildRounding = 7.0f;
 		style->FrameBorderSize = 1.0f;
-		style->FrameRounding = 2.0f;
+		style->FrameRounding = 7.0f;
 		style->GrabMinSize = 7.0f;
-		style->PopupRounding = 2.0f;
+		style->PopupRounding = 7.0f;
 		style->ScrollbarRounding = 12.0f;
 		style->ScrollbarSize = 13.0f;
 		style->TabBorderSize = 1.0f;
-		style->TabRounding = 0.0f;
-		style->WindowRounding = 4.0f;
+		style->TabRounding = 7.0f;
+		style->WindowRounding = 7.0f;
 	}
 
 
