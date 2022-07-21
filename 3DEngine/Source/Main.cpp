@@ -5,6 +5,8 @@
 
 #include <glm/gtc/matrix_transform.hpp>
 
+#include <imgui.h>
+
 class App : public Application
 {
 public:
@@ -47,6 +49,7 @@ public:
 		proj = glm::perspective(glm::radians(60.0f), (float)window.GetWidth() / (float)window.GetHeight(), 0.01f, 1000.0f);
 		viewPos = { 0.0f, 0.0f, 0.0f };
 
+		renderManager->ImGuiDraw([&]() { ImGuiRender(); });
 	}
 
 	void Update() override
@@ -109,8 +112,21 @@ public:
 	glm::mat4 proj;
 	glm::vec3 viewPos;
 
+	void ImGuiRender()
+	{
+		ImGui::Begin("Statistics");
+
+		ImGui::Text("FPS: %d", (int)(1.0f / time.delta));
+		ImGui::Separator();
+		ImGui::Text("Draw Calls: %d", renderManager->stats.drawCalls);
+		ImGui::Text("Renderpasses: %d", renderManager->stats.renderpasses);
+		
+		ImGui::End();
+	}
+
 	void Render() override
 	{
+
 		renderManager->QueueMesh(mesh);
 
 		glm::mat4 viewProj = proj * view;

@@ -1,10 +1,6 @@
 #pragma once
 
 
-/*#include "../Vendor/imgui/imgui.h"
-#include "../Vendor/imgui/imgui_internal.h"
-#include "../Vendor/imgui/imgui_impl_sdl.h"
-#include "../Vendor/imgui/imgui_impl_vulkan.h"
 
 class Window;
 
@@ -17,6 +13,8 @@ namespace vk
 	enum class ImageLayout;
 	class Sampler;
 	class Texture;
+
+	typedef void* ImTextureID;
 
 	class Imgui
 	{
@@ -35,4 +33,4 @@ namespace vk
 	private:
 	};
 
-}*/
+}

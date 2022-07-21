@@ -5,6 +5,13 @@
 #include "../Core/Window.h"
 
 #include "SkyMaterial.h"
+#include <functional>
+
+struct RenderStatistics
+{
+	uint32_t drawCalls;
+	uint32_t renderpasses;
+};
 
 // Handles the rendering of the engine
 class RenderManager
@@ -31,5 +38,15 @@ public:
 
 	virtual void Render(const glm::mat4& view_proj) = 0;
 
+	void ImGuiDraw(std::function<void()> imgui)
+	{
+		imguiFunc = imgui;
+	}
+
+	RenderStatistics stats;
+
+protected:
+
+	std::function<void()> imguiFunc;
 	
 };

@@ -5,6 +5,8 @@
 
 #include "../Vulkan/Device.h"
 
+#include "../Vulkan/ImguiImpl.h"
+
 class RenderManagerVk : public RenderManager
 {
 public:
@@ -28,6 +30,7 @@ public:
 	void QueueMesh(std::vector<Mesh*> mesh) override;
 
 	void SetSkyMaterial(SkyMaterial* material) override;
+
 
 	struct DrawCmd
 	{
@@ -64,6 +67,7 @@ public:
 	struct {
 
 		vk::Texture colourTarget;
+		vk::Texture normalTarget;
 		vk::Texture velocityTarget;
 
 		vk::Texture depthTarget;

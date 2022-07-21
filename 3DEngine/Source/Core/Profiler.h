@@ -26,7 +26,14 @@ public:
 		return mTimers[key].ElapsedMilliseconds();
 	}
 
+	double GetMicroseconds(const std::string& key)
+	{
+		return mTimers[key].ElapsedMicroseconds();
+	}
+
 private:
 
 	std::unordered_map<std::string, Timer> mTimers;
 };
+
+extern Profiler gProfiler;

@@ -1,6 +1,10 @@
-/*#include "ImguiImpl.h"
+#include "ImguiImpl.h"
 
 #include "Device.h"
+
+#include <imgui.h>
+#include <imgui_impl_sdl.h>
+#include <imgui_impl_vulkan.h>
 
 
 namespace vk
@@ -172,4 +176,4 @@ namespace vk
 
 		ImGui::DestroyContext();
 	}
-}*/
+}

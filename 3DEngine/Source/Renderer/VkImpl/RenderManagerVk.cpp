@@ -44,6 +44,9 @@ RenderManagerVk::RenderManagerVk(Window* window)
 		mGeometryPass.colourTarget = mDevice.NewTexture();
 		mGeometryPass.colourTarget.CreateRenderTarget(vk::FORMAT_R8G8B8A8_SRGB, window->GetWidth(), window->GetHeight());
 
+		mGeometryPass.normalTarget = mDevice.NewTexture();
+		mGeometryPass.normalTarget.CreateRenderTarget(vk::FORMAT_R8G8B8A8_UNORM, window->GetWidth(), window->GetHeight());
+
 		mGeometryPass.velocityTarget = mDevice.NewTexture();
 		mGeometryPass.velocityTarget.CreateRenderTarget(vk::FORMAT_R16G16_SFLOAT, window->GetWidth(), window->GetHeight());
 
@@ -52,7 +55,7 @@ RenderManagerVk::RenderManagerVk(Window* window)
 
 		vk::RenderpassCreateInfo rpCreateInfo{};
 		rpCreateInfo.type = vk::RenderpassType::Offscreen;
-		rpCreateInfo.colourAttachments = { &mGeometryPass.colourTarget , &mGeometryPass.velocityTarget };
+		rpCreateInfo.colourAttachments = { &mGeometryPass.colourTarget ,&mGeometryPass.normalTarget, &mGeometryPass.velocityTarget };
 		rpCreateInfo.depthAttachment = &mGeometryPass.depthTarget;
 		rpCreateInfo.clearColour = { 0.3f, 0.2f, 0.6f, 1.0f };
 		rpCreateInfo.depthClear = 1.0f;
@@ -99,7 +102,7 @@ RenderManagerVk::RenderManagerVk(Window* window)
 
 		pipelineInfo.pushConstantRanges =
 		{
-			{ vk::ShaderStage::Vertex, 0, sizeof(glm::mat4) }
+			{ vk::ShaderStage::Vertex, 0, sizeof(glm::mat4) * 2 }
 		};
 
 		mBasePipeline.pipeline = mDevice.NewPipeline(&pipelineInfo);
@@ -142,6 +145,8 @@ RenderManagerVk::RenderManagerVk(Window* window)
 
 	}
 
+	vk::Imgui::Init(&mDevice, window, &mRenderpasses.swapchain);
+
 }
 
 RenderManagerVk::~RenderManagerVk()
@@ -152,6 +157,7 @@ RenderManagerVk::~RenderManagerVk()
 
 	mGeometryPass.colourTarget.Destroy();
 	mGeometryPass.depthTarget.Destroy();
+	mGeometryPass.normalTarget.Destroy();
 	mGeometryPass.velocityTarget.Destroy();
 
 	mRenderpasses.geometryPass.Destroy();
@@ -165,6 +171,8 @@ RenderManagerVk::~RenderManagerVk()
 
 	mDefaultSampler.Destroy();
 
+	vk::Imgui::Destroy();
+
 	mDevice.Destroy();
 }
 
@@ -175,11 +183,18 @@ void RenderManagerVk::WaitForIdle()
 
 void RenderManagerVk::Render(const glm::mat4& view_proj)
 {
+	stats.drawCalls = 0;
+	stats.renderpasses = 0;
+
 	mDevice.NextFrame();
 
 	mCmdList.Begin();
 
+	mCmdList.BeginDebugUtilsLabel("Geometry Pass");
+
 	mCmdList.BeginRenderpass(&mRenderpasses.geometryPass, false);
+
+	stats.renderpasses++;
 
 	mCmdList.SetViewport(0, 0, this->mProperties.width, this->mProperties.height);
 	mCmdList.SetScissor(0, 0, this->mProperties.width, this->mProperties.height);
@@ -196,6 +211,7 @@ void RenderManagerVk::Render(const glm::mat4& view_proj)
 
 		glm::mat4 m = view_proj * cmd.transform;
 		mCmdList.PushConstants(&mBasePipeline.pipeline, vk::ShaderStage::Vertex, sizeof(glm::mat4), 0, &m);
+		mCmdList.PushConstants(&mBasePipeline.pipeline, vk::ShaderStage::Vertex, sizeof(glm::mat4), sizeof(glm::mat4), &cmd.transform);
 
 		mCmdList.BindDescriptors({ &((MaterialVk*)cmd.mesh->material)->descriptor }, &mBasePipeline.pipeline, 0);
 
@@ -203,11 +219,19 @@ void RenderManagerVk::Render(const glm::mat4& view_proj)
 		mCmdList.BindIndexBuffer(&((MeshVk*)cmd.mesh)->indexBuffer);
 
 		mCmdList.DrawIndexed(cmd.mesh->indices.size(), 1, 0, 0, 0);
+
+		stats.drawCalls++;
 	}
 
 	mCmdList.EndRenderpass();
 
+	mCmdList.EndDebugUtilsLabel();
+
+	mCmdList.BeginDebugUtilsLabel("Present");
+
 	mCmdList.BeginRenderpass(&mRenderpasses.swapchain, false);
+
+	stats.renderpasses++;
 
 	mCmdList.SetViewport(0, 0, this->mProperties.width, this->mProperties.height);
 	mCmdList.SetScissor(0, 0, this->mProperties.width, this->mProperties.height);
@@ -216,8 +240,19 @@ void RenderManagerVk::Render(const glm::mat4& view_proj)
 
 	mCmdList.BindDescriptors({ &mFullscreenPipeline.descriptor }, &mFullscreenPipeline.pipeline, 0);
 	mCmdList.Draw(3, 1, 0, 0);
+	
+	stats.drawCalls++;
+
+	vk::Imgui::NewFrame();
+
+	if (imguiFunc) 
+		imguiFunc();
+
+	vk::Imgui::Render(&mCmdList);
 
 	mCmdList.EndRenderpass();
+
+	mCmdList.EndDebugUtilsLabel();
 
 	mCmdList.End();
 

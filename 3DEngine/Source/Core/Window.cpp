@@ -52,6 +52,9 @@ void Window::PollEvents()
 
 	while (SDL_PollEvent(&ev))
 	{
+		for (auto callback : mEventCallbacks)
+			callback(&ev);
+
 		switch (ev.type)
 		{
 		case SDL_QUIT:

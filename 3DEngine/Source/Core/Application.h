@@ -42,7 +42,7 @@ public:
 
 			time.delta = (float)((NOW - LAST) * 1000 / (float)SDL_GetPerformanceFrequency()) * 0.001f;
 
-			profiler.BeginProfiling("Frame");
+			gProfiler.BeginProfiling("Frame");
 
 			window.PollEvents();
 
@@ -51,13 +51,12 @@ public:
 			Update();
 			Render();
 
-			profiler.EndProfiling("Frame");
+			gProfiler.EndProfiling("Frame");
 		}
 
 		Destroy();
 	}
 
-	Profiler profiler;
 
 	Window window;
 

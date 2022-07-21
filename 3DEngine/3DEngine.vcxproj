@@ -146,6 +146,7 @@
     <ClCompile Include="Source\Core\EventManager.cpp" />
     <ClCompile Include="Source\Core\Image.cpp" />
     <ClCompile Include="Source\Core\Input.cpp" />
+    <ClCompile Include="Source\Core\Profiler.cpp" />
     <ClCompile Include="Source\Core\Window.cpp" />
     <ClCompile Include="Source\FileSystem\FileSystem.cpp" />
     <ClCompile Include="Source\FileSystem\ResourceManager.cpp" />

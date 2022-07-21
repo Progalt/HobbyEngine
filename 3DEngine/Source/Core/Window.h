@@ -8,6 +8,8 @@
 #include <Windows.h>
 
 #include <SDL2/SDL_vulkan.h>
+#include <vector>
+#include <functional>
 
 enum class WindowContext
 {
@@ -35,7 +37,18 @@ public:
 
 	VkSurfaceKHR CreateSurface(VkInstance instance);
 
+	SDL_Window* GetWindow() { return mWindow; }
+
+	void AddEventCallback(std::function<void(SDL_Event*)> callback)
+	{
+		mEventCallbacks.push_back(callback);
+	}
+
+
+
 private:
+
+	std::vector<std::function<void(SDL_Event*)>> mEventCallbacks;
 
 	SDL_Window* mWindow;
 
