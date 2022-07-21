@@ -33,6 +33,8 @@ RenderManagerVk::RenderManagerVk(Window* window)
 		settings.modeV = vk::WrapMode::Repeat;
 		settings.minFilter = vk::Filter::Nearest;
 		settings.magFilter = vk::Filter::Nearest;
+		settings.anisotropy = true;
+		settings.maxAnisotropy = 3.0f;
 
 		mDefaultSampler = mDevice.NewSampler(&settings);
 	}
@@ -107,6 +109,7 @@ RenderManagerVk::RenderManagerVk(Window* window)
 		pipelineInfo.topologyType = vk::Topology::TriangleList;
 		pipelineInfo.vertexDesc = &vertexDesc;
 		pipelineInfo.shaders = { &vertexBlob, &fragmentBlob };
+		pipelineInfo.blending = false;
 
 		pipelineInfo.pushConstantRanges =
 		{
@@ -271,6 +274,8 @@ void RenderManagerVk::Render(const glm::mat4& view_proj)
 	mCmdList.EndRenderpass();
 
 	mCmdList.EndDebugUtilsLabel();
+
+	// This final pass brings it all together and presents to screen
 
 	mCmdList.BeginDebugUtilsLabel("Present");
 

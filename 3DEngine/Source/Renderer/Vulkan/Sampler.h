@@ -38,6 +38,9 @@ namespace vk
 		CompareOp compareOp = CompareOp::Less;
 		bool compare = false;
 
+		bool anisotropy = false;
+		float maxAnisotropy = 1.0f;
+
 	};
 
 	class Descriptor;

@@ -19,7 +19,8 @@ namespace vk
 		samplerInfo.addressModeW = (VkSamplerAddressMode)settings->modeW;
 
 
-		samplerInfo.anisotropyEnable = VK_FALSE;
+		samplerInfo.anisotropyEnable = settings->anisotropy;
+		samplerInfo.maxAnisotropy = settings->maxAnisotropy;
 
 		samplerInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
 		samplerInfo.unnormalizedCoordinates = VK_FALSE;

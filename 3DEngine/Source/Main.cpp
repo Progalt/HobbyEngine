@@ -44,8 +44,12 @@ public:
 
 		mesh->material = ResourceManager::GetInstance().NewMaterial();
 
+		Image image;
+		image.LoadFromFile("Resources/test.png");
+
 		mesh->material->albedoColour = { 1.0f, 1.0f, 1.0f, 1.0f };
-		mesh->material->albedo = ResourceManager::GetInstance().GetErrorTexture();
+		mesh->material->albedo = ResourceManager::GetInstance().NewTexture();
+		ResourceManager::GetInstance().GetTexturePtr(mesh->material->albedo)->CreateFromImage(image, true, false);
 
 		proj = glm::perspective(glm::radians(60.0f), (float)window.GetWidth() / (float)window.GetHeight(), 0.01f, 1000.0f);
 		viewPos = { 0.0f, 0.0f, 0.0f };

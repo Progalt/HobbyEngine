@@ -34,6 +34,8 @@ public:
 
 		paramsBuffer.Create(vk::BufferType::Dynamic, vk::BufferUsage::Uniform, sizeof(MaterialParams), nullptr);
 
+		setUpdate = true;
+
 		RegenDescriptor();
 
 		descriptor.SetAutoUpdate(false);

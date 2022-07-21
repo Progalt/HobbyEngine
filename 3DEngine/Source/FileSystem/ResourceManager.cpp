@@ -4,13 +4,18 @@
 #include "../Renderer/RenderManager.h"
 #include "../Renderer/Material.h"
 
+#include "../Core/Log.h"
+
 void ResourceManager::Discard()
 {
+	Log::Info("Resource Manager", "Freed %d texture(s)", mLoadedTextures.size());
 	for (auto& texture : mLoadedTextures)
 	{
 		texture->Discard();
 		delete texture;
 	}
+
+	Log::Info("Resource Manager", "Freed %d material(s)", mMaterials.size());
 
 	for (auto& mat : mMaterials)
 	{

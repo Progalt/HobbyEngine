@@ -3,5 +3,8 @@
 
 class SkyMaterial
 {
+public:
+
+
 
 };

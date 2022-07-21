@@ -713,6 +713,7 @@ namespace vk
 		features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
 		features.pNext = &indexingFeatures;
 		features.features.multiDrawIndirect = (VkBool32)m_DeviceInfo.supportedFeatures.multiDrawIndirect;
+		features.features.samplerAnisotropy = VK_TRUE;
 
 		VkDeviceCreateInfo deviceCreateInfo = {};
 		deviceCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;

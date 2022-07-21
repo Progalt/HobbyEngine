@@ -184,6 +184,7 @@
     <ClInclude Include="Source\FileSystem\FileSystem.h" />
     <ClInclude Include="Source\FileSystem\ResourceManager.h" />
     <ClInclude Include="Source\Maths\BoundingBox.h" />
+    <ClInclude Include="Source\Maths\Rect.h" />
     <ClInclude Include="Source\Renderer\Material.h" />
     <ClInclude Include="Source\Renderer\Mesh.h" />
     <ClInclude Include="Source\Renderer\RenderManager.h" />

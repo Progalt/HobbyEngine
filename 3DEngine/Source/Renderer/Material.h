@@ -11,7 +11,7 @@ public:
 	virtual void Discard() = 0;
 
 	Handle<Texture> albedo;
-
+	glm::vec4 albedoColour;
 
 	bool setUpdate = false;
 
