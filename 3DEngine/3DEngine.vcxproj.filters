@@ -212,6 +212,12 @@
     <ClInclude Include="Source\Maths\Rect.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Source\Resources\Resource.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Resources\Model.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="Resources\Shaders\base.glsl.vert" />

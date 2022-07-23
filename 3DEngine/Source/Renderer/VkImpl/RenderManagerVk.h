@@ -40,7 +40,8 @@ public:
 		glm::mat4 transform;
 	};
 
-	std::deque<DrawCmd> mDrawCmds;
+	std::deque<DrawCmd> mDeferredDraws;
+	std::deque<DrawCmd> mForwardDraws;
 
 	vk::Device mDevice;
 
@@ -76,10 +77,16 @@ public:
 
 	} mGeometryPass;
 
+
 	struct
 	{
-
+		// Outputs all the required data to a GBuffer
+		// for a lighting pass later on
 		vk::Renderpass geometryPass;
+
+
+		// Renders objects that could not be done in the deferred stage
+		vk::Renderpass forwardPass;
 
 		vk::Renderpass swapchain;
 

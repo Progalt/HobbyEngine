@@ -31,8 +31,8 @@ RenderManagerVk::RenderManagerVk(Window* window)
 		vk::SamplerSettings settings{};
 		settings.modeU = vk::WrapMode::Repeat;
 		settings.modeV = vk::WrapMode::Repeat;
-		settings.minFilter = vk::Filter::Nearest;
-		settings.magFilter = vk::Filter::Nearest;
+		settings.minFilter = vk::Filter::Linear;
+		settings.magFilter = vk::Filter::Linear;
 		settings.anisotropy = true;
 		settings.maxAnisotropy = 3.0f;
 
@@ -208,6 +208,8 @@ void RenderManagerVk::Render(const glm::mat4& view_proj)
 	//		Target 2 : rg = normal, ba = unused
 	//		Target 3 : rg = velocity
 	// Thats just for now of course the ba in the target 2 is probably going to be metallic and roughness.
+	// With a normal only taking rg its quite obvious it is encoded. 
+	// 
 	// Probably going to also store a material index that allows material data to be accessed during the lighting pass. 
 	// This works if I store all material data in a large buffer and index into it
 
@@ -222,7 +224,7 @@ void RenderManagerVk::Render(const glm::mat4& view_proj)
 
 	mCmdList.BindPipeline(&mBasePipeline.pipeline);
 
-	for (auto& cmd : mDrawCmds)
+	for (auto& cmd : mDeferredDraws)
 	{
 
 		MaterialVk* mat = (MaterialVk*)cmd.mesh->material;
@@ -268,7 +270,7 @@ void RenderManagerVk::Render(const glm::mat4& view_proj)
 
 		stats.drawCalls++;
 
-		mDrawCmds.pop_front();
+		mDeferredDraws.pop_front();
 	}
 
 	mCmdList.EndRenderpass();
@@ -312,13 +314,16 @@ void RenderManagerVk::Render(const glm::mat4& view_proj)
 
 void RenderManagerVk::QueueMesh(Mesh* mesh, glm::mat4 transform)
 {
-	mDrawCmds.push_back({ mesh, transform });
+	if (mesh->material->pass == Pass::Deferred)
+		mDeferredDraws.push_back({ mesh, transform });
+	else
+		mForwardDraws.push_back({ mesh, transform });
 }
 
 void RenderManagerVk::QueueMesh(std::vector<Mesh*> mesh)
 {
 	for (auto& meshes : mesh)
-		mDrawCmds.push_back({ meshes });
+		QueueMesh(meshes);
 }
 
 void RenderManagerVk::SetSkyMaterial(SkyMaterial* material)

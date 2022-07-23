@@ -14,6 +14,32 @@ struct RenderStatistics
 
 };
 
+enum class AntiAliasingMethod
+{
+	None,
+
+	// Use data from previous frames and velocity vectors to smooth egdes
+	// Can cause loss of detail due to smoothing. 
+	TemporalAA,
+
+
+	// RESEARCH:
+	// Looks like another good AA solution that works based on egde detection
+	// Good for smoothing egdes but not shader aliasing stuff like TAA. 
+	// SMAA,
+
+	// MAYBE:
+	// Its a cheap AA solution so it could be worth implementing 
+	// FXAA
+};
+
+// NOTE: Not implemented yet but planned
+struct RenderSettings
+{
+	// Method to do anti aliasing
+	AntiAliasingMethod AntiAliasing;
+};
+
 // Handles the rendering of the engine
 class RenderManager
 {

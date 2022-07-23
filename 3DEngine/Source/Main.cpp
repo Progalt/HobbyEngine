@@ -49,7 +49,7 @@ public:
 
 		mesh->material->albedoColour = { 1.0f, 1.0f, 1.0f, 1.0f };
 		mesh->material->albedo = ResourceManager::GetInstance().NewTexture();
-		ResourceManager::GetInstance().GetTexturePtr(mesh->material->albedo)->CreateFromImage(image, true, false);
+		ResourceManager::GetInstance().GetTexturePtr(mesh->material->albedo)->CreateFromImage(image, true, true);
 
 		proj = glm::perspective(glm::radians(60.0f), (float)window.GetWidth() / (float)window.GetHeight(), 0.01f, 1000.0f);
 		viewPos = { 0.0f, 0.0f, 0.0f };
@@ -125,7 +125,9 @@ public:
 	{
 		ImGui::Begin("Statistics");
 
-		ImGui::Text("FPS: %d", GetFramerate((int)(1.0f / time.delta)));
+		int framerate = GetFramerate((int)(1.0f / time.delta));
+
+		ImGui::Text("FPS: %d", framerate);
 		ImGui::Separator();
 		ImGui::Text("Draw Calls: %d", renderManager->stats.drawCalls);
 		ImGui::Text("Renderpasses: %d", renderManager->stats.renderpasses);
@@ -183,6 +185,7 @@ public:
 
 			ptr = 0;
 		}
+
 
 
 		return lastFPS;
