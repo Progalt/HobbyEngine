@@ -176,6 +176,8 @@ namespace pmdl
 		uint32_t textureDataOffset = 0;
 	};
 
+	// NOTE: Alot of these functions will probably be wrapped up in a nicer interface later on
+
 	// ---- Init functions ---- 
 
 	void InitHeader(Header1* header);
@@ -197,6 +199,7 @@ namespace pmdl
 	// This can be queried from the header struct
 	uint32_t* ReadIndices32bit(FILE* file, Header1* header);
 	uint16_t* ReadIndices16bit(FILE* file, Header1* header);
+
 
 	// ---- Writing Functions -----
 
@@ -256,6 +259,8 @@ namespace pmdl
 		header->textureCount = textureCount;
 		header->textureDataOffset = cursor;
 
+		// This doesn't actually work
+		// because of the string in Texture1
 		cursor += textureCount * sizeof(Texture1);
 
 		return cursor;
