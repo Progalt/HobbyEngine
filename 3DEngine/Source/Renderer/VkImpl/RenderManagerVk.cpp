@@ -106,6 +106,7 @@ RenderManagerVk::RenderManagerVk(Window* window)
 		pipelineInfo.renderpass = &mRenderpasses.geometryPass;
 		pipelineInfo.layout = { &mBasePipeline.materialLayout };
 		pipelineInfo.pushConstantRanges = {};
+		pipelineInfo.cullMode = vk::CullMode::Front;
 		pipelineInfo.topologyType = vk::Topology::TriangleList;
 		pipelineInfo.vertexDesc = &vertexDesc;
 		pipelineInfo.shaders = { &vertexBlob, &fragmentBlob };

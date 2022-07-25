@@ -8,6 +8,9 @@
 #include <array>
 #include <imgui.h>
 
+#define PMDL_IMPLEMENTATION
+#include "Model/PMDL.h"
+
 class App : public Application
 {
 public:
@@ -20,26 +23,35 @@ public:
 
 		mesh = renderManager->NewMesh();
 
-		mesh->positions = {
-			{ -0.5f, -0.5f, 0.0f },
-			{ 0.5f, -0.5f, 0.0f },
-			{ 0.5f, 0.5f, 0.0f },
-			{ -0.5f, 0.5f, 0.0f }
-		};
+		// Load pmdl
+
+		FILE* file = fopen("Resources/Sphere.pmdl", "rb");
+
 		
-		mesh->texCoords = {
-			{ 0.0f, 0.0f },
-			{ 1.0f, 0.0f }, 
-			{ 1.0f, 1.0f },
-			{ 0.0f, 1.0f }
-		};
 
-		mesh->indices = {
-			0, 1, 3,
-			1, 2, 3
-		};
+		pmdl::Header1 header = pmdl::ReadHeader1(file);
 
-		mesh->CalculateNormals();
+		pmdl::Vertex* vertices = pmdl::ReadVertices(file, &header);
+		uint32_t* indices = pmdl::ReadIndices32bit(file, &header);
+
+		pmdl::Material1 material = pmdl::ReadMaterial1(file, &header, 0);
+
+		fclose(file);
+
+		for (uint32_t i = 0; i < header.vertexCount; i++)
+		{
+			mesh->positions.push_back({ vertices[i].position.x, vertices[i].position.y, vertices[i].position.z});
+			mesh->texCoords.push_back({ vertices[i].texCoord.x, vertices[i].texCoord.y});
+			mesh->normals.push_back({ vertices[i].normal.x, vertices[i].normal.y, vertices[i].normal.z });
+		}
+
+		for (uint32_t i = 0; i < header.indexCount; i++)
+			mesh->indices.push_back(indices[i]);
+
+		PMDL_FREE(vertices);
+		PMDL_FREE(indices);
+
+		//mesh->CalculateNormals();
 		mesh->GenerateMesh();
 
 		mesh->material = ResourceManager::GetInstance().NewMaterial();
@@ -47,9 +59,8 @@ public:
 		Image image;
 		image.LoadFromFile("Resources/test.png");
 
-		mesh->material->albedoColour = { 1.0f, 1.0f, 1.0f, 1.0f };
-		mesh->material->albedo = ResourceManager::GetInstance().NewTexture();
-		ResourceManager::GetInstance().GetTexturePtr(mesh->material->albedo)->CreateFromImage(image, true, true);
+		mesh->material->albedoColour = { material.albedo.x, material.albedo.y, material.albedo.z, material.albedo.w };
+		mesh->material->albedo = ResourceManager::GetInstance().GetWhiteTexture();
 
 		proj = glm::perspective(glm::radians(60.0f), (float)window.GetWidth() / (float)window.GetHeight(), 0.01f, 1000.0f);
 		viewPos = { 0.0f, 0.0f, 0.0f };

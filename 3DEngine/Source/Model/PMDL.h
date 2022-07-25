@@ -392,8 +392,7 @@ namespace pmdl
 
 		for (uint32_t i = 0; i < header->vertexCount; i++)
 		{
-			void* offVert = verts + (sizeof(Vertex) * i);
-			fread(offVert, sizeof(Vertex), 1, file);
+			fread(&verts[i], sizeof(Vertex), 1, file);
 
 
 			//printf("Reading Vertex: %.3f, %.3f, %.3f\n", verts[i].position.x, verts[i].position.y, verts[i].position.z);
