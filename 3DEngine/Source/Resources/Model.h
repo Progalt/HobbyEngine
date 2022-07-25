@@ -5,6 +5,7 @@
 #include "Resource.h"
 #include "../Renderer/Mesh.h"
 #include <vector>
+#include "../Model/PMDL.h"
 
 
 class Model : public Resource
@@ -13,14 +14,15 @@ public:
 
 	void Discard() override;
 	
-	struct Submesh
-	{
+	void LoadFromFile(const std::string& path, RenderManager* renderManager);
 
-	};
+	void Queue(RenderManager* renderManager, glm::mat4 matrix);
+	
+	std::vector<pmdl::Mesh> submeshes;
 
-	// All vertices are put into a single mesh and then indexed into
 	Mesh* mesh;
 
+	std::vector<Material*> materials;
 
 private:
 };

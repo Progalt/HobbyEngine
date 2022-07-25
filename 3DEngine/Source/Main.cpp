@@ -8,8 +8,9 @@
 #include <array>
 #include <imgui.h>
 
-#define PMDL_IMPLEMENTATION
-#include "Model/PMDL.h"
+
+
+#include "Resources/Model.h"
 
 class App : public Application
 {
@@ -21,13 +22,11 @@ public:
 
 		ResourceManager::GetInstance().SetRenderManager(renderManager);
 
-		mesh = renderManager->NewMesh();
+		/*mesh = renderManager->NewMesh();
 
 		// Load pmdl
 
 		FILE* file = fopen("Resources/Sphere.pmdl", "rb");
-
-		
 
 		pmdl::Header1 header = pmdl::ReadHeader1(file);
 
@@ -51,16 +50,18 @@ public:
 		PMDL_FREE(vertices);
 		PMDL_FREE(indices);
 
-		//mesh->CalculateNormals();
 		mesh->GenerateMesh();
 
-		mesh->material = ResourceManager::GetInstance().NewMaterial();
+		mat = ResourceManager::GetInstance().NewMaterial();
 
 		Image image;
 		image.LoadFromFile("Resources/test.png");
 
-		mesh->material->albedoColour = { material.albedo.x, material.albedo.y, material.albedo.z, material.albedo.w };
-		mesh->material->albedo = ResourceManager::GetInstance().GetWhiteTexture();
+		mat->albedoColour = { material.albedo.x, material.albedo.y, material.albedo.z, material.albedo.w };
+		mat->albedo = ResourceManager::GetInstance().GetWhiteTexture();
+		*/
+
+		model.LoadFromFile("Resources/Sphere.pmdl", renderManager);
 
 		proj = glm::perspective(glm::radians(60.0f), (float)window.GetWidth() / (float)window.GetHeight(), 0.01f, 1000.0f);
 		viewPos = { 0.0f, 0.0f, 0.0f };
@@ -150,7 +151,9 @@ public:
 	void Render() override
 	{
 
-		renderManager->QueueMesh(mesh);
+		//renderManager->QueueMesh(mesh, mat);
+
+		model.Queue(renderManager, glm::mat4(1.0f));
 
 		glm::mat4 viewProj = proj * view;
 
@@ -163,7 +166,9 @@ public:
 
 		renderManager->WaitForIdle();
 
-		mesh->Destroy();
+		//mesh->Destroy();
+
+		model.Discard();
 
 		ResourceManager::GetInstance().Discard();
 
@@ -172,7 +177,10 @@ public:
 
 	RenderManager* renderManager;
 
-	Mesh* mesh;
+	//Mesh* mesh;
+	//Material* mat;
+
+	Model model;
 
 	int GetFramerate(int newFrame)
 	{

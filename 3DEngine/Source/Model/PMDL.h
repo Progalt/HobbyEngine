@@ -125,7 +125,9 @@ namespace pmdl
 	struct Texture1
 	{
 		uint32_t pathSize;
-		char* path;
+
+		// Could this be done better? 
+		char path[256];
 	};
 
 	// Header for version 1 pmdl files
@@ -208,6 +210,8 @@ namespace pmdl
 	// Does not free the texture itself
 	void FreeTextureMemory1(Texture1* tex);
 
+	uint32_t GetTextureSize(Texture1* tex);
+
 	// NOTE: Alot of these functions will probably be wrapped up in a nicer interface later on
 
 	// ---- Init functions ---- 
@@ -262,10 +266,6 @@ namespace pmdl
 
 		PMDL_ASSERT(tex.pathSize != 0);
 
-		tex.path = (char*)PMDL_MALLOC(tex.pathSize * sizeof(char));
-
-		PMDL_ASSERT(tex.path);
-
 		strcpy(tex.path, path);
 
 		return tex;
@@ -277,6 +277,15 @@ namespace pmdl
 
 		if (tex->path)
 			PMDL_FREE(tex->path);
+	}
+
+	uint32_t GetTextureSize(Texture1* tex)
+	{
+		PMDL_ASSERT(tex);
+
+		uint32_t size = sizeof(tex->pathSize) + strlen(tex->path) * sizeof(char);
+
+		return size;
 	}
 
 	void FreePMDL(PMDL* pmdl)
@@ -509,6 +518,7 @@ namespace pmdl
 		fseek(file, offset, SEEK_SET);
 		fwrite(material, sizeof(Material1), 1, file);
 	}
+
 
 }
 

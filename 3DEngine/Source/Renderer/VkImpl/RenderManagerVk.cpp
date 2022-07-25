@@ -228,7 +228,7 @@ void RenderManagerVk::Render(const glm::mat4& view_proj)
 	for (auto& cmd : mDeferredDraws)
 	{
 
-		MaterialVk* mat = (MaterialVk*)cmd.mesh->material;
+		MaterialVk* mat = (MaterialVk*)cmd.material;
 		MeshVk* mesh = (MeshVk*)cmd.mesh;
 
 		// If the descriptor isn't created. We should create it now
@@ -267,7 +267,7 @@ void RenderManagerVk::Render(const glm::mat4& view_proj)
 		mCmdList.BindVertexBuffer(&mesh->vertexBuffer, 0);
 		mCmdList.BindIndexBuffer(&mesh->indexBuffer);
 
-		mCmdList.DrawIndexed(cmd.mesh->indices.size(), 1, 0, 0, 0);
+		mCmdList.DrawIndexed(( cmd.indexCount == 0) ? cmd.mesh->indices.size() : cmd.indexCount, 1, cmd.firstIndex, 0, 0);
 
 		stats.drawCalls++;
 
@@ -313,19 +313,14 @@ void RenderManagerVk::Render(const glm::mat4& view_proj)
 
 }
 
-void RenderManagerVk::QueueMesh(Mesh* mesh, glm::mat4 transform)
+void RenderManagerVk::QueueMesh(Mesh* mesh, Material* material, glm::mat4 transform, uint32_t firstIndex, uint32_t indexCount)
 {
-	if (mesh->material->pass == Pass::Deferred)
-		mDeferredDraws.push_back({ mesh, transform });
+	if (material->pass == Pass::Deferred)
+		mDeferredDraws.push_back({ mesh, transform, material, firstIndex, indexCount });
 	else
-		mForwardDraws.push_back({ mesh, transform });
+		mForwardDraws.push_back({ mesh, transform, material, firstIndex, indexCount });
 }
 
-void RenderManagerVk::QueueMesh(std::vector<Mesh*> mesh)
-{
-	for (auto& meshes : mesh)
-		QueueMesh(meshes);
-}
 
 void RenderManagerVk::SetSkyMaterial(SkyMaterial* material)
 {

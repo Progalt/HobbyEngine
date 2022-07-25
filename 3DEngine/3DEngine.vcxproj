@@ -150,6 +150,7 @@
     <ClCompile Include="Source\FileSystem\FileSystem.cpp" />
     <ClCompile Include="Source\FileSystem\ResourceManager.cpp" />
     <ClCompile Include="Source\Main.cpp" />
+    <ClCompile Include="Source\Model\PMDL.cpp" />
     <ClCompile Include="Source\Renderer\RenderManager.cpp" />
     <ClCompile Include="Source\Renderer\VkImpl\MeshVk.cpp" />
     <ClCompile Include="Source\Renderer\VkImpl\RenderManagerVk.cpp" />
@@ -169,6 +170,7 @@
     <ClCompile Include="Source\Renderer\Vulkan\Texture.cpp" />
     <ClCompile Include="Source\Renderer\Vulkan\UtilityVK.cpp" />
     <ClCompile Include="Source\Renderer\Vulkan\Vendor\vk_mem_alloc.cpp" />
+    <ClCompile Include="Source\Resources\Model.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\Core\Application.h" />
