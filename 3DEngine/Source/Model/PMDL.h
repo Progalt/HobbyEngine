@@ -104,7 +104,14 @@ namespace pmdl
 
 	struct Mesh
 	{
-		uint32_t firstIndex, indexCount, materialIndex;
+		uint32_t firstIndex, indexCount, materialIndex, firstVertex;
+	};
+
+	// This is a hint to the engine loading the model on which shader to use
+	enum class ShaderType
+	{
+		Default,
+		PBR
 	};
 
 	struct Material1
@@ -398,14 +405,8 @@ namespace pmdl
 		PMDL_ASSERT(verts);
 
 		fseek(file, header->vertexOffset, SEEK_SET);
+		fread(verts, sizeof(Vertex), header->vertexCount, file);
 
-		for (uint32_t i = 0; i < header->vertexCount; i++)
-		{
-			fread(&verts[i], sizeof(Vertex), 1, file);
-
-
-			//printf("Reading Vertex: %.3f, %.3f, %.3f\n", verts[i].position.x, verts[i].position.y, verts[i].position.z);
-		}
 
 		return verts;
 	}
@@ -487,14 +488,8 @@ namespace pmdl
 		uint32_t offset = header->vertexOffset;
 
 		fseek(file, offset, SEEK_SET);
+		fwrite(vertices, sizeof(Vertex), vertexCount, file);
 
-		for (uint32_t i = 0; i < vertexCount; i++)
-		{
-			//printf("Writing Vertex: %.3f, %.3f, %.3f\n", vertices[i].position.x, vertices[i].position.y, vertices[i].position.z);
-
-			fseek(file, offset + sizeof(Vertex) * i, SEEK_SET);
-			fwrite(&vertices[i], sizeof(Vertex), 1, file);
-		}
 	}
 
 	void WriteIndices(FILE* file, Header1* header, IndexTypeExport* indices, uint32_t indexCount)

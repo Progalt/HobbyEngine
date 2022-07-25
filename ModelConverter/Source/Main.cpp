@@ -21,6 +21,7 @@ public:
 
 	std::string dir;
 
+
 	void LoadFromFile(const std::string& filepath)
 	{
 		Assimp::Importer importer;
@@ -76,6 +77,8 @@ public:
 
 		uint32_t materialIndex = mesh->mMaterialIndex;
 
+		uint32_t vertexOffset = vertices.size();
+
 		for (unsigned int i = 0; i < mesh->mNumVertices; i++)
 		{
 			pmdl::Vertex vertex;
@@ -108,7 +111,7 @@ public:
 
 		indexCount = indices.size() - firstIndex;
 
-		return { firstIndex, indexCount, materialIndex };
+		return { firstIndex, indexCount, materialIndex, vertexOffset };
 	}
 
 };

@@ -104,7 +104,14 @@ namespace pmdl
 
 	struct Mesh
 	{
-		uint32_t firstIndex, indexCount, materialIndex;
+		uint32_t firstIndex, indexCount, materialIndex, firstVertex;
+	};
+
+	// This is a hint to the engine loading the model on which shader to use
+	enum class ShaderType
+	{
+		Default,
+		PBR
 	};
 
 	struct Material1
@@ -125,7 +132,9 @@ namespace pmdl
 	struct Texture1
 	{
 		uint32_t pathSize;
-		char* path;
+
+		// Could this be done better? 
+		char path[256];
 	};
 
 	// Header for version 1 pmdl files
@@ -208,6 +217,8 @@ namespace pmdl
 	// Does not free the texture itself
 	void FreeTextureMemory1(Texture1* tex);
 
+	uint32_t GetTextureSize(Texture1* tex);
+
 	// NOTE: Alot of these functions will probably be wrapped up in a nicer interface later on
 
 	// ---- Init functions ---- 
@@ -262,10 +273,6 @@ namespace pmdl
 
 		PMDL_ASSERT(tex.pathSize != 0);
 
-		tex.path = (char*)PMDL_MALLOC(tex.pathSize * sizeof(char));
-
-		PMDL_ASSERT(tex.path);
-
 		strcpy(tex.path, path);
 
 		return tex;
@@ -277,6 +284,15 @@ namespace pmdl
 
 		if (tex->path)
 			PMDL_FREE(tex->path);
+	}
+
+	uint32_t GetTextureSize(Texture1* tex)
+	{
+		PMDL_ASSERT(tex);
+
+		uint32_t size = sizeof(tex->pathSize) + strlen(tex->path) * sizeof(char);
+
+		return size;
 	}
 
 	void FreePMDL(PMDL* pmdl)
@@ -389,15 +405,8 @@ namespace pmdl
 		PMDL_ASSERT(verts);
 
 		fseek(file, header->vertexOffset, SEEK_SET);
+		fread(verts, sizeof(Vertex), header->vertexCount, file);
 
-		for (uint32_t i = 0; i < header->vertexCount; i++)
-		{
-			void* offVert = verts + (sizeof(Vertex) * i);
-			fread(offVert, sizeof(Vertex), 1, file);
-
-
-			//printf("Reading Vertex: %.3f, %.3f, %.3f\n", verts[i].position.x, verts[i].position.y, verts[i].position.z);
-		}
 
 		return verts;
 	}
@@ -479,14 +488,8 @@ namespace pmdl
 		uint32_t offset = header->vertexOffset;
 
 		fseek(file, offset, SEEK_SET);
+		fwrite(vertices, sizeof(Vertex), vertexCount, file);
 
-		for (uint32_t i = 0; i < vertexCount; i++)
-		{
-			//printf("Writing Vertex: %.3f, %.3f, %.3f\n", vertices[i].position.x, vertices[i].position.y, vertices[i].position.z);
-
-			fseek(file, offset + sizeof(Vertex) * i, SEEK_SET);
-			fwrite(&vertices[i], sizeof(Vertex), 1, file);
-		}
 	}
 
 	void WriteIndices(FILE* file, Header1* header, IndexTypeExport* indices, uint32_t indexCount)
@@ -510,6 +513,7 @@ namespace pmdl
 		fseek(file, offset, SEEK_SET);
 		fwrite(material, sizeof(Material1), 1, file);
 	}
+
 
 }
 

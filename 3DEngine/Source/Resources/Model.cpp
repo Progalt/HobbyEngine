@@ -11,6 +11,11 @@ void Model::Discard()
 
 void Model::LoadFromFile(const std::string& path, RenderManager* renderManager)
 {
+	// Currently PMDL doesn't have a sort of global loadModel function
+	// Each section must be loaded as needed
+
+	// Its quite fast to load and convert to our format because most it is fairly simple
+
 	FILE* file = fopen(path.c_str(), "rb");
 
 	pmdl::Header1 header = pmdl::ReadHeader1(file);
@@ -20,16 +25,24 @@ void Model::LoadFromFile(const std::string& path, RenderManager* renderManager)
 
 	this->mesh = renderManager->NewMesh();
 
+	this->mesh->positions.resize(header.vertexCount);
+	this->mesh->texCoords.resize(header.vertexCount);
+	this->mesh->normals.resize(header.vertexCount);
+
 	// Add all the vertex and index data to the mesh
 	for (uint32_t i = 0; i < header.vertexCount; i++)
 	{
-		this->mesh->positions.push_back({ vertices[i].position.x, vertices[i].position.y, vertices[i].position.z });
-		this->mesh->texCoords.push_back({ vertices[i].texCoord.x, vertices[i].texCoord.y });
-		this->mesh->normals.push_back({ vertices[i].normal.x, vertices[i].normal.y, vertices[i].normal.z });
+		// PMDL outputs a vertex struct currently
+		// so convert to our system
+		this->mesh->positions[i] = { vertices[i].position.x, vertices[i].position.y, vertices[i].position.z };
+		this->mesh->texCoords[i] = { vertices[i].texCoord.x, vertices[i].texCoord.y };
+		this->mesh->normals[i] = { vertices[i].normal.x, vertices[i].normal.y, vertices[i].normal.z };
 	}
 
+	this->mesh->indices.resize(header.indexCount);
+
 	for (uint32_t i = 0; i < header.indexCount; i++)
-		this->mesh->indices.push_back(indices[i]);
+		this->mesh->indices[i] = indices[i];
 
 	PMDL_FREE(vertices);
 	PMDL_FREE(indices);
@@ -55,7 +68,7 @@ void Model::LoadFromFile(const std::string& path, RenderManager* renderManager)
 		materials.push_back(material);
 	}
 
-
+	fclose(file);
 
 }
 

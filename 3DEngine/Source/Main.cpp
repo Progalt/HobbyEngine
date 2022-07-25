@@ -22,45 +22,6 @@ public:
 
 		ResourceManager::GetInstance().SetRenderManager(renderManager);
 
-		/*mesh = renderManager->NewMesh();
-
-		// Load pmdl
-
-		FILE* file = fopen("Resources/Sphere.pmdl", "rb");
-
-		pmdl::Header1 header = pmdl::ReadHeader1(file);
-
-		pmdl::Vertex* vertices = pmdl::ReadVertices(file, &header);
-		uint32_t* indices = pmdl::ReadIndices32bit(file, &header);
-
-		pmdl::Material1 material = pmdl::ReadMaterial1(file, &header, 0);
-
-		fclose(file);
-
-		for (uint32_t i = 0; i < header.vertexCount; i++)
-		{
-			mesh->positions.push_back({ vertices[i].position.x, vertices[i].position.y, vertices[i].position.z});
-			mesh->texCoords.push_back({ vertices[i].texCoord.x, vertices[i].texCoord.y});
-			mesh->normals.push_back({ vertices[i].normal.x, vertices[i].normal.y, vertices[i].normal.z });
-		}
-
-		for (uint32_t i = 0; i < header.indexCount; i++)
-			mesh->indices.push_back(indices[i]);
-
-		PMDL_FREE(vertices);
-		PMDL_FREE(indices);
-
-		mesh->GenerateMesh();
-
-		mat = ResourceManager::GetInstance().NewMaterial();
-
-		Image image;
-		image.LoadFromFile("Resources/test.png");
-
-		mat->albedoColour = { material.albedo.x, material.albedo.y, material.albedo.z, material.albedo.w };
-		mat->albedo = ResourceManager::GetInstance().GetWhiteTexture();
-		*/
-
 		model.LoadFromFile("Resources/Sphere.pmdl", renderManager);
 
 		proj = glm::perspective(glm::radians(60.0f), (float)window.GetWidth() / (float)window.GetHeight(), 0.01f, 1000.0f);
@@ -143,15 +104,12 @@ public:
 		ImGui::Separator();
 		ImGui::Text("Draw Calls: %d", renderManager->stats.drawCalls);
 		ImGui::Text("Renderpasses: %d", renderManager->stats.renderpasses);
-
 		
 		ImGui::End();
 	}
 
 	void Render() override
 	{
-
-		//renderManager->QueueMesh(mesh, mat);
 
 		model.Queue(renderManager, glm::mat4(1.0f));
 
@@ -166,8 +124,6 @@ public:
 
 		renderManager->WaitForIdle();
 
-		//mesh->Destroy();
-
 		model.Discard();
 
 		ResourceManager::GetInstance().Discard();
@@ -176,9 +132,6 @@ public:
 	}
 
 	RenderManager* renderManager;
-
-	//Mesh* mesh;
-	//Material* mat;
 
 	Model model;
 

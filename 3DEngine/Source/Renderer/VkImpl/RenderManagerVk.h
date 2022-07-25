@@ -27,7 +27,7 @@ public:
 
 	Material* NewMaterial() override;
 
-	void QueueMesh(Mesh* mesh, Material* material, glm::mat4 transform = glm::mat4(1.0f), uint32_t firstIndex = 0, uint32_t indexCount = 0) override;
+	void QueueMesh(Mesh* mesh, Material* material, glm::mat4 transform = glm::mat4(1.0f), uint32_t firstIndex = 0, uint32_t indexCount = 0, uint32_t vertexOffset = 0) override;
 
 	void SetSkyMaterial(SkyMaterial* material) override;
 
@@ -37,7 +37,7 @@ public:
 		Mesh* mesh;
 		glm::mat4 transform;
 		Material* material;
-		uint32_t firstIndex, indexCount;
+		uint32_t firstIndex, indexCount, vertexOffset;
 	};
 
 	std::deque<DrawCmd> mDeferredDraws;

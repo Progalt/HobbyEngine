@@ -267,7 +267,7 @@ void RenderManagerVk::Render(const glm::mat4& view_proj)
 		mCmdList.BindVertexBuffer(&mesh->vertexBuffer, 0);
 		mCmdList.BindIndexBuffer(&mesh->indexBuffer);
 
-		mCmdList.DrawIndexed(( cmd.indexCount == 0) ? cmd.mesh->indices.size() : cmd.indexCount, 1, cmd.firstIndex, 0, 0);
+		mCmdList.DrawIndexed(( cmd.indexCount == 0) ? cmd.mesh->indices.size() : cmd.indexCount, 1, cmd.firstIndex, cmd.vertexOffset, 0);
 
 		stats.drawCalls++;
 
@@ -313,12 +313,12 @@ void RenderManagerVk::Render(const glm::mat4& view_proj)
 
 }
 
-void RenderManagerVk::QueueMesh(Mesh* mesh, Material* material, glm::mat4 transform, uint32_t firstIndex, uint32_t indexCount)
+void RenderManagerVk::QueueMesh(Mesh* mesh, Material* material, glm::mat4 transform, uint32_t firstIndex, uint32_t indexCount, uint32_t vertexOffset)
 {
 	if (material->pass == Pass::Deferred)
-		mDeferredDraws.push_back({ mesh, transform, material, firstIndex, indexCount });
+		mDeferredDraws.push_back({ mesh, transform, material, firstIndex, indexCount, vertexOffset });
 	else
-		mForwardDraws.push_back({ mesh, transform, material, firstIndex, indexCount });
+		mForwardDraws.push_back({ mesh, transform, material, firstIndex, indexCount, vertexOffset });
 }
 
 
