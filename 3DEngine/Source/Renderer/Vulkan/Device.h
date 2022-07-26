@@ -170,6 +170,7 @@ namespace vk
 		uint32_t m_ImageIndex = 0;
 
 		uint32_t m_CurrentFrame = 0;
+		bool m_FirstFrame = true;
 
 		PFN_vkCmdBeginDebugUtilsLabelEXT vkCmdBeginDebugUtilsLabel;
 		PFN_vkCmdEndDebugUtilsLabelEXT vkCmdEndDebugUtilsLabel;

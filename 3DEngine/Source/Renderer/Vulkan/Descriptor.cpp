@@ -179,14 +179,14 @@ namespace vk
 		{
 
 			std::vector<VkWriteDescriptorSet> writes;
-			writes.resize(m_Sets[m_GraphicsDevice->m_ImageIndex].writes.size());
+			writes.resize(m_Sets[m_GraphicsDevice->m_CurrentFrame].writes.size());
 
 			int i = 0;
-			for (auto& w : m_Sets[m_GraphicsDevice->m_ImageIndex].writes)
+			for (auto& w : m_Sets[m_GraphicsDevice->m_CurrentFrame].writes)
 			{
 
 				writes[i].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-				writes[i].dstSet = m_Sets[m_GraphicsDevice->m_ImageIndex].set;
+				writes[i].dstSet = m_Sets[m_GraphicsDevice->m_CurrentFrame].set;
 				writes[i].dstBinding = w.binding;
 				writes[i].dstArrayElement = w.arrayBinding;
 				writes[i].descriptorType = w.type;

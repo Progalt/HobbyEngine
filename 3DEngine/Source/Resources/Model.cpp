@@ -70,10 +70,17 @@ void Model::LoadFromFile(const std::string& path, RenderManager* renderManager)
 
 	fclose(file);
 
+	// inherited from Resource. This signals
+	this->ready.store(true);
+
 }
 
 void Model::Queue(RenderManager* renderManager, glm::mat4 matrix)
 {
+	// If it isn't ready to draw. Return and don't queue the meshes
+	if (!ready.load())
+		return;
+
 	for (size_t i = 0; i < submeshes.size(); i++)
 	{
 		renderManager->QueueMesh(mesh, materials[submeshes[i].materialIndex], matrix, submeshes[i].firstIndex, submeshes[i].indexCount);

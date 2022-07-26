@@ -94,11 +94,13 @@ public:
 	glm::mat4 proj;
 	glm::vec3 viewPos;
 
+	int framerate;
+
 	void ImGuiRender()
 	{
 		ImGui::Begin("Statistics");
 
-		int framerate = GetFramerate((int)(1.0f / time.delta));
+		framerate = GetFramerate((int)(1.0f / time.delta));
 
 		ImGui::Text("FPS: %d", framerate);
 		ImGui::Separator();
