@@ -1,5 +1,6 @@
 #pragma once
 
+#include <atomic>
 
 class Resource
 {
@@ -7,7 +8,7 @@ public:
 
 	virtual void Discard() = 0;
 
-	bool ready = false;
+	std::atomic<bool> ready = false;
 
 private:
 };

@@ -15,7 +15,7 @@ namespace vk
 			inheritanceInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_INHERITANCE_INFO;
 			inheritanceInfo.renderPass = inheritance->m_Renderpass;
 			inheritanceInfo.subpass = 0;
-			inheritanceInfo.framebuffer = inheritance->m_Framebuffers[((inheritance->type == RenderpassType::Swapchain) ? m_Device->m_ImageIndex : 0)];
+			inheritanceInfo.framebuffer = inheritance->m_Framebuffers[((inheritance->type == RenderpassType::Swapchain) ? m_Device->m_CurrentFrame : 0)];
 		}
 
 		VkCommandBufferBeginInfo beginInfo{};
@@ -48,7 +48,7 @@ namespace vk
 		VkRenderPassBeginInfo renderPassInfo{};
 		renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
 		renderPassInfo.renderPass = rp->m_Renderpass;
-		renderPassInfo.framebuffer = rp->m_Framebuffers[((renderpass->type == RenderpassType::Swapchain) ? m_Device->m_ImageIndex : 0)];
+		renderPassInfo.framebuffer = rp->m_Framebuffers[((renderpass->type == RenderpassType::Swapchain) ? m_Device->m_CurrentFrame : 0)];
 
 		renderPassInfo.renderArea.offset = { 0, 0 };
 
@@ -301,6 +301,6 @@ namespace vk
 
 	uint32_t CommandList::getIndex()
 	{
-		return m_Device->m_ImageIndex;
+		return m_Device->m_CurrentFrame;
 	}
 }

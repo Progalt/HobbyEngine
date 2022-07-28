@@ -93,6 +93,12 @@
     <ClCompile Include="Source\Renderer\VkImpl\TextureVk.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Source\Resources\Model.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Model\PMDL.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\Renderer\Vulkan\Vendor\vk_mem_alloc.h">
@@ -216,6 +222,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Source\Resources\Model.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Model\PMDL.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

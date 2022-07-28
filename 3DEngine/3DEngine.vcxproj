@@ -74,7 +74,7 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions);_CRT_SECURE_NO_WARNINGS</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>C:\VulkanSDK\1.3.204.1\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp17</LanguageStandard>
@@ -110,7 +110,7 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions);_CRT_SECURE_NO_WARNINGS</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>C:\VulkanSDK\1.3.204.1\Include;C:\VulkanSDK\1.3.216.0\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp17</LanguageStandard>
@@ -150,6 +150,7 @@
     <ClCompile Include="Source\FileSystem\FileSystem.cpp" />
     <ClCompile Include="Source\FileSystem\ResourceManager.cpp" />
     <ClCompile Include="Source\Main.cpp" />
+    <ClCompile Include="Source\Model\PMDL.cpp" />
     <ClCompile Include="Source\Renderer\RenderManager.cpp" />
     <ClCompile Include="Source\Renderer\VkImpl\MeshVk.cpp" />
     <ClCompile Include="Source\Renderer\VkImpl\RenderManagerVk.cpp" />
@@ -169,6 +170,7 @@
     <ClCompile Include="Source\Renderer\Vulkan\Texture.cpp" />
     <ClCompile Include="Source\Renderer\Vulkan\UtilityVK.cpp" />
     <ClCompile Include="Source\Renderer\Vulkan\Vendor\vk_mem_alloc.cpp" />
+    <ClCompile Include="Source\Resources\Model.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\Core\Application.h" />
@@ -185,6 +187,7 @@
     <ClInclude Include="Source\FileSystem\ResourceManager.h" />
     <ClInclude Include="Source\Maths\BoundingBox.h" />
     <ClInclude Include="Source\Maths\Rect.h" />
+    <ClInclude Include="Source\Model\PMDL.h" />
     <ClInclude Include="Source\Renderer\Material.h" />
     <ClInclude Include="Source\Renderer\Mesh.h" />
     <ClInclude Include="Source\Renderer\RenderManager.h" />

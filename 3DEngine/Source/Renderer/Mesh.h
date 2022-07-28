@@ -13,7 +13,7 @@ class Mesh
 {
 public:
 
-	Material* material;
+	//Material* material;
 
 	BoundingBox boundingBox;
 

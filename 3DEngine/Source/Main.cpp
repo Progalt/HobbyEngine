@@ -8,6 +8,10 @@
 #include <array>
 #include <imgui.h>
 
+
+
+#include "Resources/Model.h"
+
 class App : public Application
 {
 public:
@@ -18,38 +22,7 @@ public:
 
 		ResourceManager::GetInstance().SetRenderManager(renderManager);
 
-		mesh = renderManager->NewMesh();
-
-		mesh->positions = {
-			{ -0.5f, -0.5f, 0.0f },
-			{ 0.5f, -0.5f, 0.0f },
-			{ 0.5f, 0.5f, 0.0f },
-			{ -0.5f, 0.5f, 0.0f }
-		};
-		
-		mesh->texCoords = {
-			{ 0.0f, 0.0f },
-			{ 1.0f, 0.0f }, 
-			{ 1.0f, 1.0f },
-			{ 0.0f, 1.0f }
-		};
-
-		mesh->indices = {
-			0, 1, 3,
-			1, 2, 3
-		};
-
-		mesh->CalculateNormals();
-		mesh->GenerateMesh();
-
-		mesh->material = ResourceManager::GetInstance().NewMaterial();
-
-		Image image;
-		image.LoadFromFile("Resources/test.png");
-
-		mesh->material->albedoColour = { 1.0f, 1.0f, 1.0f, 1.0f };
-		mesh->material->albedo = ResourceManager::GetInstance().NewTexture();
-		ResourceManager::GetInstance().GetTexturePtr(mesh->material->albedo)->CreateFromImage(image, true, true);
+		model.LoadFromFile("Resources/Sphere.pmdl", renderManager);
 
 		proj = glm::perspective(glm::radians(60.0f), (float)window.GetWidth() / (float)window.GetHeight(), 0.01f, 1000.0f);
 		viewPos = { 0.0f, 0.0f, 0.0f };
@@ -121,17 +94,18 @@ public:
 	glm::mat4 proj;
 	glm::vec3 viewPos;
 
+	int framerate;
+
 	void ImGuiRender()
 	{
 		ImGui::Begin("Statistics");
 
-		int framerate = GetFramerate((int)(1.0f / time.delta));
+		framerate = GetFramerate((int)(1.0f / time.delta));
 
 		ImGui::Text("FPS: %d", framerate);
 		ImGui::Separator();
 		ImGui::Text("Draw Calls: %d", renderManager->stats.drawCalls);
 		ImGui::Text("Renderpasses: %d", renderManager->stats.renderpasses);
-
 		
 		ImGui::End();
 	}
@@ -139,7 +113,7 @@ public:
 	void Render() override
 	{
 
-		renderManager->QueueMesh(mesh);
+		model.Queue(renderManager, glm::mat4(1.0f));
 
 		glm::mat4 viewProj = proj * view;
 
@@ -152,7 +126,7 @@ public:
 
 		renderManager->WaitForIdle();
 
-		mesh->Destroy();
+		model.Discard();
 
 		ResourceManager::GetInstance().Discard();
 
@@ -161,7 +135,7 @@ public:
 
 	RenderManager* renderManager;
 
-	Mesh* mesh;
+	Model model;
 
 	int GetFramerate(int newFrame)
 	{

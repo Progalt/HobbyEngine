@@ -90,6 +90,7 @@ namespace vk
 
 	bool Device::NextFrame()
 	{
+
 		vkWaitForFences(m_Device, 1, &m_InFlightFences[m_CurrentFrame], VK_TRUE, UINT64_MAX);
 
 		uint32_t imageIndex;
@@ -109,6 +110,8 @@ namespace vk
 
 	void Device::SubmitCommandListsAndPresent(std::vector<CommandList> cmdList)
 	{
+		// TODO: Submitting work should be completely rewritten to be better
+
 		if (m_ValidFrame == false)
 			return;
 
@@ -122,7 +125,7 @@ namespace vk
 		VkSubmitInfo submitInfo{};
 		submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 
-		VkSemaphore waitSemaphores[] = { m_ImageAvailable[m_CurrentFrame] };
+		VkSemaphore waitSemaphores[] = {  m_ImageAvailable[m_CurrentFrame] };
 		VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
 		submitInfo.waitSemaphoreCount = 1;
 		submitInfo.pWaitSemaphores = waitSemaphores;
@@ -173,10 +176,11 @@ namespace vk
 
 		if (presentResult == VK_ERROR_OUT_OF_DATE_KHR || presentResult == VK_SUBOPTIMAL_KHR)
 		{
+			printf("Swapchain Out of date\n");
 		}
 
+		
 		m_CurrentFrame = (m_CurrentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
-
 	}
 
 	ShaderBlob Device::NewShaderBlob()
