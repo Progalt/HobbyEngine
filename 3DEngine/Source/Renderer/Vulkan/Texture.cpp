@@ -49,7 +49,7 @@ namespace vk
 
 			// Copy buffer to texture
 
-			VkCommandBuffer cmd = m_Device->GetSingleUsageCommandBuffer(true);
+			SingleUseCommandBuffer cmd = m_Device->GetSingleUsageCommandBuffer(true);
 
 			transitionImageLayout(cmd, m_Image, (VkFormat)format, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, mips);
 
@@ -61,7 +61,7 @@ namespace vk
 
 			m_Device->ExecuteTransfer(cmd);
 
-			VkCommandBuffer gfxCmd = m_Device->GetSingleUsageCommandBuffer(false);
+			SingleUseCommandBuffer gfxCmd = m_Device->GetSingleUsageCommandBuffer(false);
 
 			switch (mips > 1)
 			{
@@ -177,7 +177,7 @@ namespace vk
 
 		if (transitionToShaderResource)
 		{
-			VkCommandBuffer cmd = m_Device->GetSingleUsageCommandBuffer(false);
+			SingleUseCommandBuffer cmd = m_Device->GetSingleUsageCommandBuffer(false);
 
 			transitionImageLayout(cmd, m_Image, (VkFormat)format, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 1);
 

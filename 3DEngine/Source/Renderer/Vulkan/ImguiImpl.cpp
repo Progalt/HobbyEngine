@@ -65,7 +65,7 @@ namespace vk
 
 		ImGui_ImplVulkan_Init(&init_info, renderpass->m_Renderpass);
 
-		VkCommandBuffer cmd = device->GetSingleUsageCommandBuffer(false);
+		SingleUseCommandBuffer cmd = device->GetSingleUsageCommandBuffer(false);
 
 		ImGui_ImplVulkan_CreateFontsTexture(cmd);
 

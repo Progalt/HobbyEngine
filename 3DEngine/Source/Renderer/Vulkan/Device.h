@@ -23,6 +23,8 @@
 
 #include <functional>
 #include <stdexcept>
+#include <set>
+#include <mutex>
 
 namespace vk
 {
@@ -40,7 +42,6 @@ namespace vk
 
 	struct SupportedFeatures
 	{
-		bool raytracing = false;
 		bool multiDrawIndirect = false;
 		bool descriptorBindingPartiallyBound = false;
 		bool runtimeDescriptorArray = false;
@@ -53,6 +54,49 @@ namespace vk
 		std::string deviceName;
 
 		SupportedFeatures supportedFeatures;
+	};
+
+	class SingleUseCommandBuffer
+	{
+	public:
+
+		VkCommandBuffer buffer; 
+		uint32_t threadNum = 0;
+
+		operator VkCommandBuffer()
+		{
+			return buffer;
+		}
+	};
+
+	class ThreadRefCounter
+	{
+	public:
+
+		void Increment()
+		{
+			refs++;
+		}
+
+		void Decrement()
+		{
+			if (refs > 0)
+				refs--;
+
+		}
+
+
+		bool empty()
+		{
+			return refs == 0;
+		}
+
+	private:
+
+
+		uint32_t threadNum = 0;
+
+		uint32_t refs = 0;
 	};
 
 	constexpr uint32_t MAX_FRAMES_IN_FLIGHT = 3;
@@ -97,6 +141,8 @@ namespace vk
 
 		void ResizeSwapchain(uint32_t width, uint32_t height);
 
+		// Returns the next available thread not being used by a command pool
+		uint32_t GetThreadPoolNotInUse();
 
 		/* Vulkan Handles */
 
@@ -134,9 +180,11 @@ namespace vk
 
 		void CreateSyncObjects();
 
-		VkCommandBuffer GetSingleUsageCommandBuffer(bool transfer);
+		// the single use command buffer system needs an overhaul
 
-		void ExecuteTransfer(VkCommandBuffer cmd);
+		SingleUseCommandBuffer GetSingleUsageCommandBuffer(bool transfer);
+
+		void ExecuteTransfer(SingleUseCommandBuffer cmd, bool deferSubmission = false);
 
 		/* Handles */
 
@@ -166,6 +214,8 @@ namespace vk
 		std::vector<VkSemaphore> m_RenderFinished;
 		std::vector<VkFence> m_InFlightFences;
 		std::vector<VkFence> m_ImagesInFlight;
+
+		std::vector<ThreadRefCounter> m_ThreadStates;
 
 		uint32_t m_ImageIndex = 0;
 

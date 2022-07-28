@@ -45,7 +45,7 @@ namespace vk
 
 			/* copy buffer across */
 
-			VkCommandBuffer cmd = m_Device->GetSingleUsageCommandBuffer(true);
+			SingleUseCommandBuffer cmd = m_Device->GetSingleUsageCommandBuffer(true);
 
 			VkBufferCopy copyRegion{};
 			copyRegion.srcOffset = 0;
@@ -97,7 +97,7 @@ namespace vk
 			memcpy(m_MappedBuffer, data, size);
 			vmaUnmapMemory(m_Allocator, stagingAlloc);
 
-			VkCommandBuffer cmd = m_Device->GetSingleUsageCommandBuffer(true);
+			SingleUseCommandBuffer cmd = m_Device->GetSingleUsageCommandBuffer(true);
 
 			VkBufferCopy copyRegion{};
 			copyRegion.srcOffset = 0;

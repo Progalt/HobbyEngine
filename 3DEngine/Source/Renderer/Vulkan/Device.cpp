@@ -299,6 +299,8 @@ namespace vk
 
 	CommandList Device::NewCommandList(CommandListType type, uint32_t threadNum)
 	{
+		m_ThreadStates[threadNum].Increment();
+
 		CommandList cmd;
 
 		VkCommandBufferLevel level;
@@ -422,9 +424,9 @@ namespace vk
 	{
 		VkApplicationInfo appInfo = {};
 		appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
-		appInfo.pApplicationName = "Kara App";
+		appInfo.pApplicationName = "3D App";
 		appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
-		appInfo.pEngineName = "Kara GFX";
+		appInfo.pEngineName = "3D Engine";
 		appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
 		appInfo.apiVersion = VK_API_VERSION_1_3;
 
@@ -684,12 +686,9 @@ namespace vk
 			queueCreateInfos.push_back(queueCreateInfo);
 		}
 
-		VkPhysicalDeviceRayTracingPipelineFeaturesKHR supportedRaytracing{};
-		supportedRaytracing.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_FEATURES_KHR;
-
 		VkPhysicalDeviceDescriptorIndexingFeatures supportedIndexingFeatures{};
 		supportedIndexingFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES;
-		supportedIndexingFeatures.pNext = &supportedRaytracing;
+		supportedIndexingFeatures.pNext = nullptr;
 
 		VkPhysicalDeviceFeatures2 supportedFeatures{};
 		supportedFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
@@ -700,16 +699,10 @@ namespace vk
 		m_DeviceInfo.supportedFeatures.multiDrawIndirect = supportedFeatures.features.multiDrawIndirect;
 		m_DeviceInfo.supportedFeatures.descriptorBindingPartiallyBound = supportedIndexingFeatures.descriptorBindingPartiallyBound;
 		m_DeviceInfo.supportedFeatures.runtimeDescriptorArray = supportedIndexingFeatures.runtimeDescriptorArray;
-		m_DeviceInfo.supportedFeatures.raytracing = supportedRaytracing.rayTracingPipeline;
-		
-		
-		VkPhysicalDeviceRayTracingPipelineFeaturesKHR raytracingFeature{};
-		raytracingFeature.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_FEATURES_KHR;
-		raytracingFeature.rayTracingPipeline = (VkBool32)m_DeviceInfo.supportedFeatures.raytracing;
 		
 		VkPhysicalDeviceDescriptorIndexingFeatures indexingFeatures{};
 		indexingFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES;
-		indexingFeatures.pNext = &raytracingFeature;
+		indexingFeatures.pNext = nullptr;
 		indexingFeatures.descriptorBindingPartiallyBound = (VkBool32)m_DeviceInfo.supportedFeatures.descriptorBindingPartiallyBound;
 		indexingFeatures.runtimeDescriptorArray = (VkBool32)m_DeviceInfo.supportedFeatures.runtimeDescriptorArray;
 
@@ -746,9 +739,8 @@ namespace vk
 
 		vkGetDeviceQueue(m_Device, m_GraphicsQueueFamily, 0, &m_GraphicsQueue);
 		vkGetDeviceQueue(m_Device, m_PresentQueueFamily, 0, &m_PresentQueue);
-
-
-
+		
+		// Retrieve some extension functions now the device is created		
 		vkCmdBeginDebugUtilsLabel = (PFN_vkCmdBeginDebugUtilsLabelEXT)vkGetDeviceProcAddr(m_Device, "vkCmdBeginDebugUtilsLabelEXT");
 		vkCmdEndDebugUtilsLabel = (PFN_vkCmdEndDebugUtilsLabelEXT)vkGetDeviceProcAddr(m_Device, "vkCmdEndDebugUtilsLabelEXT");
 	}
@@ -768,6 +760,9 @@ namespace vk
 
 	void Device::CreateCommandPools()
 	{
+		m_ThreadStates.resize(m_CreateInfo->threadCount);
+
+		// Create a graphics command pool per thread
 		m_CommandPools.resize(m_CreateInfo->threadCount);
 
 		for (uint32_t i = 0; i < m_CreateInfo->threadCount; i++)
@@ -812,7 +807,7 @@ namespace vk
 
 	}
 
-	VkCommandBuffer Device::GetSingleUsageCommandBuffer(bool transfer)
+	SingleUseCommandBuffer Device::GetSingleUsageCommandBuffer(bool transfer)
 	{
 		VkCommandBufferAllocateInfo allocInfo{};
 		allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
@@ -820,12 +815,17 @@ namespace vk
 
 		//allocInfo.commandPool = (transfer) ? m_TransferPools[m_TransferPools.size() - 1] : m_CommandPools[m_CommandPool.size() - 1];
 
-		allocInfo.commandPool = m_CommandPools[m_CommandPools.size() - 1];
+		//allocInfo.commandPool = m_CommandPools[m_CommandPools.size() - 1];
+
+		uint32_t thread = GetThreadPoolNotInUse();
+		allocInfo.commandPool = m_CommandPools[thread];
+		m_ThreadStates[thread].Increment();
 
 		allocInfo.commandBufferCount = 1;
 
-		VkCommandBuffer commandBuffer;
-		vkAllocateCommandBuffers(m_Device, &allocInfo, &commandBuffer);
+		SingleUseCommandBuffer commandBuffer;
+		commandBuffer.threadNum = thread;
+		vkAllocateCommandBuffers(m_Device, &allocInfo, &commandBuffer.buffer);
 
 		VkCommandBufferBeginInfo beginInfo{};
 		beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -836,17 +836,34 @@ namespace vk
 		return commandBuffer;
 	}
 
-	void Device::ExecuteTransfer(VkCommandBuffer cmd)
+	void Device::ExecuteTransfer(SingleUseCommandBuffer cmd, bool deferSubmission)
 	{
 		vkEndCommandBuffer(cmd);
 
 		VkSubmitInfo submitInfo{};
 		submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 		submitInfo.commandBufferCount = 1;
-		submitInfo.pCommandBuffers = &cmd;
+		submitInfo.pCommandBuffers = &cmd.buffer;
+
+		
 
 		vkQueueSubmit(m_GraphicsQueue, 1, &submitInfo, VK_NULL_HANDLE);
 		vkQueueWaitIdle(m_GraphicsQueue);
-		vkFreeCommandBuffers(m_Device, m_CommandPools[m_CommandPools.size() - 1], 1, &cmd);
+		vkFreeCommandBuffers(m_Device, m_CommandPools[cmd.threadNum], 1, &cmd.buffer);
+
+		m_ThreadStates[cmd.threadNum].Decrement();
+	}
+
+	uint32_t Device::GetThreadPoolNotInUse()
+	{
+
+		for (uint32_t thread = 0; thread < m_CommandPools.size(); thread++)
+		{
+			if (m_ThreadStates[thread].empty())
+				return thread;
+		}
+
+		// If one isn't found return 0
+		return 0;
 	}
 }
