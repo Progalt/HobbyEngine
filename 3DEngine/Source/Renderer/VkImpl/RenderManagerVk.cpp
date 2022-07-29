@@ -352,6 +352,7 @@ void RenderManagerVk::Render(const glm::mat4& view_proj, const glm::vec3& view_p
 
 	mGlobalDataStruct.VP = view_proj;
 	mGlobalDataStruct.prevVP = mCachedVP;
+	mGlobalDataStruct.viewPos = glm::vec4(view_pos, 1.0f);
 
 	mGlobalData.SetData(sizeof(GlobalData), &mGlobalDataStruct, 0);
 

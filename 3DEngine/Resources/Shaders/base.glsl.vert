@@ -22,7 +22,7 @@ layout(set = 1, binding = 0) uniform GlobalData
 	mat4 VP;
 
 	mat4 prevVP;
-
+	vec4 viewPos;
 } global;
 
 void main()

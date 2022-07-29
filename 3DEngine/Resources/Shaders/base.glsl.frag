@@ -1,5 +1,7 @@
 #version 450 core
 
+#include "Defines.glsl"
+
 layout(location = 0) out vec4 outColour;
 layout(location = 1) out vec4 outNormal;
 layout(location = 2) out vec4 outVelocity;
@@ -19,16 +21,17 @@ layout(set = 0, binding = 0) uniform MaterialParams
 layout(set = 0, binding = 1) uniform sampler2D in_texture;
 
 
-vec2 encode (vec3 n)
+vec2 encode (vec3 v)
 {
-   return n.xy * 0.5 + 0.5;
+	vec2 p = v.xy * (1.0 / (abs(v.x) + abs(v.y) + abs(v.z)));
+	return (v.z <= 0.0) ? ((1.0 - abs(p.yx))  * sign_not_zero(p)) : p;
 }
 
 void main()
 {
 	outVelocity.rg = vec2(0.0, 0.0);
 
-	outNormal.rgb = normalize(vNormal);
+	outNormal.rg = encode(vNormal);
 	outNormal.a = 1.0;
 
 	vec4 albedo = texture(in_texture, vTexCoord) * in_params.albedo;

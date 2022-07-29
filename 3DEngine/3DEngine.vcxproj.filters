@@ -240,5 +240,7 @@
     <None Include="Resources\Shaders\StructInclude.glsl" />
     <None Include="Resources\Shaders\TAA.glsl.frag" />
     <None Include="Resources\Shaders\FXAA.glsl.frag" />
+    <None Include="Resources\Shaders\PBR.glsl" />
+    <None Include="Resources\Shaders\Defines.glsl" />
   </ItemGroup>
 </Project>

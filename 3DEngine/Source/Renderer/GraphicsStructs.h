@@ -9,6 +9,7 @@ struct GlobalData
 	glm::mat4 jitteredVP;
 	glm::mat4 VP;
 	glm::mat4 prevVP;
+	glm::vec4 viewPos;
 };
 
 struct PointLight

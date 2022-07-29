@@ -109,7 +109,6 @@ public:
 		ImGui::Text("FPS: %d", framerate);
 		ImGui::Separator();
 		ImGui::Text("Draw Calls: %d", renderManager->stats.drawCalls);
-		ImGui::Text("Renderpasses: %d", renderManager->stats.renderpasses);
 	
 
 		ImGui::End();
