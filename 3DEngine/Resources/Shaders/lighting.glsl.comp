@@ -31,13 +31,7 @@ layout(set = 0, binding = 3) uniform sampler2D gNormal;
 
 layout(set = 0, binding = 4, rgba8) uniform writeonly image2D finalOutput;
 
-vec3 decode(vec2 enc)
-{
 
-    vec3 v = vec3(enc.xy, 1.0 - abs(enc.x) - abs(enc.y));
-     if (v.z < 0) v.xy = (1.0 - abs(v.yx)) * sign_not_zero(v.xy);
-	 return normalize(v);
-}
 
 vec3 DirectionalLightContribution(vec3 a, vec3 n, DirectionalLight light, vec3 v)
 {

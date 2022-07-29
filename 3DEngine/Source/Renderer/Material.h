@@ -28,6 +28,9 @@ public:
 	Handle<Texture> albedo;
 	glm::vec4 albedoColour;
 
+	float roughness = 0.5f;
+	float metallic = 0.5f;
+
 	// This updates material parameters.
 	// Currently it does not update material textures
 	bool setUpdate = false;

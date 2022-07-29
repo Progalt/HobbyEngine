@@ -16,23 +16,24 @@ layout(set = 0, binding = 0) uniform MaterialParams
 {
 	vec4 albedo;
 
+	float roughness;
+	float metallic;
+
+	float padding[2];
+
 } in_params;
 
 layout(set = 0, binding = 1) uniform sampler2D in_texture;
 
 
-vec2 encode (vec3 v)
-{
-	vec2 p = v.xy * (1.0 / (abs(v.x) + abs(v.y) + abs(v.z)));
-	return (v.z <= 0.0) ? ((1.0 - abs(p.yx))  * sign_not_zero(p)) : p;
-}
 
 void main()
 {
 	outVelocity.rg = vec2(0.0, 0.0);
 
 	outNormal.rg = encode(vNormal);
-	outNormal.a = 1.0;
+	outNormal.b = in_params.roughness;
+	outNormal.a = in_params.metallic;
 
 	vec4 albedo = texture(in_texture, vTexCoord) * in_params.albedo;
 

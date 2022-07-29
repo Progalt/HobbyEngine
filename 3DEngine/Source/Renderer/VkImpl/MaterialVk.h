@@ -16,6 +16,11 @@ public:
 	struct MaterialParams
 	{
 		glm::vec4 albedo;
+
+		float roughness;
+		float metallic;
+
+		float padding[2];
 	};
 
 	void Discard() override
@@ -52,6 +57,8 @@ public:
 			return;
 
 		params.albedo = albedoColour;
+		params.roughness = roughness;
+		params.metallic = metallic;
 
 		paramsBuffer.SetData(sizeof(MaterialParams), &params);
 
