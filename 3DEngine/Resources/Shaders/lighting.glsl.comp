@@ -45,6 +45,10 @@ vec3 DirectionalLightContribution(vec3 al, vec3 n, DirectionalLight light)
 
 void main()
 {
+	
+	ivec2 coord = ivec2(gl_GlobalInvocationID.xy);
+
+	imageStore(finalOutput, coord, vec4(0.0, 0.0, 0.0, 1.0));
 
 	// Fetch the target colours
 	vec4 gColourSampled = texelFetch(gColour, ivec2(gl_GlobalInvocationID.xy), 0);
@@ -65,6 +69,7 @@ void main()
 	vec3 final = albedo * lightContribution;
 
 	// Store the final result to the output image
-	imageStore(finalOutput, ivec2(gl_GlobalInvocationID.xy), vec4(final, 1.0));
+	if (!isnan(final.x))
+		imageStore(finalOutput, ivec2(gl_GlobalInvocationID.xy), vec4(final, 1.0));
 	
 }

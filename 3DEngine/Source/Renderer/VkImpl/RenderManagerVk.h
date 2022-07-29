@@ -50,14 +50,13 @@ public:
 
 	vk::Sampler mDefaultSampler;
 
-	vk::Texture mHistory;
-	vk::Texture mTAAOutput;
-
 	GlobalData mGlobalDataStruct;
 	vk::Buffer mGlobalData;
 
 	SceneInfo mSceneInfo;
 	vk::Buffer mSceneDataBuffer;
+
+	vk::Texture mCurrentOutput;
 
 	struct
 	{
@@ -69,6 +68,16 @@ public:
 		vk::Descriptor dataDescriptor;
 
 	} mBasePipeline;
+
+	struct
+	{
+		vk::Renderpass renderpass;
+		vk::Pipeline pipeline;
+
+		vk::DescriptorLayout layout;
+		vk::Descriptor descriptor;
+
+	} mFXAA;
 
 	struct
 	{
@@ -90,16 +99,7 @@ public:
 		vk::Texture output;
 	} mLightingPipeline;
 
-	struct
-	{
 
-		glm::mat4 jitterMat;
-
-		vk::ComputePipeline pipeline;
-		vk::DescriptorLayout layout;
-		vk::Descriptor descriptor;
-
-	} mTAAPass;
 	
 	struct {
 

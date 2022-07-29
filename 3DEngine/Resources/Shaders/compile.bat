@@ -7,6 +7,8 @@
 
 %VULKAN_SDK%/Bin/glslc.exe lighting.glsl.comp -o lighting.comp.spv
 
-%VULKAN_SDK%/Bin/glslc.exe TAA.glsl.comp -o TAA.comp.spv
+%VULKAN_SDK%/Bin/glslc.exe TAA.glsl.frag -o TAA.frag.spv
+
+%VULKAN_SDK%/Bin/glslc.exe FXAA.glsl.frag -o FXAA.frag.spv
 
 pause

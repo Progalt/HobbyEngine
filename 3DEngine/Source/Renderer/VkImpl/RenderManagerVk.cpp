@@ -22,7 +22,7 @@ RenderManagerVk::RenderManagerVk(Window* window)
 #else 
 	createInfo.debugInfo = false;
 #endif
-	createInfo.requestSRGBBackBuffer = false;
+	createInfo.requestSRGBBackBuffer = true;
 	createInfo.requestVSync = true;
 
 	this->mProperties.width = window->GetWidth();
@@ -181,15 +181,12 @@ RenderManagerVk::RenderManagerVk(Window* window)
 
 	}
 
-	
+	{
+		mCurrentOutput = mDevice.NewTexture();
+		mCurrentOutput.CreateRenderTarget(vk::FORMAT_R16G16B16A16_SFLOAT, window->GetWidth(), window->GetHeight());
+	}
 
 	{
-		// Lighting stage
-		mTAAOutput = mDevice.NewTexture();
-		mTAAOutput.CreateRenderTarget(vk::FORMAT_R16G16B16A16_SFLOAT, window->GetWidth(), window->GetHeight(), true, vk::ImageLayout::General);
-
-		mHistory = mDevice.NewTexture();
-		mHistory.CreateRenderTarget(vk::FORMAT_R16G16B16A16_SFLOAT, window->GetWidth(), window->GetHeight(), true, vk::ImageLayout::General);
 
 
 		mLightingPipeline.output = mDevice.NewTexture();
@@ -223,48 +220,52 @@ RenderManagerVk::RenderManagerVk(Window* window)
 		shaderBlob.Destroy();
 	}
 
+
+
+	// FXAA
+
+	{
+		mFXAA.layout = mDevice.NewLayout();
+		mFXAA.layout.AddLayoutBinding({ 0, vk::ShaderInputType::ImageSampler, 1, vk::ShaderStage::Fragment });
+		mFXAA.layout.Create();
+
+		vk::RenderpassCreateInfo rpInfo{};
+		rpInfo.colourAttachments = { &mCurrentOutput };
+		rpInfo.type = vk::RenderpassType::Offscreen;
+		rpInfo.clearColour = { 0.0f, 0.0f, 0.0f, 1.0f };
+
+		mFXAA.renderpass = mDevice.NewRenderpass(&rpInfo);
+
+		vk::ShaderBlob vertexBlob = mDevice.NewShaderBlob();
+		vk::ShaderBlob fragmentBlob = mDevice.NewShaderBlob();
+
+		vertexBlob.CreateFromSource(vk::ShaderStage::Vertex, FileSystem::ReadBytes("Resources/Shaders/fullscreen.vert.spv"));
+		fragmentBlob.CreateFromSource(vk::ShaderStage::Fragment, FileSystem::ReadBytes("Resources/Shaders/FXAA.frag.spv"));
+
+		vk::PipelineCreateInfo pipelineInfo{};
+		pipelineInfo.renderpass = &mFXAA.renderpass;
+		pipelineInfo.layout = { &mFXAA.layout };
+		pipelineInfo.pushConstantRanges = {};
+		pipelineInfo.topologyType = vk::Topology::TriangleList;
+		pipelineInfo.vertexDesc = nullptr;
+		pipelineInfo.shaders = { &vertexBlob, &fragmentBlob };
+
+		mFXAA.pipeline = mDevice.NewPipeline(&pipelineInfo);
+
+		mFXAA.descriptor = mDevice.NewDescriptor(&mFXAA.layout);
+		mFXAA.descriptor.BindCombinedImageSampler(&mLightingPipeline.output, &mDefaultSampler, 0);
+		mFXAA.descriptor.Update();
+	}
+
 	{
 
-		
-		mFullscreenPipeline.descriptor.BindCombinedImageSampler(&mTAAOutput, &mDefaultSampler, 0);
+
+		mFullscreenPipeline.descriptor.BindCombinedImageSampler(&mCurrentOutput, &mDefaultSampler, 0);
 		mFullscreenPipeline.descriptor.Update();
-		
+
+
 	}
 
-	{
-		mTAAPass.layout = mDevice.NewLayout();
-		mTAAPass.layout.AddLayoutBinding({ 0, vk::ShaderInputType::ImageSampler, 1, vk::ShaderStage::Compute });
-		mTAAPass.layout.AddLayoutBinding({ 1, vk::ShaderInputType::ImageSampler, 1, vk::ShaderStage::Compute });
-		mTAAPass.layout.AddLayoutBinding({ 2, vk::ShaderInputType::ImageSampler, 1, vk::ShaderStage::Compute });
-		mTAAPass.layout.AddLayoutBinding({ 3, vk::ShaderInputType::StorageImage, 1, vk::ShaderStage::Compute });
-		mTAAPass.layout.Create();
-
-		vk::ShaderBlob shaderBlob = mDevice.NewShaderBlob();
-		shaderBlob.CreateFromSource(vk::ShaderStage::Compute, FileSystem::ReadBytes("Resources/Shaders/TAA.comp.spv"));
-
-		vk::ComputePipelineCreateInfo createInfo{};
-		createInfo.computeBlob = &shaderBlob;
-		createInfo.layout = { &mTAAPass.layout };
-		createInfo.pushConstantRanges =
-		{
-			{ vk::ShaderStage::Compute, 0, sizeof(int)}
-		};
-
-		mTAAPass.pipeline = mDevice.NewComputePipeline(&createInfo);
-
-		mTAAPass.descriptor = mDevice.NewDescriptor(&mTAAPass.layout);
-			
-		mTAAPass.descriptor.BindCombinedImageSampler(&mLightingPipeline.output, &mDefaultSampler, 0);
-		mTAAPass.descriptor.BindCombinedImageSampler(&mGeometryPass.velocityTarget, &mDefaultSampler, 1);
-		mTAAPass.descriptor.BindCombinedImageSampler(&mHistory, &mDefaultSampler, 2);
-
-		mTAAPass.descriptor.BindStorageImage(&mTAAOutput, 3);
-	
-		mTAAPass.descriptor.Update();
-
-
-		shaderBlob.Destroy();
-	}
 
 	vk::Imgui::Init(&mDevice, window, &mRenderpasses.swapchain);
 
@@ -277,9 +278,8 @@ RenderManagerVk::~RenderManagerVk()
 	mGlobalData.Destroy();
 	mSceneDataBuffer.Destroy();
 
-	mTAAOutput.Destroy();
-	mHistory.Destroy();
-
+	mCurrentOutput.Destroy();
+	
 	mRenderpasses.swapchain.Destroy();
 
 	mGeometryPass.colourTarget.Destroy();
@@ -320,52 +320,12 @@ void RenderManagerVk::Render(const glm::mat4& view_proj)
 	static bool firstFrame = true;
 	static uint64_t frameCount = 0;
 	static uint32_t currentFrame = 0;
-	static uint32_t prevFrame = 0;
+
 	
-	prevFrame = currentFrame;
-	currentFrame = frameCount % 2;
-
-	if (aaMethod == AntiAliasingMethod::TemporalAA)
-	{
-		// https://community.arm.com/arm-community-blogs/b/graphics-gaming-and-vr-blog/posts/temporal-anti-aliasing
-
-		// Create the jitter matrix to use to jitter the vertices slightly 
-
-		static const glm::vec2 SAMPLE_LOCS[8] = {
-		glm::vec2(-7.0f, 1.0f) / 8.0f,
-		glm::vec2(-5.0f, -5.0f) / 8.0f,
-		glm::vec2(-1.0f, -3.0f) / 8.0f,
-		glm::vec2(3.0f, -7.0f) / 8.0f,
-		glm::vec2(5.0f, -1.0f) / 8.0f,
-		glm::vec2(7.0f, 7.0f) / 8.0f,
-		glm::vec2(1.0f, 3.0f) / 8.0f,
-		glm::vec2(-3.0f, 5.0f) / 8.0f };
-
-		constexpr uint32_t SAMPLE_COUNT = 8;
-
-		const unsigned SubsampleIdx = frameCount % SAMPLE_COUNT;
-
-		const glm::vec2 TexSize(1.0f / glm::vec2(mProperties.width, mProperties.height));
-		const glm::vec2 SubsampleSize = TexSize * 2.0f;
-
-		const glm::vec2 S = SAMPLE_LOCS[SubsampleIdx];
-
-		glm::vec2 Subsample = S * SubsampleSize;
-		Subsample *= 0.5f;
-
-		mTAAPass.jitterMat = glm::translate(glm::mat4(1.0f), glm::vec3(Subsample, 0.0f));
-	}
+	currentFrame = (currentFrame == 0) ? 1 : 0;
 
 
-	else
-	{
-		mTAAPass.jitterMat = glm::mat4(1.0f);
-	}
-
-	if (aaMethod == AntiAliasingMethod::TemporalAA)
-		mGlobalDataStruct.jitteredVP = view_proj * mTAAPass.jitterMat;
-	else
-		mGlobalDataStruct.jitteredVP = view_proj;
+	mGlobalDataStruct.jitteredVP = view_proj;
 
 	mGlobalDataStruct.VP = view_proj;
 	mGlobalDataStruct.prevVP = mCachedVP;
@@ -458,7 +418,6 @@ void RenderManagerVk::Render(const glm::mat4& view_proj)
 	mCmdList.EndDebugUtilsLabel();
 
 	mCmdList.BeginDebugUtilsLabel("Lighting Pass");
-
 	// this is the lighting pass for deferred lighting. 
 
 	// It is done in a compute shader instead of a fullscreen quad
@@ -468,8 +427,6 @@ void RenderManagerVk::Render(const glm::mat4& view_proj)
 	mCmdList.BindDescriptors({ &mLightingPipeline.descriptor }, &mLightingPipeline.pipeline, 0);
 	mCmdList.Dispatch(mProperties.width / 8, mProperties.height / 8, 1);
 
-	// DEBUG: 
-	// Transition image resource
 
 	vk::ImageBarrierInfo imgBarrier{};
 	imgBarrier.srcAccess = vk::AccessFlags::ShaderWrite;
@@ -481,43 +438,22 @@ void RenderManagerVk::Render(const glm::mat4& view_proj)
 
 	mCmdList.EndDebugUtilsLabel();
 
-	// TAA Pass
-
-	if (aaMethod == AntiAliasingMethod::TemporalAA)
+	if (aaMethod == AntiAliasingMethod::FastApproximateAA)
 	{
+		mCmdList.BeginRenderpass(&mFXAA.renderpass, false);
 
-		mCmdList.BeginDebugUtilsLabel("TAA Pass");
+		mCmdList.BindPipeline(&mFXAA.pipeline);
+		mCmdList.BindDescriptors({ &mFXAA.descriptor }, &mFXAA.pipeline, 0);
 
-		imgBarrier.srcAccess = vk::AccessFlags::ShaderWrite;
-		imgBarrier.oldLayout = vk::ImageLayout::General;
-		imgBarrier.dstAccess = vk::AccessFlags::ShaderRead;
-		imgBarrier.newLayout = vk::ImageLayout::ShaderReadOnlyOptimal;
+		mCmdList.Draw(3, 1, 0, 0);
 
-		mCmdList.ImageBarrier(&mHistory, vk::PipelineStage::ComputeShader, vk::PipelineStage::FragmentShader, imgBarrier);
-
-		mCmdList.BindPipeline(&mTAAPass.pipeline);
-
-		int ff = (int)firstFrame;
-		mCmdList.PushConstants(&mTAAPass.pipeline, vk::ShaderStage::Compute, sizeof(int), 0, &ff);
-
-		mCmdList.BindDescriptors({ &mTAAPass.descriptor }, &mTAAPass.pipeline, 0);
-
-		mCmdList.Dispatch(mProperties.width / 16, mProperties.height / 16, 1);
-
-		mCmdList.EndDebugUtilsLabel();
-
+		mCmdList.EndRenderpass();
 	}
+	
 
 	// This final pass brings it all together and presents to screen
 
 	mCmdList.BeginDebugUtilsLabel("Present");
-
-	imgBarrier.srcAccess = vk::AccessFlags::ShaderWrite;
-	imgBarrier.oldLayout = vk::ImageLayout::General;
-	imgBarrier.dstAccess = vk::AccessFlags::ShaderRead;
-	imgBarrier.newLayout = vk::ImageLayout::ShaderReadOnlyOptimal;
-
-	mCmdList.ImageBarrier(&mTAAOutput, vk::PipelineStage::ComputeShader, vk::PipelineStage::FragmentShader, imgBarrier);
 
 	mCmdList.BeginRenderpass(&mRenderpasses.swapchain, false);
 
@@ -531,7 +467,7 @@ void RenderManagerVk::Render(const glm::mat4& view_proj)
 
 	mCmdList.BindPipeline(&mFullscreenPipeline.pipeline);
 
-	mCmdList.BindDescriptors({ &mFullscreenPipeline.descriptor }, &mFullscreenPipeline.pipeline, 0);
+	mCmdList.BindDescriptors({ &mFullscreenPipeline.descriptor }, & mFullscreenPipeline.pipeline, 0);
 	mCmdList.Draw(3, 1, 0, 0);
 	
 	stats.drawCalls++;
@@ -545,13 +481,6 @@ void RenderManagerVk::Render(const glm::mat4& view_proj)
 
 	mCmdList.EndRenderpass();
 
-	imgBarrier.srcAccess = vk::AccessFlags::ShaderRead;
-	imgBarrier.oldLayout = vk::ImageLayout::ShaderReadOnlyOptimal;
-	imgBarrier.dstAccess = vk::AccessFlags::ShaderWrite;
-	imgBarrier.newLayout = vk::ImageLayout::General;
-
-	mCmdList.ImageBarrier(&mTAAOutput, vk::PipelineStage::FragmentShader, vk::PipelineStage::ComputeShader, imgBarrier);
-
 	mCmdList.EndDebugUtilsLabel();
 	
 	imgBarrier.srcAccess = vk::AccessFlags::ShaderRead;
@@ -561,26 +490,6 @@ void RenderManagerVk::Render(const glm::mat4& view_proj)
 
 	mCmdList.ImageBarrier(&mLightingPipeline.output, vk::PipelineStage::FragmentShader, vk::PipelineStage::ComputeShader, imgBarrier);
 
-	if (aaMethod == AntiAliasingMethod::TemporalAA)
-	{
-		imgBarrier.srcAccess = vk::AccessFlags::ShaderRead;
-		imgBarrier.oldLayout = vk::ImageLayout::ShaderReadOnlyOptimal;
-		imgBarrier.dstAccess = vk::AccessFlags::ShaderWrite;
-		imgBarrier.newLayout = vk::ImageLayout::General;
-
-		mCmdList.ImageBarrier(&mHistory, vk::PipelineStage::ComputeShader, vk::PipelineStage::FragmentShader, imgBarrier);
-
-		vk::ImageCopy region{};
-		region.srcX = 0;
-		region.srcY = 0;
-		region.dstX = 0;
-		region.dstY = 0;
-
-		region.w = mProperties.width;
-		region.h = mProperties.height;
-
-		mCmdList.CopyImage(&mTAAOutput, vk::ImageLayout::General, &mHistory, vk::ImageLayout::General, &region);
-	}
 	mCmdList.End();
 
 	mDevice.SubmitCommandListsAndPresent({ mCmdList });

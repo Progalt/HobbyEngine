@@ -29,7 +29,7 @@ public:
 
 		renderManager->ImGuiDraw([&]() { ImGuiRender(); });
 
-		renderManager->aaMethod = AntiAliasingMethod::TemporalAA;
+		renderManager->aaMethod = AntiAliasingMethod::FastApproximateAA;
 
 
 		viewPos = glm::vec3(0.0f, 0.0f, 3.0f);
@@ -177,7 +177,7 @@ int main(int argc, char* argv[])
 {
 	Application::StartInfo startInfo{};
 	startInfo.width = 1280;
-	startInfo.height = 720;
+	startInfo.height = startInfo.width / 16 * 9;;
 	startInfo.title = "3D Engine";
 
 	App app;

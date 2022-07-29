@@ -238,6 +238,7 @@
     <None Include="Resources\Shaders\fullscreen.glsl.frag" />
     <None Include="Resources\Shaders\lighting.glsl.comp" />
     <None Include="Resources\Shaders\StructInclude.glsl" />
-    <None Include="Resources\Shaders\TAA.glsl.comp" />
+    <None Include="Resources\Shaders\TAA.glsl.frag" />
+    <None Include="Resources\Shaders\FXAA.glsl.frag" />
   </ItemGroup>
 </Project>
