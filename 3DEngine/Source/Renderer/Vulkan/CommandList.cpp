@@ -85,11 +85,14 @@ namespace vk
 			break;
 		}
 
+		m_Renderpass = rp;
 	}
 
 	void CommandList::EndRenderpass()
 	{
 		vkCmdEndRenderPass(m_Cmd[getIndex()]);
+
+		m_Renderpass = nullptr;
 	}
 
 	void CommandList::SetViewport(int x, int y, int w, int h, int minDepth, int maxDepth)

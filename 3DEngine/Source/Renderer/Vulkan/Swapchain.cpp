@@ -13,12 +13,12 @@ namespace vk
 		vkDestroySwapchainKHR(device, m_Swapchain, nullptr);
 	}
 
-	void Swapchain::createSwapchain(VkDevice device, uint32_t width, uint32_t height, VkSurfaceKHR surface, uint32_t graphicsQueueFamily, uint32_t presentQueueFamily, bool requestSRGB)
+	void Swapchain::createSwapchain(VkDevice device, uint32_t width, uint32_t height, VkSurfaceKHR surface, uint32_t graphicsQueueFamily, uint32_t presentQueueFamily, bool requestSRGB, bool requestVSync)
 	{
 
 
 		VkSurfaceFormatKHR surfaceFormat = chooseSurfaceFormat(requestSRGB);
-		VkPresentModeKHR presentMode = choosePresentMode();
+		VkPresentModeKHR presentMode = choosePresentMode(requestVSync);
 		m_Extent = chooseExtent(width, height);
 
 		uint32_t imageCount = m_Details.capabilities.minImageCount + 1;
@@ -166,7 +166,7 @@ namespace vk
 		return m_Details.formats[0];
 	}
 
-	VkPresentModeKHR Swapchain::choosePresentMode()
+	VkPresentModeKHR Swapchain::choosePresentMode(bool vsync)
 	{
 		//std::cout << "Avaliable Present Modes: \n";
 		/*for (const auto& availablePresentMode : m_Details.presentModes)
@@ -181,6 +181,9 @@ namespace vk
 		}*/
 
 		VkPresentModeKHR mode = VK_PRESENT_MODE_FIFO_KHR;
+
+		if (vsync)
+			return mode;
 
 		bool immediateSupport = false;
 		bool mailboxSupport = false;

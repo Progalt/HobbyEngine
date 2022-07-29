@@ -15,7 +15,7 @@ namespace vk
 
 		bool isSwapchainAvailable(VkPhysicalDevice device, VkSurfaceKHR surface);
 
-		void createSwapchain(VkDevice device, uint32_t width, uint32_t height, VkSurfaceKHR surface, uint32_t graphicsQueueFamily, uint32_t presentQueueFamily, bool requestSRGB);
+		void createSwapchain(VkDevice device, uint32_t width, uint32_t height, VkSurfaceKHR surface, uint32_t graphicsQueueFamily, uint32_t presentQueueFamily, bool requestSRGB, bool requestVSync);
 
 		uint32_t getImageCount() const { return m_ImageCount; }
 
@@ -59,7 +59,7 @@ namespace vk
 
 		VkSurfaceFormatKHR chooseSurfaceFormat(bool requestSRGB);
 
-		VkPresentModeKHR choosePresentMode();
+		VkPresentModeKHR choosePresentMode(bool vsync);
 
 		VkExtent2D chooseExtent(uint32_t width, uint32_t height);
 	};

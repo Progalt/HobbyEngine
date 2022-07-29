@@ -13,6 +13,7 @@ namespace vk
 	{
 		this->m_CreateInfo = info;
 		this->m_RequestSRGBBackBuffer = info->requestSRGBBackBuffer;
+		this->m_RequestVSync = info->requestVSync;
 
 		CreateInstance();
 
@@ -29,7 +30,7 @@ namespace vk
 		if (!m_Swapchain.isSwapchainAvailable(m_PhysicalDevice, m_Surface))
 			throw std::runtime_error("Swapchain not avaliable");
 
-		m_Swapchain.createSwapchain(m_Device, m_CreateInfo->width, m_CreateInfo->height, m_Surface, m_GraphicsQueueFamily, m_PresentQueueFamily, m_RequestSRGBBackBuffer);
+		m_Swapchain.createSwapchain(m_Device, m_CreateInfo->width, m_CreateInfo->height, m_Surface, m_GraphicsQueueFamily, m_PresentQueueFamily, m_RequestSRGBBackBuffer, m_RequestVSync);
 
 		CreateCommandPools();
 
@@ -47,7 +48,7 @@ namespace vk
 		if (!m_Swapchain.isSwapchainAvailable(m_PhysicalDevice, m_Surface))
 			throw std::runtime_error("Swapchain not avaliable");
 
-		m_Swapchain.createSwapchain(m_Device, width, height, m_Surface, m_GraphicsQueueFamily, m_PresentQueueFamily, m_RequestSRGBBackBuffer);
+		m_Swapchain.createSwapchain(m_Device, width, height, m_Surface, m_GraphicsQueueFamily, m_PresentQueueFamily, m_RequestSRGBBackBuffer, m_RequestVSync);
 
 	}
 
@@ -136,7 +137,7 @@ namespace vk
 		int i = 0;
 		for (auto& cmd : cmdList)
 		{
-
+			m_ThreadStates[cmd.threadNum].Decrement();
 			buffers[i] = cmd.m_Cmd[m_CurrentFrame];
 			i++;
 		}

@@ -120,7 +120,7 @@ namespace vk
 
 	}
 
-	void Texture::CreateRenderTarget(Format format, uint32_t width, uint32_t height, bool storageImage, bool transitionToShaderResource)
+	void Texture::CreateRenderTarget(Format format, uint32_t width, uint32_t height, bool storageImage, vk::ImageLayout finalLayout)
 	{
 		VkFormat vkf = (VkFormat)format;
 
@@ -175,14 +175,15 @@ namespace vk
 			throw std::runtime_error("failed to create texture image view");
 		}
 
-		if (transitionToShaderResource)
+		if (finalLayout != vk::ImageLayout::Undefined)
 		{
 			SingleUseCommandBuffer cmd = m_Device->GetSingleUsageCommandBuffer(false);
 
-			transitionImageLayout(cmd, m_Image, (VkFormat)format, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 1);
+			transitionImageLayout(cmd, m_Image, (VkFormat)format, VK_IMAGE_LAYOUT_UNDEFINED, (VkImageLayout)finalLayout, 1);
 
 			m_Device->ExecuteTransfer(cmd);
 		}
+		
 	}
 
 

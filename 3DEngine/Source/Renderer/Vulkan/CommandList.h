@@ -155,6 +155,8 @@ namespace vk
 
 		uint32_t threadNum = 0;
 
+		Renderpass* m_Renderpass = nullptr;
+
 		bool m_Secondary = false;
 
 		friend Device;

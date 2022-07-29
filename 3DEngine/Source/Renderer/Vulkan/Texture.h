@@ -12,6 +12,19 @@
 
 namespace vk
 {
+	enum class ImageLayout
+	{
+		Undefined = 0,
+		General = 1,
+		ColourAttachmentOptimal = 2,
+		DepthStencilAttachmentOptimal = 3,
+		DepthStencilReadOnlyOptimal = 4,
+		ShaderReadOnlyOptimal = 5,
+		TransferSrcOptimal = 6,
+		TransferDstOptimal = 7,
+		PreInitilised = 8,
+	};
+
 	enum class TextureType
 	{
 		e1D,
@@ -35,7 +48,7 @@ namespace vk
 
 		void Create(TextureType type, Format format, uint32_t width, uint32_t height, void* pixels, uint32_t levels = 1, uint32_t mipLevels = 1, bool cubemap = false, uint32_t bytesPerPixel = 4);
 
-		void CreateRenderTarget(Format format, uint32_t width, uint32_t height, bool storageImage = false,  bool transitionToShaderResource = false);
+		void CreateRenderTarget(Format format, uint32_t width, uint32_t height, bool storageImage = false,  vk::ImageLayout transitionTo = vk::ImageLayout::Undefined);
 
 		void Destroy();
 

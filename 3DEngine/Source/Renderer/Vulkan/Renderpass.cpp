@@ -133,7 +133,7 @@ namespace vk
 
         m_Device = device;
 
-
+        m_FinalLayout = (vk::ImageLayout)descs[0].finalLayout;
     }
 
 

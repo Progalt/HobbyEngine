@@ -38,6 +38,8 @@ namespace vk
 		// Excplicity request an SRGB BackBuffer
 		// Does not gurantee one and also if this is false does not gurantee the selected backbuffer is not SRGB
 		bool requestSRGBBackBuffer;
+
+		bool requestVSync; 
 	};
 
 	struct SupportedFeatures
@@ -56,6 +58,8 @@ namespace vk
 		SupportedFeatures supportedFeatures;
 	};
 
+	// Simple class to use for single use command buffer internally
+	// It stores the thread the command buffer was allocated for
 	class SingleUseCommandBuffer
 	{
 	public:
@@ -69,6 +73,9 @@ namespace vk
 		}
 	};
 
+	// Very very simple ref counter for threads
+	// Everytime a command list is requested for a certain thread it increments and when its submitted it decrements
+	// This means if a command list needs to be on a new thread it can request an empty thread
 	class ThreadRefCounter
 	{
 	public:
@@ -82,9 +89,7 @@ namespace vk
 		{
 			if (refs > 0)
 				refs--;
-
 		}
-
 
 		bool empty()
 		{
@@ -228,6 +233,7 @@ namespace vk
 		bool m_ValidFrame = true;
 
 		bool m_RequestSRGBBackBuffer;
+		bool m_RequestVSync;
 
 	};
 }

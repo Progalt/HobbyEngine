@@ -1,0 +1,42 @@
+
+#version 450 core
+
+
+layout(binding = 0) uniform sampler2D in_hdr;
+layout(binding = 1) uniform sampler2D in_velocity;
+layout(binding = 2) uniform sampler2D in_history;
+
+layout(binding = 3) uniform writeonly image2D finalImage;
+
+layout(local_size_x = 16, local_size_y = 16) in;
+
+layout(push_constant) uniform PushConstants
+{
+	int firstFrame;
+} constants;
+
+void main()
+{
+	vec3 c ;
+	ivec2 coord = ivec2(gl_GlobalInvocationID.xy);
+	
+	if (constants.firstFrame == 1)
+	{
+		vec3 currentSample = texelFetch(in_hdr, coord, 0).rgb;
+		c = currentSample;
+	}
+	else 
+	{
+		
+
+		float modulationFactor = 1.0 / 16.0;
+
+		vec3 histSample = texelFetch( in_history, coord, 0 ).rgb;
+		vec3 currentSample = texelFetch(in_hdr, coord, 0).rgb;
+
+		//c = mix(currentSample, histSample, 0.95);
+
+		c = currentSample;
+	}
+	imageStore(finalImage, coord, vec4(c, 1.0));
+}

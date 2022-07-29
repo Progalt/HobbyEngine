@@ -7,6 +7,8 @@
 #include "SkyMaterial.h"
 #include <functional>
 
+#include "GraphicsStructs.h"
+
 struct RenderStatistics
 {
 	uint32_t drawCalls;
@@ -28,9 +30,7 @@ enum class AntiAliasingMethod
 	// Good for smoothing egdes but not shader aliasing stuff like TAA. 
 	// SMAA,
 
-	// MAYBE:
-	// Its a cheap AA solution so it could be worth implementing 
-	// FXAA
+	FastApproximateAA
 };
 
 // NOTE: Not implemented yet but planned
@@ -72,6 +72,12 @@ public:
 	}
 
 	RenderStatistics stats;
+
+	AntiAliasingMethod aaMethod;
+
+	bool hasDirLight = false;
+	DirectionalLight directionalLight;
+	std::vector<PointLight> pointLights;
 
 protected:
 

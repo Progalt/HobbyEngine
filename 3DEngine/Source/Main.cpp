@@ -29,6 +29,10 @@ public:
 
 		renderManager->ImGuiDraw([&]() { ImGuiRender(); });
 
+		renderManager->aaMethod = AntiAliasingMethod::TemporalAA;
+
+
+		viewPos = glm::vec3(0.0f, 0.0f, 3.0f);
 	}
 
 	void Update() override

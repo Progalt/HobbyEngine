@@ -31,6 +31,7 @@ public:
 
 	void SetSkyMaterial(SkyMaterial* material) override;
 
+	glm::mat4 mCachedVP = glm::mat4(1.0f);
 
 	struct DrawCmd
 	{
@@ -49,11 +50,23 @@ public:
 
 	vk::Sampler mDefaultSampler;
 
+	vk::Texture mHistory;
+	vk::Texture mTAAOutput;
+
+	GlobalData mGlobalDataStruct;
+	vk::Buffer mGlobalData;
+
+	SceneInfo mSceneInfo;
+	vk::Buffer mSceneDataBuffer;
+
 	struct
 	{
 		vk::Pipeline pipeline;
 
 		vk::DescriptorLayout materialLayout;
+		vk::DescriptorLayout dataLayout;
+
+		vk::Descriptor dataDescriptor;
 
 	} mBasePipeline;
 
@@ -66,6 +79,27 @@ public:
 		vk::Descriptor descriptor;
 
 	} mFullscreenPipeline;
+
+	struct
+	{
+		vk::ComputePipeline pipeline;
+
+		vk::DescriptorLayout layout;
+		vk::Descriptor descriptor;
+
+		vk::Texture output;
+	} mLightingPipeline;
+
+	struct
+	{
+
+		glm::mat4 jitterMat;
+
+		vk::ComputePipeline pipeline;
+		vk::DescriptorLayout layout;
+		vk::Descriptor descriptor;
+
+	} mTAAPass;
 	
 	struct {
 

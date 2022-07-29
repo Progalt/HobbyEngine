@@ -1,0 +1,70 @@
+#version 450 core
+
+#include "StructInclude.glsl"
+
+layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
+
+layout(set = 0, binding = 0) uniform GlobalData
+{
+	uvec2 resolution;
+	vec3 viewPos;
+
+	float padding[3];
+} global;
+
+layout(set = 0, binding = 1) readonly buffer SceneData
+{
+	uint hasDirectionalLight; 
+	uint lightCount;
+
+	float padding[2];
+
+	DirectionalLight dirLight;
+	PointLight[] pointLight;
+} sceneData;
+
+layout(set = 0, binding = 2) uniform sampler2D gColour;
+layout(set = 0, binding = 3) uniform sampler2D gNormal;
+
+layout(set = 0, binding = 4, rgba8) uniform writeonly image2D finalOutput;
+
+vec3 decodeNormal(vec2 enc)
+{
+	vec3 n;
+    n.xy = enc*2-1;
+    n.z = sqrt(1-dot(n.xy, n.xy));
+    return n;
+}
+
+vec3 DirectionalLightContribution(vec3 al, vec3 n, DirectionalLight light)
+{
+	float nDotl = dot(n, light.direction.xyz);
+
+	return light.colour.xyz * nDotl; 
+}
+
+void main()
+{
+
+	// Fetch the target colours
+	vec4 gColourSampled = texelFetch(gColour, ivec2(gl_GlobalInvocationID.xy), 0);
+	vec4 gNormalSampled = texelFetch(gNormal, ivec2(gl_GlobalInvocationID.xy), 0);
+
+	// Albedo is the first 3 channels of the target
+	vec3 albedo = gColourSampled.xyz;
+
+	// Normal is encoded in 2 channels so it needs to be decoded back into xyz
+	vec2 encodedNormal = gNormalSampled.xy;
+	vec3 normal = gNormalSampled.xyz;
+	normal = normalize(normal);
+
+	vec3 lightContribution = vec3(0.0);
+
+	lightContribution += DirectionalLightContribution(albedo, normal, sceneData.dirLight) * float(sceneData.hasDirectionalLight);
+
+	vec3 final = albedo * lightContribution;
+
+	// Store the final result to the output image
+	imageStore(finalOutput, ivec2(gl_GlobalInvocationID.xy), vec4(final, 1.0));
+	
+}

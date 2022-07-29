@@ -31,18 +31,7 @@ namespace vk
 		Swapchain
 	};
 
-	enum class ImageLayout
-	{
-		Undefined = 0,
-		General = 1,
-		ColourAttachmentOptimal = 2,
-		DepthStencilAttachmentOptimal = 3,
-		DepthStencilReadOnlyOptimal = 4,
-		ShaderReadOnlyOptimal = 5,
-		TransferSrcOptimal = 6,
-		TransferDstOptimal = 7,
-		PreInitilised = 8,
-	};
+	
 
 	struct RenderpassCreateInfo
 	{
@@ -80,6 +69,9 @@ namespace vk
 
 		bool hasDepth;
 		uint32_t m_NumTargets = 0;
+
+		ImageLayout m_FinalLayout;
+		std::vector<Texture*> m_ColourAttachments;
 
 		glm::vec4 clearColour;
 

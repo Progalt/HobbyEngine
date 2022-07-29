@@ -188,6 +188,7 @@
     <ClInclude Include="Source\Maths\BoundingBox.h" />
     <ClInclude Include="Source\Maths\Rect.h" />
     <ClInclude Include="Source\Model\PMDL.h" />
+    <ClInclude Include="Source\Renderer\GraphicsStructs.h" />
     <ClInclude Include="Source\Renderer\Material.h" />
     <ClInclude Include="Source\Renderer\Mesh.h" />
     <ClInclude Include="Source\Renderer\RenderManager.h" />
@@ -221,6 +222,9 @@
     <None Include="Resources\Shaders\base.glsl.vert" />
     <None Include="Resources\Shaders\fullscreen.glsl.frag" />
     <None Include="Resources\Shaders\fullscreen.glsl.vert" />
+    <None Include="Resources\Shaders\lighting.glsl.comp" />
+    <None Include="Resources\Shaders\StructInclude.glsl" />
+    <None Include="Resources\Shaders\TAA.glsl.comp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

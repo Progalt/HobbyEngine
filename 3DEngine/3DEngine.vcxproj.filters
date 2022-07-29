@@ -227,11 +227,17 @@
     <ClInclude Include="Source\Model\PMDL.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Source\Renderer\GraphicsStructs.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="Resources\Shaders\base.glsl.vert" />
     <None Include="Resources\Shaders\base.glsl.frag" />
     <None Include="Resources\Shaders\fullscreen.glsl.vert" />
     <None Include="Resources\Shaders\fullscreen.glsl.frag" />
+    <None Include="Resources\Shaders\lighting.glsl.comp" />
+    <None Include="Resources\Shaders\StructInclude.glsl" />
+    <None Include="Resources\Shaders\TAA.glsl.comp" />
   </ItemGroup>
 </Project>
