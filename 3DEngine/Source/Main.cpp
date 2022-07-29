@@ -110,18 +110,25 @@ public:
 		ImGui::Separator();
 		ImGui::Text("Draw Calls: %d", renderManager->stats.drawCalls);
 		ImGui::Text("Renderpasses: %d", renderManager->stats.renderpasses);
-		
+	
+
 		ImGui::End();
 	}
 
 	void Render() override
 	{
-
-		model.Queue(renderManager, glm::mat4(1.0f));
+		for (uint32_t i = 0; i < 4; i++)
+		{
+			for (uint32_t j = 0; j < 4; j++)
+			{
+				glm::mat4 transform = glm::translate(glm::mat4(1.0f), { (float)i * 3, (float)j * 3, 0.0f });
+				model.Queue(renderManager, transform);
+			}
+		}
 
 		glm::mat4 viewProj = proj * view;
 
-		renderManager->Render(viewProj);
+		renderManager->Render(viewProj, viewPos);
 
 	}
 
@@ -144,7 +151,7 @@ public:
 	int GetFramerate(int newFrame)
 	{
 		// Average the framerate over 100 frames
-		const int totalFrameAvg = 100;
+		const int totalFrameAvg = 60;
 		static int ptr = 0;
 		static int lastFPS = 0;
 		static std::array<int, totalFrameAvg> framerates;

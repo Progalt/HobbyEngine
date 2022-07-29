@@ -60,7 +60,7 @@ RenderManagerVk::RenderManagerVk(Window* window)
 	{
 		vk::RenderpassCreateInfo rpCreateInfo{};
 		rpCreateInfo.type = vk::RenderpassType::Swapchain;
-		rpCreateInfo.clearColour = { 0.3f, 0.2f, 0.6f, 1.0f };
+		rpCreateInfo.clearColour = { 0.0f , 0.0f, 0.0f, 1.0f };
 
 		mRenderpasses.swapchain = mDevice.NewRenderpass(&rpCreateInfo);
 	}
@@ -85,7 +85,7 @@ RenderManagerVk::RenderManagerVk(Window* window)
 		rpCreateInfo.type = vk::RenderpassType::Offscreen;
 		rpCreateInfo.colourAttachments = { &mGeometryPass.colourTarget ,&mGeometryPass.normalTarget, &mGeometryPass.velocityTarget };
 		rpCreateInfo.depthAttachment = &mGeometryPass.depthTarget;
-		rpCreateInfo.clearColour = { 0.3f, 0.2f, 0.6f, 1.0f };
+		rpCreateInfo.clearColour = { 0.0f, 0.0f, 0.0f, 1.0f };
 		rpCreateInfo.depthClear = 1.0f;
 		
 		mRenderpasses.geometryPass = mDevice.NewRenderpass(&rpCreateInfo);
@@ -177,7 +177,7 @@ RenderManagerVk::RenderManagerVk(Window* window)
 		vertexBlob.Destroy();
 		fragmentBlob.Destroy();
 
-		mFullscreenPipeline.descriptor = mDevice.NewDescriptor(&mFullscreenPipeline.layout);
+		
 
 	}
 
@@ -255,13 +255,20 @@ RenderManagerVk::RenderManagerVk(Window* window)
 		mFXAA.descriptor = mDevice.NewDescriptor(&mFXAA.layout);
 		mFXAA.descriptor.BindCombinedImageSampler(&mLightingPipeline.output, &mDefaultSampler, 0);
 		mFXAA.descriptor.Update();
+
+		vertexBlob.Destroy();
+		fragmentBlob.Destroy();
 	}
 
 	{
 
-
-		mFullscreenPipeline.descriptor.BindCombinedImageSampler(&mCurrentOutput, &mDefaultSampler, 0);
+		mFullscreenPipeline.descriptor = mDevice.NewDescriptor(&mFullscreenPipeline.layout);
+		mFullscreenPipeline.descriptor.BindCombinedImageSampler(&mLightingPipeline.output, &mDefaultSampler, 0);
 		mFullscreenPipeline.descriptor.Update();
+
+		mFullscreenPipeline.fxaaDescriptor = mDevice.NewDescriptor(&mFullscreenPipeline.layout);
+		mFullscreenPipeline.fxaaDescriptor.BindCombinedImageSampler(&mCurrentOutput, &mDefaultSampler, 0);
+		mFullscreenPipeline.fxaaDescriptor.Update();
 
 
 	}
@@ -279,6 +286,10 @@ RenderManagerVk::~RenderManagerVk()
 	mSceneDataBuffer.Destroy();
 
 	mCurrentOutput.Destroy();
+
+	mFXAA.layout.Destroy();
+	mFXAA.pipeline.Destroy();
+	mFXAA.renderpass.Destroy();
 	
 	mRenderpasses.swapchain.Destroy();
 
@@ -312,8 +323,12 @@ void RenderManagerVk::WaitForIdle()
 	mDevice.WaitIdle();
 }
 
-void RenderManagerVk::Render(const glm::mat4& view_proj)
+void RenderManagerVk::Render(const glm::mat4& view_proj, const glm::vec3& view_pos)
 {
+
+	// This is a mega function that handles drawing the whole scene
+	// It doesn't care about the main engine apart from that everything submitted is submitted in the correct format
+
 	stats.drawCalls = 0;
 	stats.renderpasses = 0;
 
@@ -324,6 +339,14 @@ void RenderManagerVk::Render(const glm::mat4& view_proj)
 	
 	currentFrame = (currentFrame == 0) ? 1 : 0;
 
+	// Lets do a sort first. This reduces overdraw by drawing front to back
+	std::sort(mDeferredDraws.begin(), mDeferredDraws.end(), [view_pos](DrawCmd& a, DrawCmd& b)
+		{
+			float distA = glm::distance(view_pos, glm::vec3(a.transform[3]));
+			float distB = glm::distance(view_pos, glm::vec3(b.transform[3]));
+
+			return distA < distB;
+		});
 
 	mGlobalDataStruct.jitteredVP = view_proj;
 
@@ -467,7 +490,10 @@ void RenderManagerVk::Render(const glm::mat4& view_proj)
 
 	mCmdList.BindPipeline(&mFullscreenPipeline.pipeline);
 
-	mCmdList.BindDescriptors({ &mFullscreenPipeline.descriptor }, & mFullscreenPipeline.pipeline, 0);
+	if (aaMethod == AntiAliasingMethod::None)
+		mCmdList.BindDescriptors({ &mFullscreenPipeline.descriptor }, & mFullscreenPipeline.pipeline, 0);
+	else if (aaMethod == AntiAliasingMethod::FastApproximateAA)
+		mCmdList.BindDescriptors({ &mFullscreenPipeline.fxaaDescriptor }, &mFullscreenPipeline.pipeline, 0);
 	mCmdList.Draw(3, 1, 0, 0);
 	
 	stats.drawCalls++;
@@ -500,6 +526,11 @@ void RenderManagerVk::Render(const glm::mat4& view_proj)
 
 	firstFrame = false;
 	frameCount++;
+}
+
+void RenderManagerVk::UpdateSettings()
+{
+	
 }
 
 void RenderManagerVk::QueueMesh(Mesh* mesh, Material* material, glm::mat4 transform, uint32_t firstIndex, uint32_t indexCount, uint32_t vertexOffset)
