@@ -5,6 +5,7 @@
 #include "../../FileSystem/FileSystem.h"
 #include "TextureVk.h"
 #include "MaterialVk.h"
+#include "../../Maths/Frustum.h"
 
 #include <glm/gtc/matrix_transform.hpp>
 
@@ -311,6 +312,9 @@ RenderManagerVk::RenderManagerVk(Window* window)
 		mSkyPass.descriptor = mDevice.NewDescriptor(&mSkyPass.layout);
 		mSkyPass.descriptor.BindBuffer(&mGlobalData, 0, sizeof(GlobalData), 0);
 		mSkyPass.descriptor.Update();
+
+		vertexBlob.Destroy();
+		fragmentBlob.Destroy();
 	}
 
 	{
@@ -388,7 +392,8 @@ void RenderManagerVk::Render(const glm::mat4& view, const glm::vec3& view_pos, c
 	// It doesn't care about the main engine apart from that everything submitted is submitted in the correct format
 
 	stats.drawCalls = 0;
-	stats.renderpasses = 0;
+	stats.dispatchCalls = 0;
+	stats.culledMeshes = 0;
 
 	static bool firstFrame = true;
 	static uint64_t frameCount = 0;
@@ -397,6 +402,7 @@ void RenderManagerVk::Render(const glm::mat4& view, const glm::vec3& view_pos, c
 	
 	currentFrame = (currentFrame == 0) ? 1 : 0;
 
+	Frustum frustum(proj * view);
 
 	// Lets do a sort first. This reduces overdraw by drawing front to back
 	std::sort(mDeferredDraws.begin(), mDeferredDraws.end(), [view_pos](DrawCmd& a, DrawCmd& b)
@@ -475,8 +481,6 @@ void RenderManagerVk::Render(const glm::mat4& view, const glm::vec3& view_pos, c
 
 	mCmdList.BeginRenderpass(&mRenderpasses.geometryPass, false);
 
-	stats.renderpasses++;
-
 	mCmdList.SetViewport(0, 0, this->mProperties.width, this->mProperties.height);
 	mCmdList.SetScissor(0, 0, this->mProperties.width, this->mProperties.height);
 
@@ -484,11 +488,21 @@ void RenderManagerVk::Render(const glm::mat4& view, const glm::vec3& view_pos, c
 
 	mCmdList.BindDescriptors({ &mBasePipeline.dataDescriptor }, &mBasePipeline.pipeline, 1);
 
+
 	for (auto& cmd : mDeferredDraws)
 	{
 
+
 		MaterialVk* mat = (MaterialVk*)cmd.material;
 		MeshVk* mesh = (MeshVk*)cmd.mesh;
+
+		mesh->boundingBox.Transform(cmd.transform);
+		if (!frustum.Test(mesh->boundingBox))
+		{
+			stats.culledMeshes++;
+			mDeferredDraws.pop_front();
+			continue;
+		}
 
 		// If the descriptor isn't created. We should create it now
 		// A Just In Time sort of scenario
@@ -504,7 +518,7 @@ void RenderManagerVk::Render(const glm::mat4& view, const glm::vec3& view_pos, c
 		// So it can be done in one call
 		// TODO: Should this be moved into a uniform buffer
 		// Or maybe mix both
-		
+
 		// This is exactly 128 bytes
 		// Which is the minimum required by vulkan so for now its fine.
 		struct
@@ -513,7 +527,7 @@ void RenderManagerVk::Render(const glm::mat4& view, const glm::vec3& view_pos, c
 			glm::mat4 model;
 		} data;
 
-		
+
 		data.prevModel = cmd.transform;
 		data.model = cmd.transform;
 
@@ -529,12 +543,13 @@ void RenderManagerVk::Render(const glm::mat4& view, const glm::vec3& view_pos, c
 		mCmdList.BindVertexBuffer(&mesh->vertexBuffer, 0);
 		mCmdList.BindIndexBuffer(&mesh->indexBuffer);
 
-		mCmdList.DrawIndexed(( cmd.indexCount == 0) ? cmd.mesh->indices.size() : cmd.indexCount, 1, cmd.firstIndex, cmd.vertexOffset, 0);
+		mCmdList.DrawIndexed((cmd.indexCount == 0) ? cmd.mesh->indices.size() : cmd.indexCount, 1, cmd.firstIndex, cmd.vertexOffset, 0);
 
 		stats.drawCalls++;
 
 		mDeferredDraws.pop_front();
 	}
+	
 
 	mCmdList.EndRenderpass();
 
@@ -557,6 +572,8 @@ void RenderManagerVk::Render(const glm::mat4& view, const glm::vec3& view_pos, c
 
 		mCmdList.Draw(6, 1, 0, 0);
 
+		stats.drawCalls++;
+
 		mCmdList.EndRenderpass();
 
 		mCmdList.EndDebugUtilsLabel();
@@ -572,6 +589,7 @@ void RenderManagerVk::Render(const glm::mat4& view, const glm::vec3& view_pos, c
 	mCmdList.BindDescriptors({ &mLightingPipeline.descriptor }, &mLightingPipeline.pipeline, 0);
 	mCmdList.Dispatch(mProperties.width / 8, mProperties.height / 8, 1);
 
+	stats.dispatchCalls++;
 
 	vk::ImageBarrierInfo imgBarrier{};
 	imgBarrier.srcAccess = vk::AccessFlags::ShaderWrite;
@@ -598,6 +616,8 @@ void RenderManagerVk::Render(const glm::mat4& view, const glm::vec3& view_pos, c
 
 		mCmdList.Draw(3, 1, 0, 0);
 
+		stats.drawCalls++;
+
 		mCmdList.EndRenderpass();
 		mCmdList.EndDebugUtilsLabel();
 	}
@@ -610,10 +630,6 @@ void RenderManagerVk::Render(const glm::mat4& view, const glm::vec3& view_pos, c
 
 	mCmdList.BeginRenderpass(&mRenderpasses.swapchain, false);
 
-
-
-
-	stats.renderpasses++;
 
 	mCmdList.SetViewport(0, 0, this->mProperties.width, this->mProperties.height);
 	mCmdList.SetScissor(0, 0, this->mProperties.width, this->mProperties.height);

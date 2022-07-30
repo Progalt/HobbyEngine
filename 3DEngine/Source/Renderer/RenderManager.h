@@ -12,7 +12,8 @@
 struct RenderStatistics
 {
 	uint32_t drawCalls;
-	uint32_t renderpasses;
+	uint32_t dispatchCalls;
+	uint32_t culledMeshes;
 
 };
 

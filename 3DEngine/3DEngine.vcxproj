@@ -186,6 +186,7 @@
     <ClInclude Include="Source\FileSystem\FileSystem.h" />
     <ClInclude Include="Source\FileSystem\ResourceManager.h" />
     <ClInclude Include="Source\Maths\BoundingBox.h" />
+    <ClInclude Include="Source\Maths\Frustum.h" />
     <ClInclude Include="Source\Maths\Rect.h" />
     <ClInclude Include="Source\Model\PMDL.h" />
     <ClInclude Include="Source\Renderer\GraphicsStructs.h" />

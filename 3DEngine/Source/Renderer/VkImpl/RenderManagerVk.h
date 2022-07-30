@@ -41,10 +41,12 @@ public:
 		glm::mat4 transform;
 		Material* material;
 		uint32_t firstIndex, indexCount, vertexOffset;
+		bool culled;
 	};
 
 	std::deque<DrawCmd> mDeferredDraws;
 	std::deque<DrawCmd> mForwardDraws;
+	std::deque<DrawCmd> mCulledDeferredDraws;
 
 	vk::Device mDevice;
 
