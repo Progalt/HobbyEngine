@@ -166,7 +166,9 @@ RenderManagerVk::RenderManagerVk(Window* window)
 		vk::PipelineCreateInfo pipelineInfo{};
 		pipelineInfo.renderpass = &mRenderpasses.swapchain;
 		pipelineInfo.layout = { &mFullscreenPipeline.layout };
-		pipelineInfo.pushConstantRanges = {};
+		pipelineInfo.pushConstantRanges = {
+		{ vk::ShaderStage::Fragment, 0, sizeof(int) }
+		};
 		pipelineInfo.topologyType = vk::Topology::TriangleList;
 		pipelineInfo.vertexDesc = nullptr;
 		pipelineInfo.shaders = { &vertexBlob, &fragmentBlob };
@@ -184,6 +186,9 @@ RenderManagerVk::RenderManagerVk(Window* window)
 	{
 		mCurrentOutput = mDevice.NewTexture();
 		mCurrentOutput.CreateRenderTarget(vk::FORMAT_R16G16B16A16_SFLOAT, window->GetWidth(), window->GetHeight());
+
+		mHistory = mDevice.NewTexture();
+		mHistory.CreateRenderTarget(vk::FORMAT_R16G16B16A16_SFLOAT, window->GetWidth(), window->GetHeight(), true, vk::ImageLayout::General);
 	}
 
 	{
@@ -288,6 +293,7 @@ RenderManagerVk::~RenderManagerVk()
 	mSceneDataBuffer.Destroy();
 
 	mCurrentOutput.Destroy();
+	mHistory.Destroy();
 
 	mFXAA.layout.Destroy();
 	mFXAA.pipeline.Destroy();
@@ -468,6 +474,7 @@ void RenderManagerVk::Render(const glm::mat4& view, const glm::vec3& view_pos, c
 
 	if (aaMethod == AntiAliasingMethod::FastApproximateAA)
 	{
+		mCmdList.BeginDebugUtilsLabel("FXAA");
 		mCmdList.BeginRenderpass(&mFXAA.renderpass, false);
 
 		mCmdList.BindPipeline(&mFXAA.pipeline);
@@ -476,6 +483,7 @@ void RenderManagerVk::Render(const glm::mat4& view, const glm::vec3& view_pos, c
 		mCmdList.Draw(3, 1, 0, 0);
 
 		mCmdList.EndRenderpass();
+		mCmdList.EndDebugUtilsLabel();
 	}
 	
 
@@ -494,6 +502,8 @@ void RenderManagerVk::Render(const glm::mat4& view, const glm::vec3& view_pos, c
 	mCmdList.SetScissor(0, 0, this->mProperties.width, this->mProperties.height);
 
 	mCmdList.BindPipeline(&mFullscreenPipeline.pipeline);
+
+	mCmdList.PushConstants(&mFullscreenPipeline.pipeline, vk::ShaderStage::Fragment, sizeof(int), 0, &tonemappingMode);
 
 	if (aaMethod == AntiAliasingMethod::None)
 		mCmdList.BindDescriptors({ &mFullscreenPipeline.descriptor }, & mFullscreenPipeline.pipeline, 0);
@@ -521,6 +531,45 @@ void RenderManagerVk::Render(const glm::mat4& view, const glm::vec3& view_pos, c
 
 	mCmdList.ImageBarrier(&mLightingPipeline.output, vk::PipelineStage::FragmentShader, vk::PipelineStage::ComputeShader, imgBarrier);
 
+	// This next part handles the copying of the current output to the history target
+	// All the targets need to be transitioned to the correct layout and back again so it all works next frame
+	{
+		imgBarrier.srcAccess = vk::AccessFlags::ShaderRead;
+		imgBarrier.oldLayout = vk::ImageLayout::ShaderReadOnlyOptimal;
+		imgBarrier.dstAccess = vk::AccessFlags::TransferRead;
+		imgBarrier.newLayout = vk::ImageLayout::TransferSrcOptimal;
+
+		mCmdList.ImageBarrier(&mCurrentOutput, vk::PipelineStage::FragmentShader, vk::PipelineStage::Transfer, imgBarrier);
+
+		imgBarrier.srcAccess = vk::AccessFlags::ShaderRead;
+		imgBarrier.oldLayout = vk::ImageLayout::General;
+		imgBarrier.dstAccess = vk::AccessFlags::TransferWrite;
+		imgBarrier.newLayout = vk::ImageLayout::TransferDstOptimal;
+
+		mCmdList.ImageBarrier(&mHistory, vk::PipelineStage::FragmentShader, vk::PipelineStage::Transfer, imgBarrier);
+
+		vk::ImageCopy imgCopy{};
+		imgCopy.srcX = 0, imgCopy.srcY = 0;
+		imgCopy.dstX = 0, imgCopy.dstY = 0;
+		imgCopy.w = mProperties.width;
+		imgCopy.h = mProperties.height;
+
+		mCmdList.CopyImage(&mCurrentOutput, vk::ImageLayout::TransferSrcOptimal, &mHistory, vk::ImageLayout::TransferDstOptimal, &imgCopy);
+
+		imgBarrier.srcAccess = vk::AccessFlags::TransferRead;
+		imgBarrier.oldLayout = vk::ImageLayout::TransferSrcOptimal;
+		imgBarrier.dstAccess = vk::AccessFlags::ShaderRead;
+		imgBarrier.newLayout = vk::ImageLayout::ShaderReadOnlyOptimal;
+
+		mCmdList.ImageBarrier(&mCurrentOutput, vk::PipelineStage::Transfer, vk::PipelineStage::FragmentShader, imgBarrier);
+
+		imgBarrier.srcAccess = vk::AccessFlags::TransferWrite;
+		imgBarrier.oldLayout = vk::ImageLayout::TransferDstOptimal;
+		imgBarrier.dstAccess = vk::AccessFlags::ShaderWrite;
+		imgBarrier.newLayout = vk::ImageLayout::General;
+
+		mCmdList.ImageBarrier(&mHistory, vk::PipelineStage::Transfer, vk::PipelineStage::ComputeShader, imgBarrier);
+	}
 	mCmdList.End();
 
 	mDevice.SubmitCommandListsAndPresent({ mCmdList });

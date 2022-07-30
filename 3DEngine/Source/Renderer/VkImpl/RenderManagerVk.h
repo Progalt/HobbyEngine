@@ -59,6 +59,7 @@ public:
 	vk::Buffer mSceneDataBuffer;
 
 	vk::Texture mCurrentOutput;
+	vk::Texture mHistory;
 
 	struct
 	{

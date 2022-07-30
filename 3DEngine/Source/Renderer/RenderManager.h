@@ -77,6 +77,8 @@ public:
 
 	AntiAliasingMethod aaMethod;
 
+	int tonemappingMode = 0;
+
 	bool hasDirLight = false;
 	DirectionalLight directionalLight;
 	std::vector<PointLight> pointLights;

@@ -110,6 +110,48 @@ public:
 		ImGui::Separator();
 		ImGui::Text("Draw Calls: %d", renderManager->stats.drawCalls);
 	
+		ImGui::Separator();
+
+		ImGui::Text("Settings");
+
+		static bool fxaa = true;
+		ImGui::Checkbox("FXAA", &fxaa);
+
+		if (fxaa)
+			renderManager->aaMethod = AntiAliasingMethod::FastApproximateAA;
+		else 
+			renderManager->aaMethod = AntiAliasingMethod::None;
+
+		const char* tonemappingModes[] = { "None", "Filmic", "Unreal", "Uncharted 2", "ACES"};
+		static const char* currentTonemap = "None";
+
+		ImGui::Text("Tonemapping Mode");
+		if (ImGui::BeginCombo("##combo", currentTonemap)) // The second parameter is the label previewed before opening the combo.
+		{
+			for (int n = 0; n < IM_ARRAYSIZE(tonemappingModes); n++)
+			{
+				bool is_selected = (currentTonemap == tonemappingModes[n]); // You can store your selection however you want, outside or inside your objects
+				if (ImGui::Selectable(tonemappingModes[n], is_selected))
+				{
+					currentTonemap = tonemappingModes[n];
+					if (currentTonemap == "None")
+						renderManager->tonemappingMode = 0;
+					else if (currentTonemap == "Filmic")
+						renderManager->tonemappingMode = 1;
+					else if (currentTonemap == "Unreal")
+						renderManager->tonemappingMode = 2;
+					else if (currentTonemap == "Uncharted 2")
+						renderManager->tonemappingMode = 3;
+					else if (currentTonemap == "ACES")
+						renderManager->tonemappingMode = 4;
+				}
+				if (is_selected)
+				{
+					ImGui::SetItemDefaultFocus();
+				}
+			}
+			ImGui::EndCombo();
+		}
 
 		ImGui::End();
 	}
