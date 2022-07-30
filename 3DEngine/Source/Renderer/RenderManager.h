@@ -79,6 +79,9 @@ public:
 
 	int tonemappingMode = 0;
 
+	// time is the time to render at. 
+	float time = 0.0f;
+
 	bool hasDirLight = false;
 	DirectionalLight directionalLight;
 	std::vector<PointLight> pointLights;

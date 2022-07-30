@@ -103,7 +103,15 @@ public:
 		vk::Texture output;
 	} mLightingPipeline;
 
+	struct
+	{
+		vk::Pipeline pipeline;
+		vk::DescriptorLayout layout;
+		vk::Descriptor descriptor;
 
+		vk::Renderpass renderpass;
+
+	} mSkyPass;
 	
 	struct {
 

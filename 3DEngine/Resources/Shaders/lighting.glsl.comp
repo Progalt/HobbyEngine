@@ -15,6 +15,8 @@ layout(set = 0, binding = 0) uniform GlobalData
 	vec4 viewPos;
 	mat4 invProj;
 	mat4 invView;
+	mat4 view;
+	mat4 proj;
 } global;
 
 layout(set = 0, binding = 1) readonly buffer SceneData
@@ -31,7 +33,7 @@ layout(set = 0, binding = 1) readonly buffer SceneData
 layout(set = 0, binding = 2) uniform sampler2D gColour;
 layout(set = 0, binding = 3) uniform sampler2D gNormal;
 
-layout(set = 0, binding = 4, rgba8) uniform writeonly image2D finalOutput;
+layout(set = 0, binding = 4, rgba8) uniform image2D finalOutput;
 
 layout(set = 0, binding = 5) uniform sampler2D gDepth;
 
@@ -78,6 +80,8 @@ void main()
 
 	ivec2 coord = ivec2(gl_GlobalInvocationID.xy);
 
+	vec3 prev = imageLoad(finalOutput, coord).xyz;
+
 	vec2 uv = vec2(coord) / vec2(imageSize(finalOutput));
 
 	float depth = texelFetch(gDepth, coord, 0).r;
@@ -115,6 +119,6 @@ void main()
 	if (!isnan(final.x))
 		imageStore(finalOutput, ivec2(gl_GlobalInvocationID.xy), vec4(final, 1.0));
 	else 
-		imageStore(finalOutput, coord, vec4(0.0, 0.0, 0.0, 1.0));
+		imageStore(finalOutput, coord, vec4(prev, 1.0));
 	
 }

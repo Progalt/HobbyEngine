@@ -12,6 +12,8 @@ struct GlobalData
 	glm::vec4 viewPos;
 	glm::mat4 inverseProj;
 	glm::mat4 inverseView;
+	glm::mat4 view;
+	glm::mat4 proj;
 };
 
 struct PointLight
@@ -39,4 +41,3 @@ struct SceneInfo
 	DirectionalLight dirLight;
 	PointLight pointLights[MAX_POINT_LIGHT_COUNT];
 };
-

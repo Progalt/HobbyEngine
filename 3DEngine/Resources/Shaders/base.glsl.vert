@@ -25,6 +25,8 @@ layout(set = 1, binding = 0) uniform GlobalData
 	vec4 viewPos;
 	mat4 invProj;
 	mat4 invView;
+	mat4 view;
+	mat4 proj;
 } global;
 
 void main()

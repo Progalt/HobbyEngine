@@ -185,7 +185,7 @@ RenderManagerVk::RenderManagerVk(Window* window)
 
 	{
 		mCurrentOutput = mDevice.NewTexture();
-		mCurrentOutput.CreateRenderTarget(vk::FORMAT_R16G16B16A16_SFLOAT, window->GetWidth(), window->GetHeight());
+		mCurrentOutput.CreateRenderTarget(vk::FORMAT_R16G16B16A16_SFLOAT, window->GetWidth(), window->GetHeight(), true, vk::ImageLayout::General);
 
 		mHistory = mDevice.NewTexture();
 		mHistory.CreateRenderTarget(vk::FORMAT_R16G16B16A16_SFLOAT, window->GetWidth(), window->GetHeight(), true, vk::ImageLayout::General);
@@ -240,6 +240,7 @@ RenderManagerVk::RenderManagerVk(Window* window)
 		rpInfo.colourAttachments = { &mCurrentOutput };
 		rpInfo.type = vk::RenderpassType::Offscreen;
 		rpInfo.clearColour = { 0.0f, 0.0f, 0.0f, 1.0f };
+		rpInfo.colourAttachmentInitialLayouts = { vk::ImageLayout::General };
 
 		mFXAA.renderpass = mDevice.NewRenderpass(&rpInfo);
 
@@ -265,6 +266,51 @@ RenderManagerVk::RenderManagerVk(Window* window)
 
 		vertexBlob.Destroy();
 		fragmentBlob.Destroy();
+	}
+
+	// Sky
+	{
+		vk::RenderpassCreateInfo rpInfo{};
+		rpInfo.colourAttachments = { &mLightingPipeline.output };
+		rpInfo.depthAttachment = &mGeometryPass.depthTarget;
+		rpInfo.depthInitialLayout = { vk::ImageLayout::ShaderReadOnlyOptimal };
+		rpInfo.loadAttachments = true;
+		rpInfo.loadDepth = true;
+		rpInfo.type = vk::RenderpassType::Offscreen;
+		rpInfo.colourAttachmentInitialLayouts = { vk::ImageLayout::General };
+		// NOTE: It transitions to a shader resource immediately after this so we could do that within the renderpass its self
+		rpInfo.colourAttachmentFinalLayouts = { vk::ImageLayout::General };	
+
+		mSkyPass.renderpass = mDevice.NewRenderpass(&rpInfo);
+
+		mSkyPass.layout = mDevice.NewLayout();
+		mSkyPass.layout.AddLayoutBinding({ 0, vk::ShaderInputType::UniformBuffer, 1, vk::ShaderStage::Vertex });
+		mSkyPass.layout.Create();
+
+		vk::ShaderBlob vertexBlob = mDevice.NewShaderBlob();
+		vk::ShaderBlob fragmentBlob = mDevice.NewShaderBlob();
+
+		vertexBlob.CreateFromSource(vk::ShaderStage::Vertex, FileSystem::ReadBytes("Resources/Shaders/sky.vert.spv"));
+		fragmentBlob.CreateFromSource(vk::ShaderStage::Fragment, FileSystem::ReadBytes("Resources/Shaders/sky.frag.spv"));
+
+		vk::PipelineCreateInfo pipelineInfo{};
+		pipelineInfo.renderpass = &mSkyPass.renderpass;
+		pipelineInfo.layout = { &mSkyPass.layout };
+		pipelineInfo.pushConstantRanges = {
+			{ vk::ShaderStage::Vertex, 0, sizeof(float) }
+		};
+		pipelineInfo.topologyType = vk::Topology::TriangleList;
+		pipelineInfo.vertexDesc = nullptr;
+		pipelineInfo.depthTest = true;
+		pipelineInfo.depthWrite = false;
+		pipelineInfo.compareOp = vk::CompareOp::Less;
+		pipelineInfo.shaders = { &vertexBlob, &fragmentBlob };
+
+		mSkyPass.pipeline = mDevice.NewPipeline(&pipelineInfo);
+
+		mSkyPass.descriptor = mDevice.NewDescriptor(&mSkyPass.layout);
+		mSkyPass.descriptor.BindBuffer(&mGlobalData, 0, sizeof(GlobalData), 0);
+		mSkyPass.descriptor.Update();
 	}
 
 	{
@@ -298,6 +344,10 @@ RenderManagerVk::~RenderManagerVk()
 	mFXAA.layout.Destroy();
 	mFXAA.pipeline.Destroy();
 	mFXAA.renderpass.Destroy();
+
+	mSkyPass.renderpass.Destroy();
+	mSkyPass.layout.Destroy();
+	mSkyPass.pipeline.Destroy();
 	
 	mRenderpasses.swapchain.Destroy();
 
@@ -347,6 +397,7 @@ void RenderManagerVk::Render(const glm::mat4& view, const glm::vec3& view_pos, c
 	
 	currentFrame = (currentFrame == 0) ? 1 : 0;
 
+
 	// Lets do a sort first. This reduces overdraw by drawing front to back
 	std::sort(mDeferredDraws.begin(), mDeferredDraws.end(), [view_pos](DrawCmd& a, DrawCmd& b)
 		{
@@ -356,25 +407,63 @@ void RenderManagerVk::Render(const glm::mat4& view, const glm::vec3& view_pos, c
 			return distA < distB;
 		});
 
-	mGlobalDataStruct.jitteredVP = proj * view;
+	// Let's compute the jitter matrix
+	// https://community.arm.com/arm-community-blogs/b/graphics-gaming-and-vr-blog/posts/temporal-anti-aliasing
+	static const glm::vec2 SAMPLE_LOCS_16[16] = {
+		glm::vec2(-8.0f, 0.0f) / 8.0f,
+		glm::vec2(-6.0f, -4.0f) / 8.0f,
+		glm::vec2(-3.0f, -2.0f) / 8.0f,
+		glm::vec2(-2.0f, -6.0f) / 8.0f,
+		glm::vec2(1.0f, -1.0f) / 8.0f,
+		glm::vec2(2.0f, -5.0f) / 8.0f,
+		glm::vec2(6.0f, -7.0f) / 8.0f,
+		glm::vec2(5.0f, -3.0f) / 8.0f,
+		glm::vec2(4.0f, 1.0f) / 8.0f,
+		glm::vec2(7.0f, 4.0f) / 8.0f,
+		glm::vec2(3.0f, 5.0f) / 8.0f,
+		glm::vec2(0.0f, 7.0f) / 8.0f,
+		glm::vec2(-1.0f, 3.0f) / 8.0f,
+		glm::vec2(-4.0f, 6.0f) / 8.0f,
+		glm::vec2(-7.0f, 8.0f) / 8.0f,
+		glm::vec2(-5.0f, 2.0f) / 8.0f 
+	};
+	
+	const unsigned SubsampleIdx = frameCount % 16;
+
+	const glm::vec2 TexSize(1.0f / glm::vec2(mProperties.width, mProperties.height)); 
+	const glm::vec2 SubsampleSize = TexSize * 2.0f;
+
+	const glm::vec2 S = SAMPLE_LOCS_16[SubsampleIdx]; 
+
+	glm::vec2 Subsample = S * SubsampleSize; 
+	Subsample *= 0.5f;
+
+	glm::mat4 jitteredMatrix = glm::translate(glm::mat4(1.0f), { Subsample.x, Subsample.y, 0.0f });
+
+	if (aaMethod == AntiAliasingMethod::TemporalAA)
+		mGlobalDataStruct.jitteredVP = proj * view * jitteredMatrix;
+	else
+		mGlobalDataStruct.jitteredVP = proj * view;
 
 	mGlobalDataStruct.VP = proj * view;
 	mGlobalDataStruct.prevVP = mCachedVP;
 	mGlobalDataStruct.viewPos = glm::vec4(view_pos, 1.0f);
 	mGlobalDataStruct.inverseProj = glm::inverse(proj);
 	mGlobalDataStruct.inverseView = glm::inverse(view);
+	mGlobalDataStruct.view = view;
+	mGlobalDataStruct.proj = proj;
 
 	mGlobalData.SetData(sizeof(GlobalData), &mGlobalDataStruct, 0);
 
 	mDevice.NextFrame();
 
 	mCmdList.Begin();
-
+	
 	// Begin the Geometry pass
 	// If you know about how a deferred renderer works this functions the same as that mostly.
 	// Currently it outputs: 
 	//		Target 1 : rgb = colour, a = unused
-	//		Target 2 : rg = normal, ba = unused
+	//		Target 2 : rg = normal, b = roughness, a = metallic
 	//		Target 3 : rg = velocity
 	// Thats just for now of course the ba in the target 2 is probably going to be metallic and roughness.
 	// With a normal only taking rg its quite obvious it is encoded. 
@@ -451,6 +540,28 @@ void RenderManagerVk::Render(const glm::mat4& view, const glm::vec3& view_pos, c
 
 	mCmdList.EndDebugUtilsLabel();
 
+	
+
+
+	// Render the sky to the target
+	{
+		mCmdList.BeginDebugUtilsLabel("Sky Pass");
+
+		mCmdList.BeginRenderpass(&mSkyPass.renderpass, false);
+
+		mCmdList.BindPipeline(&mSkyPass.pipeline);
+		mCmdList.BindDescriptors({ &mSkyPass.descriptor }, &mSkyPass.pipeline, 0);
+
+		
+		mCmdList.PushConstants(&mSkyPass.pipeline, vk::ShaderStage::Vertex, sizeof(float), 0, &this->time);
+
+		mCmdList.Draw(6, 1, 0, 0);
+
+		mCmdList.EndRenderpass();
+
+		mCmdList.EndDebugUtilsLabel();
+	}
+
 	mCmdList.BeginDebugUtilsLabel("Lighting Pass");
 	// this is the lighting pass for deferred lighting. 
 
@@ -472,6 +583,11 @@ void RenderManagerVk::Render(const glm::mat4& view, const glm::vec3& view_pos, c
 
 	mCmdList.EndDebugUtilsLabel();
 
+	if (aaMethod == AntiAliasingMethod::TemporalAA)
+	{
+
+	}
+
 	if (aaMethod == AntiAliasingMethod::FastApproximateAA)
 	{
 		mCmdList.BeginDebugUtilsLabel("FXAA");
@@ -485,6 +601,7 @@ void RenderManagerVk::Render(const glm::mat4& view, const glm::vec3& view_pos, c
 		mCmdList.EndRenderpass();
 		mCmdList.EndDebugUtilsLabel();
 	}
+
 	
 
 	// This final pass brings it all together and presents to screen
@@ -558,8 +675,8 @@ void RenderManagerVk::Render(const glm::mat4& view, const glm::vec3& view_pos, c
 
 		imgBarrier.srcAccess = vk::AccessFlags::TransferRead;
 		imgBarrier.oldLayout = vk::ImageLayout::TransferSrcOptimal;
-		imgBarrier.dstAccess = vk::AccessFlags::ShaderRead;
-		imgBarrier.newLayout = vk::ImageLayout::ShaderReadOnlyOptimal;
+		imgBarrier.dstAccess = vk::AccessFlags::ShaderWrite;
+		imgBarrier.newLayout = vk::ImageLayout::General;
 
 		mCmdList.ImageBarrier(&mCurrentOutput, vk::PipelineStage::Transfer, vk::PipelineStage::FragmentShader, imgBarrier);
 

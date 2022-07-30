@@ -19,10 +19,11 @@ public:
 	void Start() override
 	{
 		renderManager = RenderManager::Create(&window);
-
+		
 		ResourceManager::GetInstance().SetRenderManager(renderManager);
 
 		model.LoadFromFile("Resources/Sphere.pmdl", renderManager);
+		model.materials[0]->roughness = 0.3f;
 
 		proj = glm::perspective(glm::radians(60.0f), (float)window.GetWidth() / (float)window.GetHeight(), 0.01f, 1000.0f);
 		viewPos = { 0.0f, 0.0f, 0.0f };
@@ -114,6 +115,9 @@ public:
 
 		ImGui::Text("Settings");
 
+		ImGui::SliderFloat("Time", &renderManager->time, -360.0f, 360.0f);
+
+
 		static bool fxaa = true;
 		ImGui::Checkbox("FXAA", &fxaa);
 
@@ -126,11 +130,11 @@ public:
 		static const char* currentTonemap = "None";
 
 		ImGui::Text("Tonemapping Mode");
-		if (ImGui::BeginCombo("##combo", currentTonemap)) // The second parameter is the label previewed before opening the combo.
+		if (ImGui::BeginCombo("##combo", currentTonemap))
 		{
 			for (int n = 0; n < IM_ARRAYSIZE(tonemappingModes); n++)
 			{
-				bool is_selected = (currentTonemap == tonemappingModes[n]); // You can store your selection however you want, outside or inside your objects
+				bool is_selected = (currentTonemap == tonemappingModes[n]); 
 				if (ImGui::Selectable(tonemappingModes[n], is_selected))
 				{
 					currentTonemap = tonemappingModes[n];

@@ -226,8 +226,10 @@
     <None Include="Resources\Shaders\FXAA.glsl.frag" />
     <None Include="Resources\Shaders\lighting.glsl.comp" />
     <None Include="Resources\Shaders\PBR.glsl" />
+    <None Include="Resources\Shaders\sky.glsl.frag" />
+    <None Include="Resources\Shaders\sky.glsl.vert" />
     <None Include="Resources\Shaders\StructInclude.glsl" />
-    <None Include="Resources\Shaders\TAA.glsl.frag" />
+    <None Include="Resources\Shaders\TAA.glsl.comp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
