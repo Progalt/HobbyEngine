@@ -23,12 +23,16 @@ vec3 decode(vec2 enc)
 	return normalize(v);
 }
 
-vec3 calculate_view_position(vec2 texture_coordinate, float depth_from_depth_buffer, mat4 inverse_projection_matrix)
-{
-    vec3 clip_space_position = vec3(texture_coordinate, depth_from_depth_buffer) * 2.0 - vec3(1.0);
+vec3 WorldPosFromDepth(float depth, mat4 invProj, mat4 invView, vec2 TexCoord) {
+    float z = depth;// * 2.0 - 1.0;
 
-    vec4 view_position = vec4(vec2(inverse_projection_matrix[0][0], inverse_projection_matrix[1][1]) * clip_space_position.xy,
-                                   inverse_projection_matrix[2][3] * clip_space_position.z + inverse_projection_matrix[3][3]);
+    vec4 clipSpacePosition = vec4(TexCoord * 2.0 - 1.0, z, 1.0);
+    vec4 viewSpacePosition = invProj * clipSpacePosition;
 
-    return(view_position.xyz / view_position.w);
+    // Perspective division
+    viewSpacePosition /= viewSpacePosition.w;
+
+    vec4 worldSpacePosition = invView * viewSpacePosition;
+
+    return worldSpacePosition.xyz;
 }

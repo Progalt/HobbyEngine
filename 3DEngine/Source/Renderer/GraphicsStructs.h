@@ -10,6 +10,8 @@ struct GlobalData
 	glm::mat4 VP;
 	glm::mat4 prevVP;
 	glm::vec4 viewPos;
+	glm::mat4 inverseProj;
+	glm::mat4 inverseView;
 };
 
 struct PointLight

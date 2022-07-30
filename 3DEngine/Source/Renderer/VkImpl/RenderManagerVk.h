@@ -19,7 +19,7 @@ public:
 
 	void WaitForIdle() override;
 
-	void Render(const glm::mat4& view_proj, const glm::vec3& view_pos) override;
+	void Render(const glm::mat4& view, const glm::vec3& view_pos, const glm::mat4& proj) override;
 
 	Mesh* NewMesh() override;
 

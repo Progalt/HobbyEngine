@@ -127,7 +127,7 @@ public:
 
 		glm::mat4 viewProj = proj * view;
 
-		renderManager->Render(viewProj, viewPos);
+		renderManager->Render(view, viewPos, proj);
 
 	}
 

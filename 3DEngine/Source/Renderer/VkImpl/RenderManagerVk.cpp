@@ -198,6 +198,7 @@ RenderManagerVk::RenderManagerVk(Window* window)
 		mLightingPipeline.layout.AddLayoutBinding({ 2, vk::ShaderInputType::ImageSampler, 1, vk::ShaderStage::Compute });
 		mLightingPipeline.layout.AddLayoutBinding({ 3, vk::ShaderInputType::ImageSampler, 1, vk::ShaderStage::Compute });
 		mLightingPipeline.layout.AddLayoutBinding({ 4, vk::ShaderInputType::StorageImage, 1, vk::ShaderStage::Compute });
+		mLightingPipeline.layout.AddLayoutBinding({ 5, vk::ShaderInputType::ImageSampler, 1, vk::ShaderStage::Compute });
 		mLightingPipeline.layout.Create();
 
 		vk::ShaderBlob shaderBlob = mDevice.NewShaderBlob();
@@ -215,6 +216,7 @@ RenderManagerVk::RenderManagerVk(Window* window)
 		mLightingPipeline.descriptor.BindCombinedImageSampler(&mGeometryPass.colourTarget, &mDefaultSampler, 2);
 		mLightingPipeline.descriptor.BindCombinedImageSampler(&mGeometryPass.normalTarget, &mDefaultSampler, 3);
 		mLightingPipeline.descriptor.BindStorageImage(&mLightingPipeline.output, 4);
+		mLightingPipeline.descriptor.BindCombinedImageSampler(&mGeometryPass.depthTarget, &mDefaultSampler, 5);
 		mLightingPipeline.descriptor.Update();
 
 		shaderBlob.Destroy();
@@ -323,7 +325,7 @@ void RenderManagerVk::WaitForIdle()
 	mDevice.WaitIdle();
 }
 
-void RenderManagerVk::Render(const glm::mat4& view_proj, const glm::vec3& view_pos)
+void RenderManagerVk::Render(const glm::mat4& view, const glm::vec3& view_pos, const glm::mat4& proj)
 {
 
 	// This is a mega function that handles drawing the whole scene
@@ -348,11 +350,13 @@ void RenderManagerVk::Render(const glm::mat4& view_proj, const glm::vec3& view_p
 			return distA < distB;
 		});
 
-	mGlobalDataStruct.jitteredVP = view_proj;
+	mGlobalDataStruct.jitteredVP = proj * view;
 
-	mGlobalDataStruct.VP = view_proj;
+	mGlobalDataStruct.VP = proj * view;
 	mGlobalDataStruct.prevVP = mCachedVP;
 	mGlobalDataStruct.viewPos = glm::vec4(view_pos, 1.0f);
+	mGlobalDataStruct.inverseProj = glm::inverse(proj);
+	mGlobalDataStruct.inverseView = glm::inverse(view);
 
 	mGlobalData.SetData(sizeof(GlobalData), &mGlobalDataStruct, 0);
 
@@ -523,7 +527,7 @@ void RenderManagerVk::Render(const glm::mat4& view_proj, const glm::vec3& view_p
 
 	// Cached VP for next frame
 
-	mCachedVP = view_proj;
+	mCachedVP = proj * view;
 
 	firstFrame = false;
 	frameCount++;

@@ -23,6 +23,8 @@ layout(set = 1, binding = 0) uniform GlobalData
 
 	mat4 prevVP;
 	vec4 viewPos;
+	mat4 invProj;
+	mat4 invView;
 } global;
 
 void main()

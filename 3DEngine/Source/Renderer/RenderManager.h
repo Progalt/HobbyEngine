@@ -64,7 +64,7 @@ public:
 
 	virtual void SetSkyMaterial(SkyMaterial* material) = 0;
 
-	virtual void Render(const glm::mat4& view_proj, const glm::vec3& view_pos) = 0;
+	virtual void Render(const glm::mat4& view, const glm::vec3& view_pos, const glm::mat4& proj) = 0;
 
 	virtual void UpdateSettings() = 0;
 

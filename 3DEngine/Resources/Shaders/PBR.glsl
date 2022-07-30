@@ -5,10 +5,17 @@
 
 #define PI 3.14159265359
 
-float Schlick(float u, float f0, float f90) {
+float Schlick(float u, float f0, float f90) 
+{
     return f0 + (f90 - f0) * pow(1.0 - u, 5.0);
 }
 
+vec3 Schlick(float u, vec3 f0) 
+{
+    return f0 + (vec3(1.0) - f0) * pow(1.0 - u, 5.0);
+}
+
+// A is roughness
 float GGX(float NoH, float a) {
     float a2 = a * a;
     float f = (NoH * a2 - NoH) * NoH + 1.0;
