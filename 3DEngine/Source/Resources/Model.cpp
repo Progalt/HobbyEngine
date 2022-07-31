@@ -34,9 +34,9 @@ void Model::LoadFromFile(const std::string& path, RenderManager* renderManager)
 	{
 		// PMDL outputs a vertex struct currently
 		// so convert to our system
-		this->mesh->positions[i] = { vertices[i].position.x, vertices[i].position.y, vertices[i].position.z };
-		this->mesh->texCoords[i] = { vertices[i].texCoord.x, vertices[i].texCoord.y };
-		this->mesh->normals[i] = { vertices[i].normal.x, vertices[i].normal.y, vertices[i].normal.z };
+		this->mesh->positions[i] = { vertices[i].x, vertices[i].y, vertices[i].z };
+		this->mesh->texCoords[i] = { vertices[i].u, vertices[i].v };
+		this->mesh->normals[i] = { vertices[i].nx, vertices[i].ny, vertices[i].nz };
 	}
 
 	this->mesh->indices.resize(header.indexCount);
@@ -52,6 +52,9 @@ void Model::LoadFromFile(const std::string& path, RenderManager* renderManager)
 	for (uint16_t i = 0; i < header.meshCount; i++)
 	{
 		pmdl::Mesh mesh = pmdl::ReadMesh1(file, &header, i);
+
+		for (uint16_t l = mesh.firstLOD; l < mesh.firstLOD + mesh.LODCount; l++)
+			LODs.push_back(pmdl::ReadLOD1(file, &header, l));
 
 		submeshes.push_back(mesh);
 	}
@@ -72,10 +75,10 @@ void Model::LoadFromFile(const std::string& path, RenderManager* renderManager)
 
 	// inherited from Resource. This signals
 	this->ready.store(true);
-
+	
 }
 
-void Model::Queue(RenderManager* renderManager, glm::mat4 matrix)
+void Model::Queue(RenderManager* renderManager, glm::mat4 matrix, uint32_t lodIndex)
 {
 	// If it isn't ready to draw. Return and don't queue the meshes
 	if (!ready.load())
@@ -83,6 +86,9 @@ void Model::Queue(RenderManager* renderManager, glm::mat4 matrix)
 
 	for (size_t i = 0; i < submeshes.size(); i++)
 	{
-		renderManager->QueueMesh(mesh, materials[submeshes[i].materialIndex], matrix, submeshes[i].firstIndex, submeshes[i].indexCount);
+		if (lodIndex == 0)
+			renderManager->QueueMesh(mesh, materials[submeshes[i].materialIndex], matrix, submeshes[i].firstIndex, submeshes[i].indexCount, submeshes[i].firstVertex);
+		else 
+			renderManager->QueueMesh(mesh, materials[submeshes[i].materialIndex], matrix, LODs[submeshes[i].firstLOD + lodIndex - 1].firstIndex, LODs[submeshes[i].firstLOD + lodIndex - 1].indexCount, submeshes[i].firstVertex);
 	}
 }

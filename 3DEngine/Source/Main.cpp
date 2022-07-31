@@ -34,6 +34,8 @@ public:
 
 
 		viewPos = glm::vec3(0.0f, 0.0f, 3.0f);
+
+		renderManager->time = 45.0f;
 	}
 
 	void Update() override
@@ -57,10 +59,16 @@ public:
 		glm::vec3 right = glm::normalize(glm::cross(direction, glm::vec3(0.0f, 1.0f, 0.0f)));
 		glm::vec3 up = glm::normalize(glm::cross(right, direction));
 
+
 		if (input.IsButtonPressed(MouseButton::Right))
 		{
 			pitch += (float)offY;
 			yaw += (float)offX;
+
+			if (pitch > 89.0f)
+				pitch = 89.0f;
+			if (pitch < -89.0f)
+				pitch = -89.0f;
 		}
 
 		float velocity = 4.0f;
@@ -117,8 +125,8 @@ public:
 
 		ImGui::Text("Settings");
 
-		ImGui::SliderFloat("Time", &renderManager->time, -360.0f, 360.0f);
-
+		ImGui::DragFloat("Time", &renderManager->time, 1.0f, -180.0f, 180.0f);
+	
 
 		static bool fxaa = true;
 		ImGui::Checkbox("FXAA", &fxaa);
@@ -162,8 +170,20 @@ public:
 		ImGui::End();
 	}
 
+	SceneInfo info;
+
 	void Render() override
 	{
+		info.hasDirectionalLight = 1;
+		info.lightCount = 0;
+		float t = -renderManager->time;
+		info.dirLight.direction = { 0.0f, sin(glm::radians(t)), -cos(glm::radians(t)), 1.0f};
+		//info.dirLight.direction = { 0.0f, -1.0f, 0.0f, 1.0f };
+		info.dirLight.colour = { 1.0f, 1.0f, 1.0f, 1.0f };
+
+		renderManager->UpdateScene(info);
+
+
 		for (uint32_t i = 0; i < 4; i++)
 		{
 			for (uint32_t j = 0; j < 4; j++)

@@ -72,23 +72,14 @@ namespace pmdl
 		VecType x, y, z, w;
 	};
 
-	struct Vector3
-	{
-		VecType x, y, z;
-	};
-
-	struct Vector2
-	{
-		VecType x, y;
-	};
-
 	struct Vertex
 	{
-		Vector3 position;
-		Vector2 texCoord;
-		Vector3 normal;
-		Vector3 tangent;
+		float x, y, z;
+		float u, v;
+		float nx, ny, nz;
+		float tx, ty, tz;
 	};
+
 
 	enum class IndexType
 	{
@@ -104,15 +95,9 @@ namespace pmdl
 
 	struct Mesh
 	{
-		uint32_t firstIndex, indexCount, materialIndex, firstVertex;
+		uint32_t firstIndex, indexCount, materialIndex, firstVertex, firstLOD, LODCount;
 	};
 
-	// This is a hint to the engine loading the model on which shader to use
-	enum class ShaderType
-	{
-		Default,
-		PBR
-	};
 
 	struct Material1
 	{
@@ -126,6 +111,9 @@ namespace pmdl
 		int32_t aoIndex = -1;
 
 		Vector4 albedo;
+
+		float roughness;
+		float metallic;
 	};
 
 
@@ -146,6 +134,8 @@ namespace pmdl
 		// Model information
 
 		uint16_t meshCount = 0;
+
+		uint16_t lodCount = 0;
 
 		// usually the material count will match the mesh count but some meshes could share material
 
@@ -180,6 +170,7 @@ namespace pmdl
 
 		uint32_t indicesOffset = 0;
 
+		// First is the mesh data then LODs are stored immediately after
 		uint32_t meshDataOffset = 0;
 
 		uint32_t materialOffset = 0;
@@ -226,7 +217,7 @@ namespace pmdl
 	void InitHeader(Header1* header);
 
 	// Returns the total size of the file
-	size_t InitHeaderOffsets1(Header1* header, uint32_t vertexCount, uint32_t indexCount, uint32_t meshCount, uint32_t materialCount, uint32_t textureCount);
+	size_t InitHeaderOffsets1(Header1* header, uint32_t vertexCount, uint32_t indexCount, uint32_t meshCount, uint32_t materialCount, uint32_t textureCount, uint32_t lodCount);
 
 
 	// ---- Reading Functions ----
@@ -234,6 +225,8 @@ namespace pmdl
 	Header1 ReadHeader1(FILE* file);
 
 	Mesh ReadMesh1(FILE* file, Header1* header, uint32_t meshIndex);
+
+	Mesh ReadLOD1(FILE* file, Header1* header, uint32_t lodIndex);
 
 	// The returned vertices must be freed with PMDL_FREE
 	Vertex* ReadVertices(FILE* file, Header1* header);
@@ -251,6 +244,8 @@ namespace pmdl
 	void WriteHeader1(FILE* file, Header1* header);
 
 	void WriteMesh1(uint32_t meshIndex, Mesh mesh, Header1* header, FILE* file);
+
+	void WriteLOD1(FILE* file, Header1* header, Mesh mesh, uint32_t lodIndex);
 
 	void WriteVertices(FILE* file, Header1* header, Vertex* vertices, uint32_t vertexCount);
 
@@ -326,7 +321,7 @@ namespace pmdl
 		header->version = PMDL_EXPORT_VERSION;
 	}
 
-	size_t InitHeaderOffsets1(Header1* header, uint32_t vertexCount, uint32_t indexCount, uint32_t meshCount, uint32_t materialCount, uint32_t textureCount)
+	size_t InitHeaderOffsets1(Header1* header, uint32_t vertexCount, uint32_t indexCount, uint32_t meshCount, uint32_t materialCount, uint32_t textureCount, uint32_t lodCount)
 	{
 		PMDL_ASSERT(header);
 
@@ -349,9 +344,10 @@ namespace pmdl
 
 		header->meshDataOffset = cursor;
 
-		cursor += meshCount * sizeof(Mesh);
+		cursor += (meshCount + lodCount) * sizeof(Mesh);
 
 		header->meshCount = meshCount;
+		header->lodCount = lodCount;
 
 		header->materialCount = materialCount;
 		header->materialOffset = cursor;
@@ -394,6 +390,21 @@ namespace pmdl
 		fread(&mesh, sizeof(Mesh), 1, file);
 
 		return mesh;
+	}
+
+	Mesh ReadLOD1(FILE* file, Header1* header, uint32_t lodIndex)
+	{
+		PMDL_ASSERT(file && header);
+
+		uint32_t offset = header->meshDataOffset + (sizeof(Mesh) * header->meshCount) + (sizeof(Mesh) * lodIndex);
+
+		Mesh mesh;
+
+		fseek(file, offset, SEEK_SET);
+		fread(&mesh, sizeof(Mesh), 1, file);
+
+		return mesh;
+
 	}
 
 	Vertex* ReadVertices(FILE* file, Header1* header)
@@ -475,6 +486,17 @@ namespace pmdl
 		PMDL_ASSERT(meshIndex < header->meshCount);
 
 		uint32_t offset = header->meshDataOffset + (sizeof(Mesh) * meshIndex);
+
+		fseek(file, offset, SEEK_SET);
+		fwrite(&mesh, sizeof(Mesh), 1, file);
+	}
+
+	void WriteLOD1(FILE* file, Header1* header, Mesh mesh, uint32_t lodIndex)
+	{
+		PMDL_ASSERT(file && header);
+		//PMDL_ASSERT(lodIndex < header->lodCount);
+
+		uint32_t offset = header->meshDataOffset + (header->meshCount * sizeof(Mesh)) + (sizeof(Mesh) * lodIndex);
 
 		fseek(file, offset, SEEK_SET);
 		fwrite(&mesh, sizeof(Mesh), 1, file);

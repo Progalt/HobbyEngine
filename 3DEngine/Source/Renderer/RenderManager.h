@@ -69,6 +69,8 @@ public:
 
 	virtual void UpdateSettings() = 0;
 
+	virtual void UpdateScene(SceneInfo sceneInfo) = 0;
+
 	void ImGuiDraw(std::function<void()> imgui)
 	{
 		imguiFunc = imgui;

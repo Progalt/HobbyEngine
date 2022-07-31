@@ -7,6 +7,8 @@
 
 #include "../Vulkan/ImguiImpl.h"
 
+#include "GlobalData.h"
+
 #include <deque>
 
 class RenderManagerVk : public RenderManager
@@ -31,9 +33,24 @@ public:
 
 	void SetSkyMaterial(SkyMaterial* material) override;
 
+	struct RenderInfo
+	{
+		vk::Texture* target;
+		uint32_t level;
+
+		GlobalData data;
+		GlobalDataManager globalManager;
+	};
+
+	void RenderScene( RenderInfo& renderInfo, vk::CommandList& cmdList);
+
 	void UpdateSettings() override;
 
+	void UpdateScene(SceneInfo sceneInfo) override;
+
 	glm::mat4 mCachedVP = glm::mat4(1.0f);
+
+	
 
 	struct DrawCmd
 	{
@@ -55,7 +72,6 @@ public:
 	vk::Sampler mDefaultSampler;
 
 	GlobalData mGlobalDataStruct;
-	vk::Buffer mGlobalData;
 
 	SceneInfo mSceneInfo;
 	vk::Buffer mSceneDataBuffer;
@@ -63,16 +79,28 @@ public:
 	vk::Texture mCurrentOutput;
 	vk::Texture mHistory;
 
+
+
+	GlobalDataManager globalDataManager;
+
 	struct
 	{
 		vk::Pipeline pipeline;
 
 		vk::DescriptorLayout materialLayout;
-		vk::DescriptorLayout dataLayout;
-
-		vk::Descriptor dataDescriptor;
 
 	} mBasePipeline;
+
+	struct
+	{
+
+		vk::Pipeline pipeline;
+
+		vk::Renderpass renderpass;
+
+		vk::Buffer vertexBuffer;
+
+	} mDebugPass;
 
 	struct
 	{
@@ -108,8 +136,6 @@ public:
 	struct
 	{
 		vk::Pipeline pipeline;
-		vk::DescriptorLayout layout;
-		vk::Descriptor descriptor;
 
 		vk::Renderpass renderpass;
 

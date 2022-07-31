@@ -5,8 +5,14 @@
 #include <assimp/Importer.hpp>
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
+#include <meshoptimizer.h>
 
 #include <vector>
+
+constexpr float LOD_INDEX_TARGET[3] =
+{
+	0.5f, 0.2f, 0.1f
+};
 
 class Model
 {
@@ -14,10 +20,11 @@ public:
 	
 
 	std::vector<pmdl::Mesh> meshes;
+	std::vector<pmdl::Mesh> lods;
 	std::vector<pmdl::Material1> materials;
 
 	std::vector<pmdl::Vertex> vertices;
-	std::vector<pmdl::IndexTypeExport> indices;
+	std::vector<uint32_t> indices;
 
 	std::string dir;
 
@@ -47,15 +54,18 @@ public:
 		for (unsigned int i = 0; i < node->mNumMeshes; i++)
 		{
 			aiMesh* mesh = scene->mMeshes[node->mMeshes[i]];
-			meshes.push_back(processMesh(mesh, scene));
+
+			pmdl::Mesh m = processMesh(mesh, scene);
+
+			meshes.push_back(m);
 		}
+
+		
 		// then do the same for each of its children
 		for (unsigned int i = 0; i < node->mNumChildren; i++)
 		{
 			processNode(node->mChildren[i], scene);
 		}
-
-		
 	}
 
 	pmdl::Material1 ProcessMaterials(aiMaterial* material)
@@ -66,6 +76,9 @@ public:
 		material->Get(AI_MATKEY_COLOR_DIFFUSE, color);
 
 		mat.albedo = { color.r, color.g, color.b, 1.0f };
+
+		mat.roughness = 0.5f;
+		mat.metallic = 0.5f;
 
 		return mat;
 	}
@@ -84,19 +97,29 @@ public:
 			pmdl::Vertex vertex;
 			// process vertex positions, normals and texture coordinates
 
-			vertex.position = { mesh->mVertices[i].x, mesh->mVertices[i].y, mesh->mVertices[i].z };
-			vertex.normal = { mesh->mNormals[i].x,mesh->mNormals[i].y, mesh->mNormals[i].z };
-			vertex.tangent = { mesh->mTangents[i].x,mesh->mTangents[i].y, mesh->mTangents[i].z };
+			vertex.x = mesh->mVertices[i].x;
+			vertex.y = mesh->mVertices[i].y;
+			vertex.z = mesh->mVertices[i].z;
+
+			vertex.nx = mesh->mNormals[i].x;
+			vertex.ny = mesh->mNormals[i].y;
+			vertex.nz = mesh->mNormals[i].z;
+
+			vertex.tx = mesh->mTangents[i].x;
+			vertex.ty = mesh->mTangents[i].y;
+			vertex.tz = mesh->mTangents[i].z;
 
 			if (mesh->mTextureCoords[0]) // does the mesh contain texture coordinates?
 			{
-				pmdl::Vector2 vec;
-				vec.x = mesh->mTextureCoords[0][i].x;
-				vec.y = mesh->mTextureCoords[0][i].y;
-				vertex.texCoord = vec;
+				vertex.u = mesh->mTextureCoords[0][i].x;
+				vertex.v = mesh->mTextureCoords[0][i].y;
 			}
 			else
-				vertex.texCoord = { 0.0f, 0.0f } ;
+			{
+				vertex.u = 0.0;
+				vertex.v = 0.0f;
+			}
+				
 
 
 			vertices.push_back(vertex);
@@ -111,8 +134,10 @@ public:
 
 		indexCount = indices.size() - firstIndex;
 
+
 		return { firstIndex, indexCount, materialIndex, vertexOffset };
 	}
+
 
 };
 
@@ -163,7 +188,7 @@ int main(int argc, char* argv[])
 		pmdl::Header1 header{};
 		pmdl::InitHeader(&header);
 		pmdl::InitHeaderOffsets1(&header, model.vertices.size(), model.indices.size(),
-			model.meshes.size(), model.materials.size(), 0);
+			model.meshes.size(), model.materials.size(), 0, model.meshes.size());
 
 		FILE* file = fopen(arguments.outputPath, "wb");
 
@@ -180,7 +205,11 @@ int main(int argc, char* argv[])
 		for (uint32_t i = 0; i < model.meshes.size(); i++)
 			pmdl::WriteMesh1(i, model.meshes[i], &header, file);
 
+		for (uint32_t i = 0; i < model.lods.size(); i++)
+			pmdl::WriteLOD1(file, &header, model.lods[i], i);
+
 		printf("Number of Meshes Written: %d\n", model.meshes.size());
+		printf("Number of LOD Meshes Written: %d\n", model.lods.size());
 
 		for (uint32_t i = 0; i < model.materials.size(); i++)
 			pmdl::WriteMaterial1(file, &header, &model.materials[i], i);

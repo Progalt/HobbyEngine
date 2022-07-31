@@ -141,6 +141,8 @@ namespace vk
 
 		void ClearDepth(float depthColour, uint32_t x, uint32_t y, uint32_t w, uint32_t h);
 
+		void SetLineWidth(float width);
+
 		// VK_EXT_debug_utils
 		void BeginDebugUtilsLabel(std::string name);
 

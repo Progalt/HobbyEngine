@@ -282,6 +282,11 @@ namespace vk
 		vkCmdClearAttachments(m_Cmd[getIndex()], 1, &attachment, 1, &rect);
 	}
 
+	void CommandList::SetLineWidth(float width)
+	{
+		vkCmdSetLineWidth(m_Cmd[getIndex()], width);
+	}
+
 	void CommandList::BeginDebugUtilsLabel(std::string name)
 	{
 		VkDebugUtilsLabelEXT label = {};

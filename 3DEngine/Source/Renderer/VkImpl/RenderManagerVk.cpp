@@ -44,8 +44,8 @@ RenderManagerVk::RenderManagerVk(Window* window)
 	}
 
 	{
-		mGlobalData = mDevice.NewBuffer();
-		mGlobalData.Create(vk::BufferType::Dynamic, vk::BufferUsage::Uniform, sizeof(mGlobalDataStruct), &mGlobalDataStruct);
+
+		globalDataManager.Create(&mDevice, &mGlobalDataStruct);
 
 		mSceneInfo.lightCount = 0;
 		mSceneInfo.hasDirectionalLight = 1;
@@ -95,6 +95,10 @@ RenderManagerVk::RenderManagerVk(Window* window)
 	mCmdList = mDevice.NewCommandList(vk::CommandListType::Primary);
 
 	{
+
+	}
+
+	{
 		// Create base pipeline
 
 		vk::ShaderBlob vertexBlob = mDevice.NewShaderBlob();
@@ -121,13 +125,10 @@ RenderManagerVk::RenderManagerVk(Window* window)
 		mBasePipeline.materialLayout.AddLayoutBinding({ 1, vk::ShaderInputType::ImageSampler, 1, vk::ShaderStage::Fragment });
 		mBasePipeline.materialLayout.Create();
 
-		mBasePipeline.dataLayout = mDevice.NewLayout();
-		mBasePipeline.dataLayout.AddLayoutBinding({ 0, vk::ShaderInputType::UniformBuffer, 1, vk::ShaderStage::Vertex });
-		mBasePipeline.dataLayout.Create();
 
 		vk::PipelineCreateInfo pipelineInfo{};
 		pipelineInfo.renderpass = &mRenderpasses.geometryPass;
-		pipelineInfo.layout = { &mBasePipeline.materialLayout, &mBasePipeline.dataLayout };
+		pipelineInfo.layout = { &mBasePipeline.materialLayout, globalDataManager.GetLayout(vk::ShaderStage::Vertex) };
 		pipelineInfo.pushConstantRanges = {};
 		pipelineInfo.cullMode = vk::CullMode::Front;
 		pipelineInfo.topologyType = vk::Topology::TriangleList;
@@ -144,10 +145,6 @@ RenderManagerVk::RenderManagerVk(Window* window)
 
 		vertexBlob.Destroy();
 		fragmentBlob.Destroy();
-
-		mBasePipeline.dataDescriptor = mDevice.NewDescriptor(&mBasePipeline.dataLayout);
-		mBasePipeline.dataDescriptor.BindBuffer(&mGlobalData, 0, sizeof(GlobalData), 0);
-		mBasePipeline.dataDescriptor.Update();
 	}
 
 	{
@@ -199,7 +196,7 @@ RenderManagerVk::RenderManagerVk(Window* window)
 		mLightingPipeline.output.CreateRenderTarget(vk::FORMAT_R16G16B16A16_SFLOAT, window->GetWidth(), window->GetHeight(), true, vk::ImageLayout::General);
 
 		mLightingPipeline.layout = mDevice.NewLayout();
-		mLightingPipeline.layout.AddLayoutBinding({ 0, vk::ShaderInputType::UniformBuffer, 1, vk::ShaderStage::Compute });
+		//mLightingPipeline.layout.AddLayoutBinding({ 0, vk::ShaderInputType::UniformBuffer, 1, vk::ShaderStage::Compute });
 		mLightingPipeline.layout.AddLayoutBinding({ 1, vk::ShaderInputType::StorageBuffer, 1, vk::ShaderStage::Compute });
 		mLightingPipeline.layout.AddLayoutBinding({ 2, vk::ShaderInputType::ImageSampler, 1, vk::ShaderStage::Compute });
 		mLightingPipeline.layout.AddLayoutBinding({ 3, vk::ShaderInputType::ImageSampler, 1, vk::ShaderStage::Compute });
@@ -212,12 +209,12 @@ RenderManagerVk::RenderManagerVk(Window* window)
 		
 		vk::ComputePipelineCreateInfo createInfo{};
 		createInfo.computeBlob = &shaderBlob;
-		createInfo.layout = { &mLightingPipeline.layout };
+		createInfo.layout = { &mLightingPipeline.layout, globalDataManager.GetLayout(vk::ShaderStage::Compute)};
 
 		mLightingPipeline.pipeline = mDevice.NewComputePipeline(&createInfo);
 
 		mLightingPipeline.descriptor = mDevice.NewDescriptor(&mLightingPipeline.layout);
-		mLightingPipeline.descriptor.BindBuffer(&mGlobalData, 0, sizeof(GlobalData), 0);
+		//mLightingPipeline.descriptor.BindBuffer(&mGlobalData, 0, sizeof(GlobalData), 0);
 		mLightingPipeline.descriptor.BindStorageBuffer(&mSceneDataBuffer, 0, sizeof(SceneInfo), 1);
 		mLightingPipeline.descriptor.BindCombinedImageSampler(&mGeometryPass.colourTarget, &mDefaultSampler, 2);
 		mLightingPipeline.descriptor.BindCombinedImageSampler(&mGeometryPass.normalTarget, &mDefaultSampler, 3);
@@ -284,9 +281,6 @@ RenderManagerVk::RenderManagerVk(Window* window)
 
 		mSkyPass.renderpass = mDevice.NewRenderpass(&rpInfo);
 
-		mSkyPass.layout = mDevice.NewLayout();
-		mSkyPass.layout.AddLayoutBinding({ 0, vk::ShaderInputType::UniformBuffer, 1, vk::ShaderStage::Vertex });
-		mSkyPass.layout.Create();
 
 		vk::ShaderBlob vertexBlob = mDevice.NewShaderBlob();
 		vk::ShaderBlob fragmentBlob = mDevice.NewShaderBlob();
@@ -296,7 +290,7 @@ RenderManagerVk::RenderManagerVk(Window* window)
 
 		vk::PipelineCreateInfo pipelineInfo{};
 		pipelineInfo.renderpass = &mSkyPass.renderpass;
-		pipelineInfo.layout = { &mSkyPass.layout };
+		pipelineInfo.layout = { globalDataManager.GetLayout(vk::ShaderStage::Vertex)};
 		pipelineInfo.pushConstantRanges = {
 			{ vk::ShaderStage::Vertex, 0, sizeof(float) }
 		};
@@ -309,13 +303,13 @@ RenderManagerVk::RenderManagerVk(Window* window)
 
 		mSkyPass.pipeline = mDevice.NewPipeline(&pipelineInfo);
 
-		mSkyPass.descriptor = mDevice.NewDescriptor(&mSkyPass.layout);
-		mSkyPass.descriptor.BindBuffer(&mGlobalData, 0, sizeof(GlobalData), 0);
-		mSkyPass.descriptor.Update();
+		
 
 		vertexBlob.Destroy();
 		fragmentBlob.Destroy();
 	}
+
+	
 
 	{
 
@@ -339,18 +333,19 @@ RenderManagerVk::~RenderManagerVk()
 {
 	mDevice.WaitIdle();
 
-	mGlobalData.Destroy();
 	mSceneDataBuffer.Destroy();
 
 	mCurrentOutput.Destroy();
 	mHistory.Destroy();
+
+	globalDataManager.Destroy();
+
 
 	mFXAA.layout.Destroy();
 	mFXAA.pipeline.Destroy();
 	mFXAA.renderpass.Destroy();
 
 	mSkyPass.renderpass.Destroy();
-	mSkyPass.layout.Destroy();
 	mSkyPass.pipeline.Destroy();
 	
 	mRenderpasses.swapchain.Destroy();
@@ -367,7 +362,6 @@ RenderManagerVk::~RenderManagerVk()
 	mRenderpasses.geometryPass.Destroy();
 	
 	mBasePipeline.pipeline.Destroy();
-	mBasePipeline.dataLayout.Destroy();
 	mBasePipeline.materialLayout.Destroy();
 
 	mFullscreenPipeline.pipeline.Destroy();
@@ -402,16 +396,7 @@ void RenderManagerVk::Render(const glm::mat4& view, const glm::vec3& view_pos, c
 	
 	currentFrame = (currentFrame == 0) ? 1 : 0;
 
-	Frustum frustum(proj * view);
-
-	// Lets do a sort first. This reduces overdraw by drawing front to back
-	std::sort(mDeferredDraws.begin(), mDeferredDraws.end(), [view_pos](DrawCmd& a, DrawCmd& b)
-		{
-			float distA = glm::distance(view_pos, glm::vec3(a.transform[3]));
-			float distB = glm::distance(view_pos, glm::vec3(b.transform[3]));
-
-			return distA < distB;
-		});
+	
 
 	// Let's compute the jitter matrix
 	// https://community.arm.com/arm-community-blogs/b/graphics-gaming-and-vr-blog/posts/temporal-anti-aliasing
@@ -459,7 +444,7 @@ void RenderManagerVk::Render(const glm::mat4& view, const glm::vec3& view_pos, c
 	mGlobalDataStruct.view = view;
 	mGlobalDataStruct.proj = proj;
 
-	mGlobalData.SetData(sizeof(GlobalData), &mGlobalDataStruct, 0);
+	globalDataManager.UpdateData(&mGlobalDataStruct);
 
 	mDevice.NextFrame();
 
@@ -477,119 +462,11 @@ void RenderManagerVk::Render(const glm::mat4& view, const glm::vec3& view_pos, c
 	// Probably going to also store a material index that allows material data to be accessed during the lighting pass. 
 	// This works if I store all material data in a large buffer and index into it
 
-	mCmdList.BeginDebugUtilsLabel("Geometry Pass");
+	RenderInfo renderInfo{};
+	renderInfo.data = mGlobalDataStruct;
+	renderInfo.globalManager = globalDataManager;
 
-	mCmdList.BeginRenderpass(&mRenderpasses.geometryPass, false);
-
-	mCmdList.SetViewport(0, 0, this->mProperties.width, this->mProperties.height);
-	mCmdList.SetScissor(0, 0, this->mProperties.width, this->mProperties.height);
-
-	mCmdList.BindPipeline(&mBasePipeline.pipeline);
-
-	mCmdList.BindDescriptors({ &mBasePipeline.dataDescriptor }, &mBasePipeline.pipeline, 1);
-
-
-	for (auto& cmd : mDeferredDraws)
-	{
-
-
-		MaterialVk* mat = (MaterialVk*)cmd.material;
-		MeshVk* mesh = (MeshVk*)cmd.mesh;
-
-		mesh->boundingBox.Transform(cmd.transform);
-		if (!frustum.Test(mesh->boundingBox))
-		{
-			stats.culledMeshes++;
-			mDeferredDraws.pop_front();
-			continue;
-		}
-
-		// If the descriptor isn't created. We should create it now
-		// A Just In Time sort of scenario
-		// This works when there are plenty of material combinations that can't be created in advanced 
-		// Performance does take a hit on first use though
-		if (!mat->createdDescriptor)
-			mat->CreateDescriptor(&mDevice, &mBasePipeline.materialLayout);
-		else
-			mat->RegenDescriptor();
-
-
-		// Pack all the data into a struct for now
-		// So it can be done in one call
-		// TODO: Should this be moved into a uniform buffer
-		// Or maybe mix both
-
-		// This is exactly 128 bytes
-		// Which is the minimum required by vulkan so for now its fine.
-		struct
-		{
-			glm::mat4 prevModel;
-			glm::mat4 model;
-		} data;
-
-
-		data.prevModel = cmd.transform;
-		data.model = cmd.transform;
-
-
-		mCmdList.PushConstants(&mBasePipeline.pipeline, vk::ShaderStage::Vertex, sizeof(data), 0, &data);
-
-		mCmdList.BindDescriptors({ &mat->descriptor }, &mBasePipeline.pipeline, 0);
-
-		// NOTE: For future I want to move this into a large vertex buffer nad large index buffer that 
-		// All drawable meshes use
-		// This means I can bind once and then offset accordingly in draw calls
-
-		mCmdList.BindVertexBuffer(&mesh->vertexBuffer, 0);
-		mCmdList.BindIndexBuffer(&mesh->indexBuffer);
-
-		mCmdList.DrawIndexed((cmd.indexCount == 0) ? cmd.mesh->indices.size() : cmd.indexCount, 1, cmd.firstIndex, cmd.vertexOffset, 0);
-
-		stats.drawCalls++;
-
-		mDeferredDraws.pop_front();
-	}
-	
-
-	mCmdList.EndRenderpass();
-
-	mCmdList.EndDebugUtilsLabel();
-
-	
-
-
-	// Render the sky to the target
-	{
-		mCmdList.BeginDebugUtilsLabel("Sky Pass");
-
-		mCmdList.BeginRenderpass(&mSkyPass.renderpass, false);
-
-		mCmdList.BindPipeline(&mSkyPass.pipeline);
-		mCmdList.BindDescriptors({ &mSkyPass.descriptor }, &mSkyPass.pipeline, 0);
-
-		
-		mCmdList.PushConstants(&mSkyPass.pipeline, vk::ShaderStage::Vertex, sizeof(float), 0, &this->time);
-
-		mCmdList.Draw(6, 1, 0, 0);
-
-		stats.drawCalls++;
-
-		mCmdList.EndRenderpass();
-
-		mCmdList.EndDebugUtilsLabel();
-	}
-
-	mCmdList.BeginDebugUtilsLabel("Lighting Pass");
-	// this is the lighting pass for deferred lighting. 
-
-	// It is done in a compute shader instead of a fullscreen quad
-
-	mCmdList.BindPipeline(&mLightingPipeline.pipeline);
-
-	mCmdList.BindDescriptors({ &mLightingPipeline.descriptor }, &mLightingPipeline.pipeline, 0);
-	mCmdList.Dispatch(mProperties.width / 8, mProperties.height / 8, 1);
-
-	stats.dispatchCalls++;
+	RenderScene(renderInfo, mCmdList);
 
 	vk::ImageBarrierInfo imgBarrier{};
 	imgBarrier.srcAccess = vk::AccessFlags::ShaderWrite;
@@ -598,8 +475,6 @@ void RenderManagerVk::Render(const glm::mat4& view, const glm::vec3& view_pos, c
 	imgBarrier.newLayout = vk::ImageLayout::ShaderReadOnlyOptimal;
 
 	mCmdList.ImageBarrier(&mLightingPipeline.output, vk::PipelineStage::ComputeShader, vk::PipelineStage::FragmentShader, imgBarrier);
-
-	mCmdList.EndDebugUtilsLabel();
 
 	if (aaMethod == AntiAliasingMethod::TemporalAA)
 	{
@@ -622,7 +497,6 @@ void RenderManagerVk::Render(const glm::mat4& view, const glm::vec3& view_pos, c
 		mCmdList.EndDebugUtilsLabel();
 	}
 
-	
 
 	// This final pass brings it all together and presents to screen
 
@@ -666,6 +540,7 @@ void RenderManagerVk::Render(const glm::mat4& view, const glm::vec3& view_pos, c
 
 	// This next part handles the copying of the current output to the history target
 	// All the targets need to be transitioned to the correct layout and back again so it all works next frame
+	if (aaMethod == AntiAliasingMethod::TemporalAA)
 	{
 		imgBarrier.srcAccess = vk::AccessFlags::ShaderRead;
 		imgBarrier.oldLayout = vk::ImageLayout::ShaderReadOnlyOptimal;
@@ -703,6 +578,17 @@ void RenderManagerVk::Render(const glm::mat4& view, const glm::vec3& view_pos, c
 
 		mCmdList.ImageBarrier(&mHistory, vk::PipelineStage::Transfer, vk::PipelineStage::ComputeShader, imgBarrier);
 	}
+	else if (aaMethod == AntiAliasingMethod::FastApproximateAA)
+	{
+
+		imgBarrier.srcAccess = vk::AccessFlags::ShaderRead;
+		imgBarrier.oldLayout = vk::ImageLayout::ShaderReadOnlyOptimal;
+		imgBarrier.dstAccess = vk::AccessFlags::ShaderWrite;
+		imgBarrier.newLayout = vk::ImageLayout::General;
+
+		mCmdList.ImageBarrier(&mCurrentOutput, vk::PipelineStage::FragmentShader, vk::PipelineStage::FragmentShader, imgBarrier);
+
+	}
 	mCmdList.End();
 
 	mDevice.SubmitCommandListsAndPresent({ mCmdList });
@@ -713,6 +599,152 @@ void RenderManagerVk::Render(const glm::mat4& view, const glm::vec3& view_pos, c
 
 	firstFrame = false;
 	frameCount++;
+
+}
+
+void RenderManagerVk::RenderScene( RenderInfo& renderInfo, vk::CommandList& cmdList)
+{
+	// Create a frustum for the current view projection
+	// Objects are culled against this later
+	Frustum frustum(renderInfo.data.proj * renderInfo.data.view);
+
+	// Lets do a sort first. This reduces overdraw by drawing front to back
+	std::sort(mDeferredDraws.begin(), mDeferredDraws.end(), [renderInfo](DrawCmd& a, DrawCmd& b)
+		{
+			float distA = glm::distance(glm::vec3(renderInfo.data.viewPos), glm::vec3(a.transform[3]));
+			float distB = glm::distance(glm::vec3(renderInfo.data.viewPos), glm::vec3(b.transform[3]));
+
+			return distA < distB;
+		});
+
+	cmdList.BeginDebugUtilsLabel("Geometry Pass");
+
+	cmdList.BeginRenderpass(&mRenderpasses.geometryPass, false);
+
+	cmdList.SetViewport(0, 0, this->mProperties.width, this->mProperties.height);
+	cmdList.SetScissor(0, 0, this->mProperties.width, this->mProperties.height);
+
+	cmdList.BindPipeline(&mBasePipeline.pipeline);
+
+	cmdList.BindDescriptors({ renderInfo.globalManager.GetDescriptor(vk::ShaderStage::Vertex) }, &mBasePipeline.pipeline, 1);
+
+
+	for (auto& cmd : mDeferredDraws)
+	{
+
+
+		MaterialVk* mat = (MaterialVk*)cmd.material;
+		MeshVk* mesh = (MeshVk*)cmd.mesh;
+
+		// Cull the mesh against the frustum
+		// It skips it and removes it from the draw list
+
+		// Transform the bounding box to the transform specified
+		mesh->boundingBox.Transform(cmd.transform);
+		if (!frustum.Test(mesh->boundingBox))
+		{
+			// Remove it from the list 
+			// and continuee
+			stats.culledMeshes++;
+			mDeferredDraws.pop_front();
+			continue;
+		}
+
+		// If the descriptor isn't created. We should create it now
+		// A Just In Time sort of scenario
+		// This works when there are plenty of material combinations that can't be created in advanced 
+		// Performance does take a hit on first use though
+		if (!mat->createdDescriptor)
+			mat->CreateDescriptor(&mDevice, &mBasePipeline.materialLayout);
+		else
+			mat->RegenDescriptor();
+
+
+		// TODO: Should this be moved into a uniform buffer
+		// Or maybe mix both
+
+		// This is exactly 128 bytes
+		// Which is the minimum required by the vulkan spec so for now its fine.
+		struct
+		{
+			glm::mat4 prevModel;
+			glm::mat4 model;
+		} data;
+
+
+		data.prevModel = cmd.transform;
+		data.model = cmd.transform;
+
+
+		cmdList.PushConstants(&mBasePipeline.pipeline, vk::ShaderStage::Vertex, sizeof(data), 0, &data);
+
+		cmdList.BindDescriptors({ &mat->descriptor }, &mBasePipeline.pipeline, 0);
+
+		// NOTE: For future I want to move this into a large vertex buffer and large index buffer that 
+		// All drawable meshes use
+		// This means I can bind once and then offset accordingly in draw calls
+
+		cmdList.BindVertexBuffer(&mesh->vertexBuffer, 0);
+		cmdList.BindIndexBuffer(&mesh->indexBuffer);
+
+		cmdList.DrawIndexed((cmd.indexCount == 0) ? cmd.mesh->indices.size() : cmd.indexCount, 1, cmd.firstIndex, cmd.vertexOffset, 0);
+
+		stats.drawCalls++;
+
+		mDeferredDraws.pop_front();
+	}
+
+
+	cmdList.EndRenderpass();
+
+	cmdList.EndDebugUtilsLabel();
+
+
+
+
+	// Render the sky to the target
+	// The sky is rendered first
+	// and then the lighting is done over the top using the GBuffer
+	{
+		cmdList.BeginDebugUtilsLabel("Sky Pass");
+
+		cmdList.BeginRenderpass(&mSkyPass.renderpass, false);
+
+		cmdList.BindPipeline(&mSkyPass.pipeline);
+		cmdList.BindDescriptors({ renderInfo.globalManager.GetDescriptor(vk::ShaderStage::Vertex) }, &mSkyPass.pipeline, 0);
+
+		float correctTime = this->time * 2.0f - 10.0f;
+		cmdList.PushConstants(&mSkyPass.pipeline, vk::ShaderStage::Vertex, sizeof(float), 0, &correctTime);
+
+		cmdList.Draw(6, 1, 0, 0);
+
+		stats.drawCalls++;
+
+		cmdList.EndRenderpass();
+
+		cmdList.EndDebugUtilsLabel();
+	}
+
+	cmdList.BeginDebugUtilsLabel("Lighting Pass");
+	// this is the lighting pass for deferred lighting. 
+
+	// It is done in a compute shader instead of a fullscreen quad
+
+	cmdList.BindPipeline(&mLightingPipeline.pipeline);
+
+	cmdList.BindDescriptors({ &mLightingPipeline.descriptor, renderInfo.globalManager.GetDescriptor(vk::ShaderStage::Compute) }, &mLightingPipeline.pipeline, 0);
+	cmdList.Dispatch(mProperties.width / 8, mProperties.height / 8, 1);
+
+	stats.dispatchCalls++;
+
+
+
+	cmdList.EndDebugUtilsLabel();
+}
+
+void RenderManagerVk::UpdateScene(SceneInfo sceneInfo)
+{
+	mSceneDataBuffer.SetData(sizeof(SceneInfo), &sceneInfo);
 }
 
 void RenderManagerVk::UpdateSettings()

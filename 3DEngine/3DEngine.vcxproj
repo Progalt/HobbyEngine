@@ -152,6 +152,7 @@
     <ClCompile Include="Source\Main.cpp" />
     <ClCompile Include="Source\Model\PMDL.cpp" />
     <ClCompile Include="Source\Renderer\RenderManager.cpp" />
+    <ClCompile Include="Source\Renderer\VkImpl\GlobalData.cpp" />
     <ClCompile Include="Source\Renderer\VkImpl\MeshVk.cpp" />
     <ClCompile Include="Source\Renderer\VkImpl\RenderManagerVk.cpp" />
     <ClCompile Include="Source\Renderer\VkImpl\TextureVk.cpp" />
@@ -195,6 +196,7 @@
     <ClInclude Include="Source\Renderer\RenderManager.h" />
     <ClInclude Include="Source\Renderer\SkyMaterial.h" />
     <ClInclude Include="Source\Renderer\Texture.h" />
+    <ClInclude Include="Source\Renderer\VkImpl\GlobalData.h" />
     <ClInclude Include="Source\Renderer\VkImpl\MaterialVk.h" />
     <ClInclude Include="Source\Renderer\VkImpl\MeshVk.h" />
     <ClInclude Include="Source\Renderer\VkImpl\RenderManagerVk.h" />
@@ -221,6 +223,8 @@
   <ItemGroup>
     <None Include="Resources\Shaders\base.glsl.frag" />
     <None Include="Resources\Shaders\base.glsl.vert" />
+    <None Include="Resources\Shaders\debug.glsl.frag" />
+    <None Include="Resources\Shaders\debug.glsl.vert" />
     <None Include="Resources\Shaders\Defines.glsl" />
     <None Include="Resources\Shaders\fullscreen.glsl.frag" />
     <None Include="Resources\Shaders\fullscreen.glsl.vert" />

@@ -14,11 +14,13 @@ public:
 
 	void Discard() override;
 	
-	void LoadFromFile(const std::string& path, RenderManager* renderManager);
+	void LoadFromFile(const std::string& path, RenderManager* renderManager );
 
-	void Queue(RenderManager* renderManager, glm::mat4 matrix);
+	void Queue(RenderManager* renderManager, glm::mat4 matrix, uint32_t lodIndex = 0);
 	
 	std::vector<pmdl::Mesh> submeshes;
+
+	std::vector<pmdl::Mesh> LODs;
 
 	Mesh* mesh;
 

@@ -14,4 +14,7 @@
 %VULKAN_SDK%/Bin/glslc.exe sky.glsl.vert -o sky.vert.spv
 %VULKAN_SDK%/Bin/glslc.exe sky.glsl.frag -o sky.frag.spv
 
+%VULKAN_SDK%/Bin/glslc.exe debug.glsl.vert -o debug.vert.spv
+%VULKAN_SDK%/Bin/glslc.exe debug.glsl.frag -o debug.frag.spv
+
 pause
