@@ -7,6 +7,7 @@
 #include "../Renderer/Texture.h"
 #include <string>
 
+#include "../Resources/Model.h"
 
 #include <vector>
 
@@ -49,6 +50,8 @@ public:
 
 	Material* NewMaterial();
 
+	Model* NewModel();
+
 	Texture* GetTexturePtr(Handle<Texture> texture);
 
 	Handle<Texture> GetWhiteTexture();
@@ -83,4 +86,5 @@ private:
 
 	std::vector<Material*> mMaterials;
 
+	std::vector<Model*> mModels;
 };

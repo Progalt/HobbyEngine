@@ -22,8 +22,15 @@ public:
 		
 		ResourceManager::GetInstance().SetRenderManager(renderManager);
 
-		model.LoadFromFile("Resources/WorldTest.pmdl", renderManager);
-		model.materials[0]->roughness = 0.3f;
+		model = ResourceManager::GetInstance().NewModel();
+
+		model->LoadFromFile("Resources/WorldTest.pmdl", renderManager);
+		model->materials[0]->roughness = 0.7f;
+
+		sphere = ResourceManager::GetInstance().NewModel();
+
+		sphere->LoadFromFile("Resources/Sphere.pmdl", renderManager);
+		sphere->materials[0]->roughness = 0.3f;
 
 		proj = glm::perspective(glm::radians(60.0f), (float)window.GetWidth() / (float)window.GetHeight(), 0.01f, 1000.0f);
 		viewPos = { 0.0f, 0.0f, 0.0f };
@@ -109,6 +116,7 @@ public:
 
 	int framerate;
 
+
 	void ImGuiRender()
 	{
 		ImGui::Begin("Statistics");
@@ -126,8 +134,7 @@ public:
 		ImGui::Text("Settings");
 
 		ImGui::DragFloat("Time", &renderManager->time, 1.0f, -180.0f, 180.0f);
-	
-
+		
 		static bool fxaa = true;
 		ImGui::Checkbox("FXAA", &fxaa);
 
@@ -168,6 +175,7 @@ public:
 		}
 
 		ImGui::End();
+
 	}
 
 	SceneInfo info;
@@ -179,7 +187,6 @@ public:
 		info.lightCount = 0;
 		float t = -renderManager->time;
 		info.dirLight.direction = { 0.0f, sin(glm::radians(t)), -cos(glm::radians(t)), 1.0f};
-		//info.dirLight.direction = { 0.0f, -1.0f, 0.0f, 1.0f };
 		info.dirLight.colour = { 1.0f, 1.0f, 1.0f, 1.0f };
 
 		renderManager->UpdateScene(info);
@@ -187,7 +194,13 @@ public:
 
 
 		glm::mat4 transform = glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), { 1.0f, 0.0f, 0.0f });
-		model.Queue(renderManager, transform);
+		model->Queue(renderManager, transform);
+
+		for (uint32_t i = 0; i < 4; i++)
+		{
+			transform = glm::translate(glm::mat4(1.0f), { -3.0f + (float)i * 3.0f, -7.5f, -3.0f });
+			sphere->Queue(renderManager, transform);
+		}
 
 
 		glm::mat4 viewProj = proj * view;
@@ -208,8 +221,6 @@ public:
 
 		renderManager->WaitForIdle();
 
-		model.Discard();
-
 		ResourceManager::GetInstance().Discard();
 
 		RenderManager::Destroy(renderManager);
@@ -217,7 +228,8 @@ public:
 
 	RenderManager* renderManager;
 
-	Model model;
+	Model* model;
+	Model* sphere;
 
 	int GetFramerate(int newFrame)
 	{

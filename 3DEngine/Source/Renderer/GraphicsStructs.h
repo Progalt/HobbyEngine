@@ -49,3 +49,4 @@ struct SceneInfo
 	DirectionalLight dirLight;
 	PointLight pointLights[MAX_POINT_LIGHT_COUNT];
 };
+

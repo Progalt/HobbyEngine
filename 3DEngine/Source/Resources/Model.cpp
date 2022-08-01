@@ -1,7 +1,7 @@
 
 #include "Model.h"
 #include "../Renderer/RenderManager.h"
-
+#include "../Renderer/Mesh.h"
 #include "../Model/PMDL.h"
 
 void Model::Discard()
@@ -23,23 +23,23 @@ void Model::LoadFromFile(const std::string& path, RenderManager* renderManager)
 	pmdl::Vertex* vertices = pmdl::ReadVertices(file, &header);
 	uint32_t* indices = pmdl::ReadIndices32bit(file, &header);
 
-	this->mesh = renderManager->NewMesh();
+	mesh = renderManager->NewMesh();
 
-	this->mesh->positions.resize(header.vertexCount);
-	this->mesh->texCoords.resize(header.vertexCount);
-	this->mesh->normals.resize(header.vertexCount);
+	mesh->positions.resize(header.vertexCount);
+	mesh->texCoords.resize(header.vertexCount);
+	mesh->normals.resize(header.vertexCount);
 
 	// Add all the vertex and index data to the mesh
 	for (uint32_t i = 0; i < header.vertexCount; i++)
 	{
 		// PMDL outputs a vertex struct currently
 		// so convert to our system
-		this->mesh->positions[i] = { vertices[i].x, vertices[i].y, vertices[i].z };
-		this->mesh->texCoords[i] = { vertices[i].u, vertices[i].v };
-		this->mesh->normals[i] = { vertices[i].nx, vertices[i].ny, vertices[i].nz };
+		mesh->positions[i] = { vertices[i].x, vertices[i].y, vertices[i].z };
+		mesh->texCoords[i] = { vertices[i].u, vertices[i].v };
+		mesh->normals[i] = { vertices[i].nx, vertices[i].ny, vertices[i].nz };
 	}
 
-	this->mesh->indices.resize(header.indexCount);
+	mesh->indices.resize(header.indexCount);
 
 	for (uint32_t i = 0; i < header.indexCount; i++)
 		this->mesh->indices[i] = indices[i];

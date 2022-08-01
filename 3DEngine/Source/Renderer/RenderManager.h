@@ -34,11 +34,12 @@ enum class AntiAliasingMethod
 	FastApproximateAA
 };
 
-// NOTE: Not implemented yet but planned
 struct RenderSettings
 {
 	// Method to do anti aliasing
 	AntiAliasingMethod AntiAliasing;
+
+	QualitySetting shadowQuality = QualitySetting::Medium;
 };
 
 struct CameraInfo
@@ -86,6 +87,8 @@ public:
 	RenderStatistics stats;
 
 	AntiAliasingMethod aaMethod;
+
+	RenderSettings currentSettings;
 
 	int tonemappingMode = 0;
 

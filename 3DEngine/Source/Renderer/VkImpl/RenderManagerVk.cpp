@@ -928,7 +928,11 @@ void RenderManagerVk::UpdateScene(SceneInfo sceneInfo)
 
 void RenderManagerVk::UpdateSettings()
 {
-	
+	if (mShadowData.directionalShadowMap.currentQuality != currentSettings.shadowQuality)
+	{
+		mLightingPipeline.createdShadowDescriptor = false;
+		mShadowData.directionalShadowMap.Create(&mDevice, currentSettings.shadowQuality);
+	}
 }
 
 void RenderManagerVk::QueueMesh(Mesh* mesh, Material* material, glm::mat4 transform, uint32_t firstIndex, uint32_t indexCount, uint32_t vertexOffset)

@@ -3,10 +3,14 @@
 
 
 #include "Resource.h"
-#include "../Renderer/Mesh.h"
 #include <vector>
 #include "../Model/PMDL.h"
+#include <glm/glm.hpp>
+#include <string>
 
+class RenderManager;
+class Mesh;
+class Material;
 
 class Model : public Resource
 {

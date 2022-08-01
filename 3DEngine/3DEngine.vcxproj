@@ -194,12 +194,14 @@
     <ClInclude Include="Source\Renderer\GraphicsStructs.h" />
     <ClInclude Include="Source\Renderer\Material.h" />
     <ClInclude Include="Source\Renderer\Mesh.h" />
+    <ClInclude Include="Source\Renderer\ReflectionProbe.h" />
     <ClInclude Include="Source\Renderer\RenderManager.h" />
     <ClInclude Include="Source\Renderer\SkyMaterial.h" />
     <ClInclude Include="Source\Renderer\Texture.h" />
     <ClInclude Include="Source\Renderer\VkImpl\GlobalData.h" />
     <ClInclude Include="Source\Renderer\VkImpl\MaterialVk.h" />
     <ClInclude Include="Source\Renderer\VkImpl\MeshVk.h" />
+    <ClInclude Include="Source\Renderer\VkImpl\ReflectionProbeVk.h" />
     <ClInclude Include="Source\Renderer\VkImpl\RenderManagerVk.h" />
     <ClInclude Include="Source\Renderer\VkImpl\ShadowAtlas.h" />
     <ClInclude Include="Source\Renderer\VkImpl\TextureVk.h" />

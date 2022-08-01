@@ -22,6 +22,14 @@ void ResourceManager::Discard()
 		mat->Discard();
 		delete mat;
 	}
+
+	Log::Info("Resource Manager", "Freed %d Model(s)", mModels.size());
+
+	for (auto& model : mModels)
+	{
+		model->Discard();
+		delete model;
+	}
 }
 
 Material* ResourceManager::NewMaterial()
@@ -36,6 +44,13 @@ Handle<Texture> ResourceManager::NewTexture()
 	mLoadedTextures.push_back(mRenderManager->NewTexture());
 
 	return Handle<Texture>(mLoadedTextures.size() - 1, 1);
+}
+
+Model* ResourceManager::NewModel()
+{
+	mModels.push_back(new Model());
+
+	return mModels[mModels.size() - 1];
 }
 
 Texture* ResourceManager::GetTexturePtr(Handle<Texture> texture)
