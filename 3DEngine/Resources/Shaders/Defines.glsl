@@ -5,6 +5,8 @@
 // https://knarkowicz.wordpress.com/2014/04/16/octahedron-normal-vector-encoding/
 // https://discourse.panda3d.org/t/glsl-octahedral-normal-packing/15233
 
+#define CASCADE_COUNT 3
+
 vec2 sign_not_zero(vec2 v) 
 {
         return fma(step(vec2(0.0), v), vec2(2.0), vec2(-1.0));

@@ -8,7 +8,7 @@
 #include "../Vulkan/ImguiImpl.h"
 
 #include "GlobalData.h"
-
+#include "ShadowAtlas.h"
 #include <deque>
 
 class RenderManagerVk : public RenderManager
@@ -21,7 +21,7 @@ public:
 
 	void WaitForIdle() override;
 
-	void Render(const glm::mat4& view, const glm::vec3& view_pos, const glm::mat4& proj) override;
+	void Render(CameraInfo& cameraInfo) override;
 
 	Mesh* NewMesh() override;
 
@@ -38,6 +38,8 @@ public:
 		vk::Texture* target;
 		uint32_t level;
 
+		uint32_t renderWidth, renderHeight;
+
 		GlobalData data;
 		GlobalDataManager globalManager;
 	};
@@ -48,9 +50,7 @@ public:
 
 	void UpdateScene(SceneInfo sceneInfo) override;
 
-	glm::mat4 mCachedVP = glm::mat4(1.0f);
-
-	
+	void RenderDirectionalShadowMap(vk::CommandList& cmdList, CascadeShadowMap* shadowMap);
 
 	struct DrawCmd
 	{
@@ -61,9 +61,14 @@ public:
 		bool culled;
 	};
 
+	void RenderDrawCmd(DrawCmd& cmd);
+
+	glm::mat4 mCachedVP = glm::mat4(1.0f);
+
+	
+
 	std::deque<DrawCmd> mDeferredDraws;
 	std::deque<DrawCmd> mForwardDraws;
-	std::deque<DrawCmd> mCulledDeferredDraws;
 
 	vk::Device mDevice;
 
@@ -82,6 +87,18 @@ public:
 
 
 	GlobalDataManager globalDataManager;
+
+	struct
+	{
+		CascadeShadowMap directionalShadowMap;
+		bool createdCascadeShadowMap = false;
+
+		vk::Pipeline pipeline;
+		vk::DescriptorLayout descriptorLayout;
+
+		vk::Sampler sampler;
+
+	} mShadowData;
 
 	struct
 	{
@@ -129,6 +146,11 @@ public:
 
 		vk::DescriptorLayout layout;
 		vk::Descriptor descriptor;
+
+		vk::DescriptorLayout shadowLayout;
+		vk::Descriptor shadowDescriptor;
+
+		bool createdShadowDescriptor = false;
 
 		vk::Texture output;
 	} mLightingPipeline;

@@ -22,7 +22,7 @@ public:
 		
 		ResourceManager::GetInstance().SetRenderManager(renderManager);
 
-		model.LoadFromFile("Resources/Sphere.pmdl", renderManager);
+		model.LoadFromFile("Resources/WorldTest.pmdl", renderManager);
 		model.materials[0]->roughness = 0.3f;
 
 		proj = glm::perspective(glm::radians(60.0f), (float)window.GetWidth() / (float)window.GetHeight(), 0.01f, 1000.0f);
@@ -174,6 +174,7 @@ public:
 
 	void Render() override
 	{
+
 		info.hasDirectionalLight = 1;
 		info.lightCount = 0;
 		float t = -renderManager->time;
@@ -184,18 +185,21 @@ public:
 		renderManager->UpdateScene(info);
 
 
-		for (uint32_t i = 0; i < 4; i++)
-		{
-			for (uint32_t j = 0; j < 4; j++)
-			{
-				glm::mat4 transform = glm::translate(glm::mat4(1.0f), { (float)i * 3, (float)j * 3, 0.0f });
-				model.Queue(renderManager, transform);
-			}
-		}
+
+		glm::mat4 transform = glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), { 1.0f, 0.0f, 0.0f });
+		model.Queue(renderManager, transform);
+
 
 		glm::mat4 viewProj = proj * view;
 
-		renderManager->Render(view, viewPos, proj);
+		CameraInfo cameraInfo{};
+		cameraInfo.nearPlane = 0.001f;
+		cameraInfo.farPlane = 1000.0f;
+		cameraInfo.proj = proj;
+		cameraInfo.view = view;
+		cameraInfo.view_pos = viewPos;
+
+		renderManager->Render(cameraInfo);
 
 	}
 

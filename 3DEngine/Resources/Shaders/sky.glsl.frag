@@ -27,9 +27,13 @@ void main()
     float rayleigh = 3.0 / (8.0 * 3.14) * (1.0 + mu * mu);
     vec3 mie = (Kr + Km * (1.0 - g * g) / (2.0 + g * g) / pow(1.0 + g * g - 2.0 * g * mu, 1.5)) / (Br + Bm);
 
+
+
     vec3 day_extinction = exp(-exp(-((vPos.y + vSun.y * 4.0) * (exp(-vPos.y * 16.0) + 0.1) / 80.0) / Br) * (exp(-vPos.y * 16.0) + 0.1) * Kr / Br) * exp(-vPos.y * exp(-vPos.y * 8.0 ) * 4.0) * exp(-vPos.y * 2.0) * 4.0;
     vec3 night_extinction = vec3(1.0 - exp(vSun.y)) * 0.2;
-    vec3 extinction = mix(day_extinction, night_extinction, -vSun.y * 0.2 + 0.5);
+
+    float sunLevel = -vSun.y * 0.2 + 0.5;
+    vec3 extinction = mix(day_extinction, night_extinction, sunLevel);
     outColour.rgb = rayleigh * mie * extinction;
     outColour.rgb /= 2;
     outColour.a = 1.0;

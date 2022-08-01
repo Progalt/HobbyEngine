@@ -110,10 +110,10 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions);_CRT_SECURE_NO_WARNINGS</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions);_CRT_SECURE_NO_WARNINGS;GLM_FORCE_DEPTH_ZERO_TO_ONE</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>C:\VulkanSDK\1.3.204.1\Include;C:\VulkanSDK\1.3.216.0\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <LanguageStandard>stdcpp17</LanguageStandard>
+      <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -128,7 +128,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions);GLM_FORCE_DEPTH_ZERO_TO_ONE</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>C:\VulkanSDK\1.3.204.1\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp17</LanguageStandard>
@@ -155,6 +155,7 @@
     <ClCompile Include="Source\Renderer\VkImpl\GlobalData.cpp" />
     <ClCompile Include="Source\Renderer\VkImpl\MeshVk.cpp" />
     <ClCompile Include="Source\Renderer\VkImpl\RenderManagerVk.cpp" />
+    <ClCompile Include="Source\Renderer\VkImpl\ShadowAtlas.cpp" />
     <ClCompile Include="Source\Renderer\VkImpl\TextureVk.cpp" />
     <ClCompile Include="Source\Renderer\Vulkan\Buffer.cpp" />
     <ClCompile Include="Source\Renderer\Vulkan\CommandList.cpp" />
@@ -200,6 +201,7 @@
     <ClInclude Include="Source\Renderer\VkImpl\MaterialVk.h" />
     <ClInclude Include="Source\Renderer\VkImpl\MeshVk.h" />
     <ClInclude Include="Source\Renderer\VkImpl\RenderManagerVk.h" />
+    <ClInclude Include="Source\Renderer\VkImpl\ShadowAtlas.h" />
     <ClInclude Include="Source\Renderer\VkImpl\TextureVk.h" />
     <ClInclude Include="Source\Renderer\Vulkan\Buffer.h" />
     <ClInclude Include="Source\Renderer\Vulkan\CommandList.h" />
@@ -231,6 +233,7 @@
     <None Include="Resources\Shaders\FXAA.glsl.frag" />
     <None Include="Resources\Shaders\lighting.glsl.comp" />
     <None Include="Resources\Shaders\PBR.glsl" />
+    <None Include="Resources\Shaders\shadow.glsl.vert" />
     <None Include="Resources\Shaders\sky.glsl.frag" />
     <None Include="Resources\Shaders\sky.glsl.vert" />
     <None Include="Resources\Shaders\StructInclude.glsl" />

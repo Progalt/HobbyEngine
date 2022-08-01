@@ -243,11 +243,11 @@ namespace vk
 		copy.extent = { region->w, region->h, 1 };
 		copy.srcSubresource.mipLevel = 0;
 		copy.srcSubresource.layerCount = 1;
-		copy.srcSubresource.baseArrayLayer = 0;
+		copy.srcSubresource.baseArrayLayer = region->srcLayer;
 		copy.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 		copy.dstSubresource.mipLevel = 0;
 		copy.dstSubresource.layerCount = 1;
-		copy.dstSubresource.baseArrayLayer = 0;
+		copy.dstSubresource.baseArrayLayer = region->dstLayer;
 		copy.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 
 		vkCmdCopyImage(m_Cmd[getIndex()], src->m_Image, (VkImageLayout)srcLayout, dst->m_Image, (VkImageLayout)dstLayout, 1, &copy);

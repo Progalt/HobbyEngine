@@ -90,6 +90,7 @@ namespace vk
 	{
 		int srcX, srcY, dstX, dstY;
 		uint32_t w, h;
+		uint32_t srcLayer = 0, dstLayer = 0;
 	};
 
 	class CommandList

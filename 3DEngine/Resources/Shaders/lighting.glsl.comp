@@ -37,6 +37,13 @@ layout(set = 0, binding = 4, rgba8) uniform image2D finalOutput;
 
 layout(set = 0, binding = 5) uniform sampler2D gDepth;
 
+layout(set = 2, binding = 0) uniform ShadowData
+{
+	mat4 matrices[CASCADE_COUNT];
+	vec4 splitDepths;
+} shadowData;
+
+layout(set = 2, binding = 1) uniform sampler2DShadow cascadeAtlas;
 
 struct Material
 {
@@ -45,8 +52,65 @@ struct Material
 	float metallic;
 } material;
 
-vec3 DirectionalLightContribution(vec3 n, DirectionalLight light, vec3 v, vec3 f0)
+uint cascadeIndex = 0;
+
+const mat4 biasMat = mat4( 
+	0.5, 0.0, 0.0, 0.0,
+	0.0, 0.5, 0.0, 0.0,
+	0.0, 0.0, 1.0, 0.0,
+	0.5, 0.5, 0.0, 1.0 
+);
+
+float textureProj(vec4 shadowCoord, vec2 offset, uint cascadeIndex)
 {
+	float shadow = 1.0;
+	float bias = 0.005;
+
+	if ( shadowCoord.z > -1.0 && shadowCoord.z < 1.0 ) {
+
+		vec2 sampleCoord = shadowCoord.st + offset;
+
+		float cascadeSize = 1.0 / 3.0;
+		
+		sampleCoord.x /= 3;
+
+		sampleCoord.x += cascadeSize * cascadeIndex;
+
+		/*float dist = texture(cascadeAtlas, sampleCoord).r;
+		if (shadowCoord.w > 0 && dist < shadowCoord.z - bias) {
+			shadow = 0.0;
+		}*/
+
+		shadow = texture(cascadeAtlas, vec3(sampleCoord, shadowCoord.z - bias));
+	}
+	return shadow;
+
+}
+
+
+vec4 shadowCoord;
+
+vec3 DirectionalLightContribution(vec3 n, DirectionalLight light, vec3 v, vec3 f0, vec3 fragPos)
+{
+	// Shadow
+
+	vec4 viewPos = global.view *  vec4(fragPos, 1.0);
+
+	// Get cascade index
+	//uint cascadeIndex = 0;
+	for(uint i = 0; i < CASCADE_COUNT - 1; ++i) {
+		if(viewPos.z < shadowData.splitDepths[i]) {	
+			cascadeIndex = i + 1;
+		}
+	}
+
+	//cascadeIndex = 0;
+
+	shadowCoord = (biasMat * shadowData.matrices[cascadeIndex]) * vec4(fragPos, 1.0);	
+
+	float shadow = 0;
+	shadow = textureProj(shadowCoord / shadowCoord.w, vec2(0.0), cascadeIndex);
+
 	vec3 l = light.direction.xyz;
 
 	vec3 h = normalize(v + l);
@@ -70,13 +134,14 @@ vec3 DirectionalLightContribution(vec3 n, DirectionalLight light, vec3 v, vec3 f
     vec3 Fr = (D * V) * F;
 
 
-	vec3 luminance = (Fd + Fr) * NoL;
+	vec3 luminance = (Fd + Fr) * NoL * shadow;
 
 	return luminance; 
 }
 
 void main()
 {
+	const vec3 ambient = vec3(0.15);
 
 	ivec2 coord = ivec2(gl_GlobalInvocationID.xy);
 
@@ -109,10 +174,22 @@ void main()
 
 	vec3 lightContribution = vec3(0.0);
 
-	lightContribution += DirectionalLightContribution(normal, sceneData.dirLight, v, f0) * float(sceneData.hasDirectionalLight);
+	lightContribution += DirectionalLightContribution(normal, sceneData.dirLight, v, f0, fragPos) * float(sceneData.hasDirectionalLight);
 
-	vec3 final = material.albedo * lightContribution;
+	// Compute ambient contribution
 
+	vec3 ambientLight = material.albedo * ambient;
+
+	vec3 final = ambientLight + material.albedo * lightContribution;
+
+	// Debug
+
+	/*switch(cascadeIndex)
+	{
+	case 0: final = vec3(0.0, 1.0, 0.0); break;
+	case 1: final = vec3(0.0, 0.0, 1.0); break;
+	case 2: final = vec3(1.0, 0.0, 0.0); break;
+	}*/
 	
 
 	// Store the final result to the output image

@@ -120,7 +120,7 @@ namespace vk
 
 	}
 
-	void Texture::CreateRenderTarget(Format format, uint32_t width, uint32_t height, bool storageImage, vk::ImageLayout finalLayout)
+	void Texture::CreateRenderTarget(Format format, uint32_t width, uint32_t height, bool storageImage, vk::ImageLayout finalLayout, uint32_t levels)
 	{
 		VkFormat vkf = (VkFormat)format;
 
@@ -148,21 +148,30 @@ namespace vk
 			usageFlags |= VK_IMAGE_USAGE_STORAGE_BIT;
 		}
 
+		VkImageType type = VK_IMAGE_TYPE_2D;
+		if (levels != 1)
+			type = VK_IMAGE_TYPE_3D;
+
 		createImage(m_Allocator, width, height, 1, (VkFormat)format, VK_IMAGE_TYPE_2D, VK_IMAGE_TILING_OPTIMAL,
 			usageFlags, VMA_MEMORY_USAGE_GPU_ONLY, m_Image, m_Allocation, 1, 1, 0);
 
 		m_CurrentLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 
+		VkImageViewType viewType = VK_IMAGE_VIEW_TYPE_2D;
+
+		if (levels != 1)
+			viewType = VK_IMAGE_VIEW_TYPE_2D_ARRAY;
+
 		VkImageViewCreateInfo viewInfo{};
 		viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
 		viewInfo.image = m_Image;
-		viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+		viewInfo.viewType = viewType;
 		viewInfo.format = (VkFormat)format;
 		viewInfo.subresourceRange.aspectMask = (depthImage) ? VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT;
 		viewInfo.subresourceRange.baseMipLevel = 0;
 		viewInfo.subresourceRange.levelCount = 1;
 		viewInfo.subresourceRange.baseArrayLayer = 0;
-		viewInfo.subresourceRange.layerCount = 1;
+		viewInfo.subresourceRange.layerCount = levels;
 
 		m_ResourceRange = viewInfo.subresourceRange;
 

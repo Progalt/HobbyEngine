@@ -48,7 +48,7 @@ namespace vk
 
 		void Create(TextureType type, Format format, uint32_t width, uint32_t height, void* pixels, uint32_t levels = 1, uint32_t mipLevels = 1, bool cubemap = false, uint32_t bytesPerPixel = 4);
 
-		void CreateRenderTarget(Format format, uint32_t width, uint32_t height, bool storageImage = false,  vk::ImageLayout transitionTo = vk::ImageLayout::Undefined);
+		void CreateRenderTarget(Format format, uint32_t width, uint32_t height, bool storageImage = false,  vk::ImageLayout transitionTo = vk::ImageLayout::Undefined, uint32_t levels = 1);
 
 		void Destroy();
 

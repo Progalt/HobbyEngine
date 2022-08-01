@@ -4,6 +4,14 @@
 
 #define MAX_POINT_LIGHT_COUNT 512
 
+enum class QualitySetting
+{
+	Undefined, 
+	Low, 
+	Medium,
+	High
+};
+
 struct GlobalData
 {
 	glm::mat4 jitteredVP;

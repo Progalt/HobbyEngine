@@ -44,6 +44,20 @@ RenderManagerVk::RenderManagerVk(Window* window)
 	}
 
 	{
+		vk::SamplerSettings settings{};
+		settings.modeU = vk::WrapMode::Repeat;
+		settings.modeV = vk::WrapMode::Repeat;
+		settings.minFilter = vk::Filter::Linear;
+		settings.magFilter = vk::Filter::Linear;
+		settings.anisotropy = false;
+		settings.maxAnisotropy = 3.0f;
+		settings.compare = true;
+		settings.compareOp = vk::CompareOp::Less;
+
+		mShadowData.sampler = mDevice.NewSampler(&settings);
+	}
+
+	{
 
 		globalDataManager.Create(&mDevice, &mGlobalDataStruct);
 
@@ -98,6 +112,19 @@ RenderManagerVk::RenderManagerVk(Window* window)
 
 	}
 
+	vk::VertexDescription baseVertexDesc{};
+	baseVertexDesc.bindingDescs =
+	{
+		{ 0, sizeof(glm::vec3) + sizeof(glm::vec2) + sizeof(glm::vec3) }
+	};
+
+	baseVertexDesc.attributeDescs =
+	{
+		{ 0, 0, vk::Format::FORMAT_R32G32B32_SFLOAT, 0 },
+		{ 0, 1, vk::Format::FORMAT_R32G32_SFLOAT, sizeof(glm::vec3)},
+		{ 0, 2, vk::Format::FORMAT_R32G32B32_SFLOAT, sizeof(glm::vec3) + sizeof(glm::vec2)},
+	};
+
 	{
 		// Create base pipeline
 
@@ -107,18 +134,7 @@ RenderManagerVk::RenderManagerVk(Window* window)
 		vertexBlob.CreateFromSource(vk::ShaderStage::Vertex, FileSystem::ReadBytes("Resources/Shaders/base.vert.spv"));
 		fragmentBlob.CreateFromSource(vk::ShaderStage::Fragment, FileSystem::ReadBytes("Resources/Shaders/base.frag.spv"));
 
-		vk::VertexDescription vertexDesc{};
-		vertexDesc.bindingDescs =
-		{
-			{ 0, sizeof(glm::vec3) + sizeof(glm::vec2) + sizeof(glm::vec3) }
-		};
-
-		vertexDesc.attributeDescs =
-		{
-			{ 0, 0, vk::Format::FORMAT_R32G32B32_SFLOAT, 0 },
-			{ 0, 1, vk::Format::FORMAT_R32G32_SFLOAT, sizeof(glm::vec3)},
-			{ 0, 2, vk::Format::FORMAT_R32G32B32_SFLOAT, sizeof(glm::vec3) + sizeof(glm::vec2)},
-		};
+		
 
 		mBasePipeline.materialLayout = mDevice.NewLayout();
 		mBasePipeline.materialLayout.AddLayoutBinding({ 0, vk::ShaderInputType::UniformBuffer, 1, vk::ShaderStage::Fragment });
@@ -132,7 +148,7 @@ RenderManagerVk::RenderManagerVk(Window* window)
 		pipelineInfo.pushConstantRanges = {};
 		pipelineInfo.cullMode = vk::CullMode::Front;
 		pipelineInfo.topologyType = vk::Topology::TriangleList;
-		pipelineInfo.vertexDesc = &vertexDesc;
+		pipelineInfo.vertexDesc = &baseVertexDesc;
 		pipelineInfo.shaders = { &vertexBlob, &fragmentBlob };
 		pipelineInfo.blending = false;
 
@@ -204,12 +220,17 @@ RenderManagerVk::RenderManagerVk(Window* window)
 		mLightingPipeline.layout.AddLayoutBinding({ 5, vk::ShaderInputType::ImageSampler, 1, vk::ShaderStage::Compute });
 		mLightingPipeline.layout.Create();
 
+		mLightingPipeline.shadowLayout = mDevice.NewLayout();
+		mLightingPipeline.shadowLayout.AddLayoutBinding({ 0, vk::ShaderInputType::UniformBuffer, 1, vk::ShaderStage::Compute });
+		mLightingPipeline.shadowLayout.AddLayoutBinding({ 1, vk::ShaderInputType::ImageSampler, 1, vk::ShaderStage::Compute });
+		mLightingPipeline.shadowLayout.Create();
+
 		vk::ShaderBlob shaderBlob = mDevice.NewShaderBlob();
 		shaderBlob.CreateFromSource(vk::ShaderStage::Compute, FileSystem::ReadBytes("Resources/Shaders/lighting.comp.spv"));
 		
 		vk::ComputePipelineCreateInfo createInfo{};
 		createInfo.computeBlob = &shaderBlob;
-		createInfo.layout = { &mLightingPipeline.layout, globalDataManager.GetLayout(vk::ShaderStage::Compute)};
+		createInfo.layout = { &mLightingPipeline.layout, globalDataManager.GetLayout(vk::ShaderStage::Compute), &mLightingPipeline.shadowLayout};
 
 		mLightingPipeline.pipeline = mDevice.NewComputePipeline(&createInfo);
 
@@ -221,6 +242,8 @@ RenderManagerVk::RenderManagerVk(Window* window)
 		mLightingPipeline.descriptor.BindStorageImage(&mLightingPipeline.output, 4);
 		mLightingPipeline.descriptor.BindCombinedImageSampler(&mGeometryPass.depthTarget, &mDefaultSampler, 5);
 		mLightingPipeline.descriptor.Update();
+
+		
 
 		shaderBlob.Destroy();
 	}
@@ -309,7 +332,39 @@ RenderManagerVk::RenderManagerVk(Window* window)
 		fragmentBlob.Destroy();
 	}
 
-	
+	mShadowData.directionalShadowMap.Create(&mDevice, QualitySetting::Low);
+	mShadowData.createdCascadeShadowMap = true;
+
+	// Shadow pipeline
+	{
+		mShadowData.descriptorLayout = mDevice.NewLayout();
+		mShadowData.descriptorLayout.AddLayoutBinding({ 0, vk::ShaderInputType::UniformBuffer, 1, vk::ShaderStage::Vertex });
+		mShadowData.descriptorLayout.Create();
+
+
+		vk::ShaderBlob vertexBlob = mDevice.NewShaderBlob();
+
+		vertexBlob.CreateFromSource(vk::ShaderStage::Vertex, FileSystem::ReadBytes("Resources/Shaders/shadow.vert.spv"));
+
+		vk::PipelineCreateInfo pipelineInfo{};
+		pipelineInfo.renderpass = &mShadowData.directionalShadowMap.renderpass;
+		pipelineInfo.layout = { &mShadowData.descriptorLayout };
+		pipelineInfo.pushConstantRanges = {
+			{ vk::ShaderStage::Vertex, 0, sizeof(glm::mat4) + sizeof(int)}
+		};
+		pipelineInfo.topologyType = vk::Topology::TriangleList;
+		pipelineInfo.vertexDesc = &baseVertexDesc;
+		pipelineInfo.depthTest = true;
+		pipelineInfo.depthWrite = true;
+		pipelineInfo.compareOp = vk::CompareOp::Less;
+		pipelineInfo.shaders = { &vertexBlob, };
+
+		mShadowData.pipeline = mDevice.NewPipeline(&pipelineInfo);
+
+
+
+		vertexBlob.Destroy();
+	}
 
 	{
 
@@ -340,6 +395,10 @@ RenderManagerVk::~RenderManagerVk()
 
 	globalDataManager.Destroy();
 
+	if (mShadowData.createdCascadeShadowMap)
+	{
+		mShadowData.directionalShadowMap.Destroy();
+	}
 
 	mFXAA.layout.Destroy();
 	mFXAA.pipeline.Destroy();
@@ -355,9 +414,13 @@ RenderManagerVk::~RenderManagerVk()
 	mGeometryPass.normalTarget.Destroy();
 	mGeometryPass.velocityTarget.Destroy();
 
+	mShadowData.pipeline.Destroy();
+	mShadowData.descriptorLayout.Destroy();
+
 	mLightingPipeline.output.Destroy();
 	mLightingPipeline.layout.Destroy();
 	mLightingPipeline.pipeline.Destroy();
+	mLightingPipeline.shadowLayout.Destroy();
 
 	mRenderpasses.geometryPass.Destroy();
 	
@@ -368,6 +431,7 @@ RenderManagerVk::~RenderManagerVk()
 	mFullscreenPipeline.layout.Destroy();
 
 	mDefaultSampler.Destroy();
+	mShadowData.sampler.Destroy();
 
 	vk::Imgui::Destroy();
 
@@ -379,7 +443,7 @@ void RenderManagerVk::WaitForIdle()
 	mDevice.WaitIdle();
 }
 
-void RenderManagerVk::Render(const glm::mat4& view, const glm::vec3& view_pos, const glm::mat4& proj)
+void RenderManagerVk::Render(CameraInfo& cameraInfo)
 {
 
 	// This is a mega function that handles drawing the whole scene
@@ -432,23 +496,35 @@ void RenderManagerVk::Render(const glm::mat4& view, const glm::vec3& view_pos, c
 	glm::mat4 jitteredMatrix = glm::translate(glm::mat4(1.0f), { Subsample.x, Subsample.y, 0.0f });
 
 	if (aaMethod == AntiAliasingMethod::TemporalAA)
-		mGlobalDataStruct.jitteredVP = proj * view * jitteredMatrix;
+		mGlobalDataStruct.jitteredVP = cameraInfo.proj * cameraInfo.view * jitteredMatrix;
 	else
-		mGlobalDataStruct.jitteredVP = proj * view;
+		mGlobalDataStruct.jitteredVP = cameraInfo.proj * cameraInfo.view;
 
-	mGlobalDataStruct.VP = proj * view;
+	mGlobalDataStruct.VP = cameraInfo.proj * cameraInfo.view;
 	mGlobalDataStruct.prevVP = mCachedVP;
-	mGlobalDataStruct.viewPos = glm::vec4(view_pos, 1.0f);
-	mGlobalDataStruct.inverseProj = glm::inverse(proj);
-	mGlobalDataStruct.inverseView = glm::inverse(view);
-	mGlobalDataStruct.view = view;
-	mGlobalDataStruct.proj = proj;
+	mGlobalDataStruct.viewPos = glm::vec4(cameraInfo.view_pos, 1.0f);
+	mGlobalDataStruct.inverseProj = glm::inverse(cameraInfo.proj);
+	mGlobalDataStruct.inverseView = glm::inverse(cameraInfo.view);
+	mGlobalDataStruct.view = cameraInfo.view;
+	mGlobalDataStruct.proj = cameraInfo.proj;
 
 	globalDataManager.UpdateData(&mGlobalDataStruct);
 
 	mDevice.NextFrame();
 
 	mCmdList.Begin();
+
+	// First lets render some shadows
+
+	
+	if (mSceneInfo.hasDirectionalLight)
+	{
+		mShadowData.directionalShadowMap.UpdateCascades(mSceneInfo.dirLight, cameraInfo.nearPlane,
+			cameraInfo.farPlane, cameraInfo.proj, cameraInfo.view);
+
+		RenderDirectionalShadowMap(mCmdList, &mShadowData.directionalShadowMap);
+	}
+
 	
 	// Begin the Geometry pass
 	// If you know about how a deferred renderer works this functions the same as that mostly.
@@ -462,10 +538,17 @@ void RenderManagerVk::Render(const glm::mat4& view, const glm::vec3& view_pos, c
 	// Probably going to also store a material index that allows material data to be accessed during the lighting pass. 
 	// This works if I store all material data in a large buffer and index into it
 
+	// This render system allows me to render and specify a target to render too. It will then do the standard rendering pipeline and render it all
+	
+
 	RenderInfo renderInfo{};
 	renderInfo.data = mGlobalDataStruct;
 	renderInfo.globalManager = globalDataManager;
+	renderInfo.renderWidth = mProperties.width;
+	renderInfo.renderHeight = mProperties.height;
+	renderInfo.target = nullptr;
 
+	// Render the scene
 	RenderScene(renderInfo, mCmdList);
 
 	vk::ImageBarrierInfo imgBarrier{};
@@ -595,11 +678,80 @@ void RenderManagerVk::Render(const glm::mat4& view, const glm::vec3& view_pos, c
 
 	// Cached VP for next frame
 
-	mCachedVP = proj * view;
+	mCachedVP = cameraInfo.proj * cameraInfo.view;
 
 	firstFrame = false;
 	frameCount++;
 
+	mDeferredDraws.clear();
+
+}
+
+void RenderManagerVk::RenderDrawCmd(DrawCmd& cmd)
+{
+
+}
+
+void RenderManagerVk::RenderDirectionalShadowMap(vk::CommandList& cmdList, CascadeShadowMap* shadowMap)
+{
+
+	cmdList.BeginDebugUtilsLabel("Directional Light Shadow Pass");
+
+	std::deque<DrawCmd> draws(mDeferredDraws.begin(), mDeferredDraws.end());
+
+	cmdList.BindPipeline(&mShadowData.pipeline);
+
+	// render to each cascade
+	for (uint32_t i = 0; i < CascadeCount; i++)
+	{
+		// all of it is rendered in one renderpass but the viewport is shifted
+		shadowMap->SetupForRendering(cmdList, i);
+
+		Frustum frustum(shadowMap->data.matrices[i]);
+
+		// Loop through and draw
+		for (auto& cmd : draws)
+		{
+			MeshVk* mesh = (MeshVk*)cmd.mesh;
+
+			/*mesh->boundingBox.Transform(cmd.transform);
+			if (!frustum.Test(mesh->boundingBox))
+			{
+				// Remove it from the list
+				// and continuee
+				stats.culledMeshes++;
+				continue;
+			}*/
+
+			struct
+			{
+				glm::mat4 model;
+				int index;
+			} constants;
+
+			constants.model = cmd.transform;
+			constants.index = i;
+
+			if (!shadowMap->createdDescriptor)
+				shadowMap->CreateDescriptor(&mShadowData.descriptorLayout, &mDevice);
+
+			cmdList.BindDescriptors({ &shadowMap->descriptor }, &mShadowData.pipeline, 0);
+
+			cmdList.PushConstants(&mShadowData.pipeline, vk::ShaderStage::Vertex, sizeof(constants), 0, &constants);
+
+			cmdList.BindVertexBuffer(&mesh->vertexBuffer, 0);
+			cmdList.BindIndexBuffer(&mesh->indexBuffer);
+
+			cmdList.DrawIndexed((cmd.indexCount == 0) ? cmd.mesh->indices.size() : cmd.indexCount, 1, cmd.firstIndex, cmd.vertexOffset, 0);
+
+			stats.drawCalls++;
+		}
+
+	
+	}
+	shadowMap->FinishRendering(cmdList);
+
+	cmdList.EndDebugUtilsLabel();
 }
 
 void RenderManagerVk::RenderScene( RenderInfo& renderInfo, vk::CommandList& cmdList)
@@ -608,8 +760,10 @@ void RenderManagerVk::RenderScene( RenderInfo& renderInfo, vk::CommandList& cmdL
 	// Objects are culled against this later
 	Frustum frustum(renderInfo.data.proj * renderInfo.data.view);
 
+	std::deque<DrawCmd> draws(mDeferredDraws.begin(), mDeferredDraws.end());
+
 	// Lets do a sort first. This reduces overdraw by drawing front to back
-	std::sort(mDeferredDraws.begin(), mDeferredDraws.end(), [renderInfo](DrawCmd& a, DrawCmd& b)
+	std::sort(draws.begin(), draws.end(), [renderInfo](DrawCmd& a, DrawCmd& b)
 		{
 			float distA = glm::distance(glm::vec3(renderInfo.data.viewPos), glm::vec3(a.transform[3]));
 			float distB = glm::distance(glm::vec3(renderInfo.data.viewPos), glm::vec3(b.transform[3]));
@@ -621,15 +775,16 @@ void RenderManagerVk::RenderScene( RenderInfo& renderInfo, vk::CommandList& cmdL
 
 	cmdList.BeginRenderpass(&mRenderpasses.geometryPass, false);
 
-	cmdList.SetViewport(0, 0, this->mProperties.width, this->mProperties.height);
-	cmdList.SetScissor(0, 0, this->mProperties.width, this->mProperties.height);
+
+	cmdList.SetViewport(0, 0, renderInfo.renderWidth, renderInfo.renderHeight);
+	cmdList.SetScissor(0, 0, renderInfo.renderWidth, renderInfo.renderHeight);
 
 	cmdList.BindPipeline(&mBasePipeline.pipeline);
 
 	cmdList.BindDescriptors({ renderInfo.globalManager.GetDescriptor(vk::ShaderStage::Vertex) }, &mBasePipeline.pipeline, 1);
 
 
-	for (auto& cmd : mDeferredDraws)
+	for (auto& cmd : draws)
 	{
 
 
@@ -639,16 +794,18 @@ void RenderManagerVk::RenderScene( RenderInfo& renderInfo, vk::CommandList& cmdL
 		// Cull the mesh against the frustum
 		// It skips it and removes it from the draw list
 
+		// TODO: Fix Culling
+
 		// Transform the bounding box to the transform specified
-		mesh->boundingBox.Transform(cmd.transform);
+		/*mesh->boundingBox.Transform(cmd.transform);
 		if (!frustum.Test(mesh->boundingBox))
 		{
 			// Remove it from the list 
 			// and continuee
 			stats.culledMeshes++;
-			mDeferredDraws.pop_front();
+			draws.pop_front();
 			continue;
-		}
+		}*/
 
 		// If the descriptor isn't created. We should create it now
 		// A Just In Time sort of scenario
@@ -691,7 +848,7 @@ void RenderManagerVk::RenderScene( RenderInfo& renderInfo, vk::CommandList& cmdL
 
 		stats.drawCalls++;
 
-		mDeferredDraws.pop_front();
+		draws.pop_front();
 	}
 
 
@@ -725,6 +882,16 @@ void RenderManagerVk::RenderScene( RenderInfo& renderInfo, vk::CommandList& cmdL
 		cmdList.EndDebugUtilsLabel();
 	}
 
+	if (!mLightingPipeline.createdShadowDescriptor)
+	{
+		mLightingPipeline.shadowDescriptor = mDevice.NewDescriptor(&mLightingPipeline.shadowLayout);
+		mLightingPipeline.shadowDescriptor.BindBuffer(&mShadowData.directionalShadowMap.uniformBuffer, 0, sizeof(CascadeShadowMap::DataBuffer), 0);
+		mLightingPipeline.shadowDescriptor.BindCombinedImageSampler(&mShadowData.directionalShadowMap.atlas, &mShadowData.sampler, 1);
+		mLightingPipeline.shadowDescriptor.Update();
+
+		mLightingPipeline.createdShadowDescriptor = true;
+	}
+
 	cmdList.BeginDebugUtilsLabel("Lighting Pass");
 	// this is the lighting pass for deferred lighting. 
 
@@ -732,19 +899,31 @@ void RenderManagerVk::RenderScene( RenderInfo& renderInfo, vk::CommandList& cmdL
 
 	cmdList.BindPipeline(&mLightingPipeline.pipeline);
 
-	cmdList.BindDescriptors({ &mLightingPipeline.descriptor, renderInfo.globalManager.GetDescriptor(vk::ShaderStage::Compute) }, &mLightingPipeline.pipeline, 0);
-	cmdList.Dispatch(mProperties.width / 8, mProperties.height / 8, 1);
+	cmdList.BindDescriptors({ &mLightingPipeline.descriptor, renderInfo.globalManager.GetDescriptor(vk::ShaderStage::Compute), &mLightingPipeline.shadowDescriptor }, &mLightingPipeline.pipeline, 0);
+	cmdList.Dispatch(renderInfo.renderWidth / 8, renderInfo.renderHeight / 8, 1);
 
 	stats.dispatchCalls++;
 
 
 
 	cmdList.EndDebugUtilsLabel();
+
+	if (renderInfo.target != nullptr)
+	{
+		// We want to copy to the target if it is not nullptr
+	}
 }
 
 void RenderManagerVk::UpdateScene(SceneInfo sceneInfo)
 {
+	
+	
+
+
+	mSceneInfo = sceneInfo;
 	mSceneDataBuffer.SetData(sizeof(SceneInfo), &sceneInfo);
+
+
 }
 
 void RenderManagerVk::UpdateSettings()

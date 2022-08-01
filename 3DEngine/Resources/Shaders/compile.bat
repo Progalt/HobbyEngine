@@ -17,4 +17,6 @@
 %VULKAN_SDK%/Bin/glslc.exe debug.glsl.vert -o debug.vert.spv
 %VULKAN_SDK%/Bin/glslc.exe debug.glsl.frag -o debug.frag.spv
 
+%VULKAN_SDK%/Bin/glslc.exe shadow.glsl.vert -o shadow.vert.spv
+
 pause

@@ -102,6 +102,9 @@
     <ClCompile Include="Source\Renderer\VkImpl\GlobalData.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Source\Renderer\VkImpl\ShadowAtlas.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\Renderer\Vulkan\Vendor\vk_mem_alloc.h">
@@ -239,6 +242,9 @@
     <ClInclude Include="Source\Renderer\VkImpl\GlobalData.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Source\Renderer\VkImpl\ShadowAtlas.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="Resources\Shaders\base.glsl.vert" />
@@ -255,5 +261,6 @@
     <None Include="Resources\Shaders\sky.glsl.frag" />
     <None Include="Resources\Shaders\debug.glsl.vert" />
     <None Include="Resources\Shaders\debug.glsl.frag" />
+    <None Include="Resources\Shaders\shadow.glsl.vert" />
   </ItemGroup>
 </Project>

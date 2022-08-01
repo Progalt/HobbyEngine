@@ -41,6 +41,13 @@ struct RenderSettings
 	AntiAliasingMethod AntiAliasing;
 };
 
+struct CameraInfo
+{
+	glm::mat4 proj, view;
+	glm::vec3 view_pos;
+	float nearPlane, farPlane;
+};
+
 // Handles the rendering of the engine
 class RenderManager
 {
@@ -65,7 +72,7 @@ public:
 
 	virtual void SetSkyMaterial(SkyMaterial* material) = 0;
 
-	virtual void Render(const glm::mat4& view, const glm::vec3& view_pos, const glm::mat4& proj) = 0;
+	virtual void Render(CameraInfo& cameraInfo) = 0;
 
 	virtual void UpdateSettings() = 0;
 
