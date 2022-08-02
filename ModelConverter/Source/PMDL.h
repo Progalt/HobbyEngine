@@ -28,6 +28,11 @@
 // - Mutiple Material support
 // - PBR materials
 
+
+// TODO: 
+//	- Animations system: This includes bones and animation playback
+//	- Better Compression and shrinking of file size.
+
 // min and max version supported by this importer
 #define PMDL_MIN_VERSION_SUPPORT 1
 #define PMDL_MAX_VERSION_SUPPORT 1
@@ -79,6 +84,7 @@ namespace pmdl
 		float nx, ny, nz;
 		float tx, ty, tz;
 	};
+
 
 
 	enum class IndexType

@@ -173,6 +173,9 @@
     <ClCompile Include="Source\Renderer\Vulkan\UtilityVK.cpp" />
     <ClCompile Include="Source\Renderer\Vulkan\Vendor\vk_mem_alloc.cpp" />
     <ClCompile Include="Source\Resources\Model.cpp" />
+    <ClCompile Include="Source\Scene\Actor.cpp" />
+    <ClCompile Include="Source\Scene\Component.cpp" />
+    <ClCompile Include="Source\Scene\Scene.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\Core\Application.h" />
@@ -223,6 +226,10 @@
     <ClInclude Include="Source\Renderer\Vulkan\Vendor\vk_mem_alloc.h" />
     <ClInclude Include="Source\Resources\Model.h" />
     <ClInclude Include="Source\Resources\Resource.h" />
+    <ClInclude Include="Source\Scene\Actor.h" />
+    <ClInclude Include="Source\Scene\Component.h" />
+    <ClInclude Include="Source\Scene\Scene.h" />
+    <ClInclude Include="Source\Scene\Transform.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Resources\Shaders\base.glsl.frag" />

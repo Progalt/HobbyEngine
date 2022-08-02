@@ -170,10 +170,8 @@ void ParseArgs(int count, char* argv[])
 
 }
 
-int main(int argc, char* argv[])
+void ExportUsingArgs()
 {
-	ParseArgs(argc, argv);
-
 	Model model;
 
 
@@ -219,8 +217,25 @@ int main(int argc, char* argv[])
 
 		fclose(file);
 	}
+}
+
+int main(int argc, char* argv[])
+{
+	// If the command line is being used
+	// Use the command line converter
+	if (argc > 1)
+	{
+		ParseArgs(argc, argv);
+
+		ExportUsingArgs();
+	}
+	else
+	{
+		// Lets load into the GUI for it
 
 
+
+	}
 	/* {
 		pmdl::Header1 header{};
 		pmdl::InitHeader(&header);

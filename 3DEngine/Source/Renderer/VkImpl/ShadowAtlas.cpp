@@ -85,8 +85,6 @@ void CascadeShadowMap::FinishRendering(vk::CommandList& cmdList)
 void CascadeShadowMap::UpdateCascades(DirectionalLight& dirLight, float nearClip, float farClip, const glm::mat4& proj, const glm::mat4& view)
 {
 
-	// Adapted from: https://github.com/SaschaWillems/Vulkan/blob/master/examples/shadowmappingcascade/shadowmappingcascade.cpp
-
 	const float cascadeSplitLambda = 0.95f;
 
 	float cascadeSplits[CascadeCount];

@@ -11,6 +11,7 @@
 
 
 #include "Resources/Model.h"
+#include "Scene/Scene.h"
 
 class App : public Application
 {
@@ -43,6 +44,12 @@ public:
 		viewPos = glm::vec3(0.0f, 0.0f, 3.0f);
 
 		renderManager->time = 45.0f;
+
+		Actor* worldTest = scene.NewActor("World Test");
+		MeshRenderer* meshRenderer = worldTest->AddComponent<MeshRenderer>();
+		meshRenderer->model = model;
+
+		worldTest->GetTransform().SetEuler({ 90.0f, 0.0f, 0.0f });
 	}
 
 	void Update() override
@@ -191,9 +198,16 @@ public:
 
 		renderManager->UpdateScene(info);
 
+		std::vector<Actor*> renderables = scene.View<MeshRenderer>();
 
+		for (auto& renderable : renderables)
+		{
+			MeshRenderer* meshRenderer = renderable->GetComponent<MeshRenderer>();
 
-		glm::mat4 transform = glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), { 1.0f, 0.0f, 0.0f });
+			meshRenderer->model->Queue(renderManager, renderable->GetTransform().ComputeMatrix(glm::mat4(1.0f)));
+		}
+
+		/*glm::mat4 transform = glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), {1.0f, 0.0f, 0.0f});
 		model->Queue(renderManager, transform);
 
 		for (uint32_t i = 0; i < 4; i++)
@@ -201,7 +215,7 @@ public:
 			transform = glm::translate(glm::mat4(1.0f), { -3.0f + (float)i * 3.0f, -7.5f, -3.0f });
 			sphere->Queue(renderManager, transform);
 		}
-
+		*/
 
 		glm::mat4 viewProj = proj * view;
 
@@ -227,6 +241,8 @@ public:
 	}
 
 	RenderManager* renderManager;
+
+	Scene scene;
 
 	Model* model;
 	Model* sphere;
