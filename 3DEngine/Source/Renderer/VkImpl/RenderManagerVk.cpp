@@ -575,12 +575,20 @@ void RenderManagerVk::Render(CameraInfo& cameraInfo)
 	uint32_t targetNum = 1;
 	uint32_t prevTarget = 0;
 
+	uint32_t postProcessNum = 0;
+
+	mCmdList.BeginDebugUtilsLabel("Post Process");
 
 	for (uint32_t i = 0; i < mPostProcessEffects.size(); i++)
 	{
 		// Loop through the stack and apply each effect 
 
 		PostProcessEffectVk* effect = mPostProcessEffects[i];
+
+		if (!effect->enabled)
+			continue;
+
+		postProcessNum++;
 		
 		if (effect->computeShader)
 		{
@@ -608,6 +616,8 @@ void RenderManagerVk::Render(CameraInfo& cameraInfo)
 
 			mCmdList.Dispatch(mProperties.width / 16, mProperties.height / 16, 1);
 
+			stats.dispatchCalls++;
+
 			imgBarrier.srcAccess = vk::AccessFlags::ShaderRead;
 			imgBarrier.oldLayout = vk::ImageLayout::ShaderReadOnlyOptimal;
 			imgBarrier.dstAccess = vk::AccessFlags::ShaderWrite;
@@ -617,13 +627,12 @@ void RenderManagerVk::Render(CameraInfo& cameraInfo)
 
 		}
 
-		if (mPostProcessEffects.size() > 1)
-		{
-			prevTarget = targetNum,
-				targetNum = frameCount % 2;
-		}
+		
 
 	}
+
+	if (postProcessNum == 0)
+		targetNum = 0;
 
 	mGeneratePostProcessDescriptors = false;
 
@@ -633,6 +642,8 @@ void RenderManagerVk::Render(CameraInfo& cameraInfo)
 	imgBarrier.newLayout = vk::ImageLayout::ShaderReadOnlyOptimal;
 
 	mCmdList.ImageBarrier(&mCurrentOutput[targetNum], vk::PipelineStage::ComputeShader, vk::PipelineStage::FragmentShader, imgBarrier);
+
+	mCmdList.EndDebugUtilsLabel();
 
 	/*if (aaMethod == AntiAliasingMethod::TemporalAA)
 	{

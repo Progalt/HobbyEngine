@@ -57,7 +57,7 @@ public:
 		{
 			PostProcessInput::Colour, PostProcessInput::Depth
 		};
-		fogCreateInfo.uniformBufferSize = sizeof(float) * 2;
+		fogCreateInfo.uniformBufferSize = sizeof(fogData);
 		fogCreateInfo.shaderByteCode = FileSystem::ReadBytes("Resources/Shaders/Fog.comp.spv");
 
 		fogEffect = renderManager->CreatePostProcessEffect(fogCreateInfo);
@@ -155,6 +155,7 @@ public:
 
 		ImGui::DragFloat("Time", &renderManager->time, 1.0f, -180.0f, 180.0f);
 		
+		ImGui::Checkbox("Fog", &fogEffect->enabled);
 
 		const char* tonemappingModes[] = { "None", "Filmic", "Unreal", "Uncharted 2", "ACES"};
 		static const char* currentTonemap = "None";
@@ -201,8 +202,12 @@ public:
 		float t = -renderManager->time;
 		info.dirLight.direction = { 0.0f, sin(glm::radians(t)), -cos(glm::radians(t)), 1.0f};
 		info.dirLight.colour = { 1.0f, 1.0f, 1.0f, 1.0f };
+		
+		fogData.sunDir = info.dirLight.direction;
 
 		renderManager->UpdateScene(info);
+
+		fogEffect->UpdateUniformBuffer(&fogData);
 
 		scene.Render(renderManager);
 
@@ -234,6 +239,10 @@ public:
 
 	RenderManager* renderManager;
 
+	struct
+	{
+		glm::vec4 sunDir;
+	} fogData;
 	PostProcessEffect* fogEffect;
 
 	Scene scene;

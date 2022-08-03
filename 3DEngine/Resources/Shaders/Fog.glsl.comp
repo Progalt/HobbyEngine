@@ -23,8 +23,7 @@ layout(set = 1, binding = 0, rgba8) uniform image2D outputImage;
 
 layout(set = 1, binding = 1) uniform FogData
 {
-	float fogStart;
-	float fogEnd;
+	vec4 sunDir;
 } fogData;
 
 layout(set = 1, binding = 2) uniform sampler2D inputImage;
@@ -32,25 +31,34 @@ layout(set = 1, binding = 2) uniform sampler2D inputImage;
 layout(set = 1, binding = 3) uniform sampler2D inDepth;
 
 
-float b = 0.04;
-float a = 0.01;
+float b = 0.0075;
 
+vec3 atmosphereFogColour = vec3(0.5,0.6,0.7);
+vec3 sunFogColour = vec3(1.0,0.9,0.7);
+
+
+float maxFogHeight = 3.0;
 
 vec3 applyFog( in vec3  rgb,      // original color of the pixel
                in float distance, // camera to point distance
                in vec3  rayOri,   // camera position
                in vec3  rayDir )  // camera to point vector
 {
-    float fogAmount = (a/b) * exp(-rayOri.y*b) * (1.0-exp( -distance*rayDir.y*b ))/rayDir.y;
-    vec3  fogColor  = vec3(0.5,0.6,0.7);
-    return mix( rgb, fogColor, fogAmount );
+
+    float fogAmount = 1.0 - exp( -distance*b );
+    float sunAmount = max( dot( rayDir, -normalize(fogData.sunDir.xyz) ), 0.0 );
+    vec3  fogColor  = mix( atmosphereFogColour, 
+                           sunFogColour,
+                           pow(sunAmount,8.0) );
+
+	return mix( rgb, fogColor, fogAmount );
 }
 
 void main()
 {
 	ivec2 coord = ivec2(gl_GlobalInvocationID.xy);
 
-	vec2 uv = coord / imageSize(outputImage);
+	vec2 uv = vec2(coord) / vec2(imageSize(outputImage));
 
 	vec4 rgba = texelFetch(inputImage, coord, 0);
 

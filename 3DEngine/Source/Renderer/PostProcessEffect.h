@@ -52,6 +52,8 @@ public:
 
 	std::string name;
 
+	bool enabled = true;
+
 
 	PostProcessCreateInfo createInfo;
 
