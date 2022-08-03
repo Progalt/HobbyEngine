@@ -97,6 +97,8 @@ public:
 
 	int tonemappingMode = 0;
 
+	bool updatePostProcessStack = true;
+
 	// time is the time to render at. 
 	float time = 0.0f;
 

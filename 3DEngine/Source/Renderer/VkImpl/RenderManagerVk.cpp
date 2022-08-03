@@ -596,7 +596,7 @@ void RenderManagerVk::Render(CameraInfo& cameraInfo)
 
 			// If the descriptors need generating. 
 			// Generate them
-			if (mGeneratePostProcessDescriptors)
+			if (updatePostProcessStack)
 			{
 				Log::Info("Renderer", "(Re)Created Post Process Descriptors");
 				effect->GenerateDescriptor(&mCurrentOutput[targetNum], &mCurrentOutput[prevTarget]);
@@ -627,21 +627,19 @@ void RenderManagerVk::Render(CameraInfo& cameraInfo)
 
 		}
 
-		
+		prevTarget = targetNum;
+		targetNum = (targetNum == 0) ? 1 : 0;
 
 	}
 
-	if (postProcessNum == 0)
-		targetNum = 0;
-
-	mGeneratePostProcessDescriptors = false;
+	updatePostProcessStack = false;
 
 	imgBarrier.srcAccess = vk::AccessFlags::ShaderWrite;
 	imgBarrier.oldLayout = vk::ImageLayout::General;
 	imgBarrier.dstAccess = vk::AccessFlags::ShaderRead;
 	imgBarrier.newLayout = vk::ImageLayout::ShaderReadOnlyOptimal;
 
-	mCmdList.ImageBarrier(&mCurrentOutput[targetNum], vk::PipelineStage::ComputeShader, vk::PipelineStage::FragmentShader, imgBarrier);
+	mCmdList.ImageBarrier(&mCurrentOutput[prevTarget], vk::PipelineStage::ComputeShader, vk::PipelineStage::FragmentShader, imgBarrier);
 
 	mCmdList.EndDebugUtilsLabel();
 
@@ -679,7 +677,7 @@ void RenderManagerVk::Render(CameraInfo& cameraInfo)
 
 	mCmdList.PushConstants(&mFullscreenPipeline.pipeline, vk::ShaderStage::Fragment, sizeof(int), 0, &tonemappingMode);
 
-	mCmdList.BindDescriptors({ &mFullscreenPipeline.descriptor[targetNum]}, &mFullscreenPipeline.pipeline, 0);
+	mCmdList.BindDescriptors({ &mFullscreenPipeline.descriptor[prevTarget]}, &mFullscreenPipeline.pipeline, 0);
 
 	mCmdList.Draw(3, 1, 0, 0);
 	
@@ -702,7 +700,7 @@ void RenderManagerVk::Render(CameraInfo& cameraInfo)
 	imgBarrier.dstAccess = vk::AccessFlags::ShaderWrite;
 	imgBarrier.newLayout = vk::ImageLayout::General;
 
-	mCmdList.ImageBarrier(&mCurrentOutput[targetNum], vk::PipelineStage::FragmentShader, vk::PipelineStage::FragmentShader, imgBarrier);
+	mCmdList.ImageBarrier(&mCurrentOutput[prevTarget], vk::PipelineStage::FragmentShader, vk::PipelineStage::FragmentShader, imgBarrier);
 
 	
 	mCmdList.End();

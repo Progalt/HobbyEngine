@@ -299,5 +299,6 @@
     <None Include="Resources\Shaders\debug.glsl.frag" />
     <None Include="Resources\Shaders\shadow.glsl.vert" />
     <None Include="Resources\Shaders\Fog.glsl.comp" />
+    <None Include="Resources\Shaders\FXAA.glsl.comp" />
   </ItemGroup>
 </Project>

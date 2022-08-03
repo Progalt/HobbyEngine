@@ -21,4 +21,6 @@
 
 %VULKAN_SDK%/Bin/glslc.exe Fog.glsl.comp -o Fog.comp.spv
 
+%VULKAN_SDK%/Bin/glslc.exe FXAA.glsl.comp -o FXAA.comp.spv
+
 pause

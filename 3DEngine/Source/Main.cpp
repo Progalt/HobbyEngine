@@ -20,7 +20,7 @@ public:
 	void Start() override
 	{
 		renderManager = RenderManager::Create(&window);
-		
+
 		ResourceManager::GetInstance().SetRenderManager(renderManager);
 
 		model = ResourceManager::GetInstance().NewModel();
@@ -62,7 +62,20 @@ public:
 
 		fogEffect = renderManager->CreatePostProcessEffect(fogCreateInfo);
 
+		PostProcessCreateInfo fxaaCreateInfo{};
+		fxaaCreateInfo.computeShader = true;
+		fxaaCreateInfo.passGlobalData = false;
+		fxaaCreateInfo.inputs =
+		{
+			PostProcessInput::Colour
+		};
+		fxaaCreateInfo.uniformBufferSize = 0;
+		fxaaCreateInfo.shaderByteCode = FileSystem::ReadBytes("Resources/Shaders/FXAA.comp.spv");
+
+		fxaaEffect = renderManager->CreatePostProcessEffect(fxaaCreateInfo);
+
 		renderManager->AddPostProcessEffect(fogEffect);
+		renderManager->AddPostProcessEffect(fxaaEffect);
 	}
 
 	void Update() override
@@ -148,14 +161,24 @@ public:
 		ImGui::Text("Draw Calls: %d", renderManager->stats.drawCalls);
 		ImGui::Text("Dispatch Calls: %d", renderManager->stats.dispatchCalls);
 		ImGui::Text("Culled Meshes: %d", renderManager->stats.culledMeshes);
-	
+
+
 		ImGui::Separator();
 
 		ImGui::Text("Settings");
 
 		ImGui::DragFloat("Time", &renderManager->time, 1.0f, -180.0f, 180.0f);
 		
-		ImGui::Checkbox("Fog", &fogEffect->enabled);
+		if (ImGui::Checkbox("FXAA", &fxaaEffect->enabled))
+			renderManager->updatePostProcessStack = true;
+
+		if (ImGui::Checkbox("Fog", &fogEffect->enabled))
+			renderManager->updatePostProcessStack = true;
+		
+		if (fogEffect->enabled)
+			ImGui::DragFloat("Fog Density", &fogData.fogDensity, 0.001, 0.0f, 0.5f);
+
+
 
 		const char* tonemappingModes[] = { "None", "Filmic", "Unreal", "Uncharted 2", "ACES"};
 		static const char* currentTonemap = "None";
@@ -231,6 +254,7 @@ public:
 		renderManager->WaitForIdle();
 
 		fogEffect->Destroy();
+		fxaaEffect->Destroy();
 
 		ResourceManager::GetInstance().Discard();
 
@@ -242,8 +266,11 @@ public:
 	struct
 	{
 		glm::vec4 sunDir;
+		float fogDensity = 0.0075;
+		float padding[3];
 	} fogData;
 	PostProcessEffect* fogEffect;
+	PostProcessEffect* fxaaEffect;
 
 	Scene scene;
 

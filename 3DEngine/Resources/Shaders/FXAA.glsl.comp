@@ -1,0 +1,61 @@
+#version 450 core
+
+layout(local_size_x = 16, local_size_y = 16) in;
+
+#define FXAA_REDUCE_MIN (1.0 / 128.0)
+#define FXAA_REDUCE_MUL (1.0 / 8.0)
+#define FXAA_SPAN_MAX 8.0
+
+layout(binding = 0) uniform writeonly image2D outputImage;
+layout(binding = 1) uniform sampler2D input_texture;
+
+
+void main() {
+
+	ivec2 coord = ivec2(gl_GlobalInvocationID.xy);
+
+
+	// Samples the texels around and calculate their corresponding luminosity
+	vec2 texSize = textureSize(input_texture, 0);
+	vec2 texel_size = vec2(1.0 / texSize.x, 1.0 / texSize.y);
+
+	vec3 calculateLuma = vec3(0.299, 0.587, 0.114);
+	vec3 rgbM  = texelFetch(input_texture, coord, 0).xyz;
+	vec3 rgbNW = texelFetch(input_texture, coord + ivec2(-1.0,-1.0), 0).xyz;
+	vec3 rgbNE = texelFetch(input_texture, coord + ivec2(1.0,-1.0), 0).xyz;
+	vec3 rgbSW = texelFetch(input_texture, coord + ivec2(-1.0,1.0), 0).xyz;
+	vec3 rgbSE = texelFetch(input_texture, coord + ivec2(1.0,1.0), 0).xyz;
+
+	float lumaM  = dot(rgbM,  calculateLuma);
+	float lumaNW = dot(rgbNW, calculateLuma);
+	float lumaNE = dot(rgbNE, calculateLuma);
+	float lumaSW = dot(rgbSW, calculateLuma);
+	float lumaSE = dot(rgbSE, calculateLuma);
+	float lumaMin = min(lumaM, min(min(lumaNW, lumaNE), min(lumaSW, lumaSE)));
+	float lumaMax = max(lumaM, max(max(lumaNW, lumaNE), max(lumaSW, lumaSE))); 
+
+	// Calculate sample direction
+	vec2 dir;
+	dir.x = -((lumaNW + lumaNE) - (lumaSW + lumaSE));
+	dir.y =  ((lumaNW + lumaSW) - (lumaNE + lumaSE));
+	float dirReduce = max((lumaNW + lumaNE + lumaSW + lumaSE) * (0.25 * FXAA_REDUCE_MUL), FXAA_REDUCE_MIN);
+	float rcpDirMin = 1.0 / (min(abs(dir.x), abs(dir.y)) + dirReduce);
+	dir = min(vec2(FXAA_SPAN_MAX, FXAA_SPAN_MAX), max(vec2(-FXAA_SPAN_MAX, -FXAA_SPAN_MAX), dir * rcpDirMin));
+
+	// Perform the samples and calculate the new texel colour
+	vec3 rgbA = 0.5 * (texelFetch(input_texture, coord + ivec2(dir * ((1.0 / 3.0) - 0.5)), 0).xyz + texelFetch(input_texture, coord + ivec2(dir * ((2.0 / 3.0) - 0.5)), 0).xyz);
+	vec3 rgbB = rgbA * 0.5 + 0.25 * (texelFetch(input_texture, coord + ivec2(dir * - 0.5), 0).xyz + texelFetch(input_texture, coord + ivec2(dir * 0.5), 0).xyz);
+	float lumaB = dot(rgbB, calculateLuma);
+
+	vec4 fragColour;
+
+	if ((lumaB < lumaMin) || (lumaB > lumaMax))
+    {
+		fragColour = vec4(rgbA, 1.0);
+	} else 
+    {
+		fragColour = vec4(rgbB, 1.0);
+	}
+
+	imageStore(outputImage, coord, fragColour);
+}

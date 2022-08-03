@@ -46,20 +46,25 @@ PostProcessEffectVk::PostProcessEffectVk(RenderManagerVk* renderManager, const P
 
 	computeShader = true;
 
-	uniformBuffer = renderManager->mDevice.NewBuffer();
-	uniformBuffer.Create(vk::BufferType::Dynamic, vk::BufferUsage::Uniform, createInfo.uniformBufferSize, nullptr);
+	if (createInfo.uniformBufferSize != 0)
+	{
+		uniformBuffer = renderManager->mDevice.NewBuffer();
+		uniformBuffer.Create(vk::BufferType::Dynamic, vk::BufferUsage::Uniform, createInfo.uniformBufferSize, nullptr);
+	}
 
 	this->rm = renderManager;
 }
 
 void PostProcessEffectVk::UpdateUniformBuffer(void* data)
 {
-	uniformBuffer.SetData(createInfo.uniformBufferSize, data);
+	if (createInfo.uniformBufferSize != 0)
+		uniformBuffer.SetData(createInfo.uniformBufferSize, data);
 }
 
 void PostProcessEffectVk::Destroy()
 {
-	uniformBuffer.Destroy();
+	if (createInfo.uniformBufferSize != 0)
+		uniformBuffer.Destroy();
 	computePipeline.Destroy();
 	descriptorLayout.Destroy();
 }

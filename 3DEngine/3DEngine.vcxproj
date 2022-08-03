@@ -243,6 +243,7 @@
     <None Include="Resources\Shaders\Fog.glsl.comp" />
     <None Include="Resources\Shaders\fullscreen.glsl.frag" />
     <None Include="Resources\Shaders\fullscreen.glsl.vert" />
+    <None Include="Resources\Shaders\FXAA.glsl.comp" />
     <None Include="Resources\Shaders\FXAA.glsl.frag" />
     <None Include="Resources\Shaders\lighting.glsl.comp" />
     <None Include="Resources\Shaders\PBR.glsl" />
