@@ -114,6 +114,9 @@
     <ClCompile Include="Source\Scene\Component.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Source\Renderer\VkImpl\PostProcessEffectVk.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\Renderer\Vulkan\Vendor\vk_mem_alloc.h">
@@ -272,6 +275,12 @@
     <ClInclude Include="Source\Scene\Component.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Source\Renderer\PostProcessEffect.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Renderer\VkImpl\PostProcessEffectVk.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="Resources\Shaders\base.glsl.vert" />
@@ -289,5 +298,6 @@
     <None Include="Resources\Shaders\debug.glsl.vert" />
     <None Include="Resources\Shaders\debug.glsl.frag" />
     <None Include="Resources\Shaders\shadow.glsl.vert" />
+    <None Include="Resources\Shaders\Fog.glsl.comp" />
   </ItemGroup>
 </Project>

@@ -6,7 +6,7 @@
 #include "TextureVk.h"
 #include "MaterialVk.h"
 #include "../../Maths/Frustum.h"
-
+#include "../../Core/Log.h"
 #include <glm/gtc/matrix_transform.hpp>
 
 
@@ -198,8 +198,11 @@ RenderManagerVk::RenderManagerVk(Window* window)
 	}
 
 	{
-		mCurrentOutput = mDevice.NewTexture();
-		mCurrentOutput.CreateRenderTarget(vk::FORMAT_R16G16B16A16_SFLOAT, window->GetWidth(), window->GetHeight(), true, vk::ImageLayout::General);
+		mCurrentOutput[0] = mDevice.NewTexture();
+		mCurrentOutput[0].CreateRenderTarget(vk::FORMAT_R16G16B16A16_SFLOAT, window->GetWidth(), window->GetHeight(), true, vk::ImageLayout::General);
+
+		mCurrentOutput[1] = mDevice.NewTexture();
+		mCurrentOutput[1].CreateRenderTarget(vk::FORMAT_R16G16B16A16_SFLOAT, window->GetWidth(), window->GetHeight(), true, vk::ImageLayout::General);
 
 		mHistory = mDevice.NewTexture();
 		mHistory.CreateRenderTarget(vk::FORMAT_R16G16B16A16_SFLOAT, window->GetWidth(), window->GetHeight(), true, vk::ImageLayout::General);
@@ -258,7 +261,7 @@ RenderManagerVk::RenderManagerVk(Window* window)
 		mFXAA.layout.Create();
 
 		vk::RenderpassCreateInfo rpInfo{};
-		rpInfo.colourAttachments = { &mCurrentOutput };
+		rpInfo.colourAttachments = { &mCurrentOutput[0]};
 		rpInfo.type = vk::RenderpassType::Offscreen;
 		rpInfo.clearColour = { 0.0f, 0.0f, 0.0f, 1.0f };
 		rpInfo.colourAttachmentInitialLayouts = { vk::ImageLayout::General };
@@ -332,7 +335,7 @@ RenderManagerVk::RenderManagerVk(Window* window)
 		fragmentBlob.Destroy();
 	}
 
-	mShadowData.directionalShadowMap.Create(&mDevice, QualitySetting::Low);
+	mShadowData.directionalShadowMap.Create(&mDevice, QualitySetting::Medium);
 	mShadowData.createdCascadeShadowMap = true;
 
 	// Shadow pipeline
@@ -368,13 +371,13 @@ RenderManagerVk::RenderManagerVk(Window* window)
 
 	{
 
-		mFullscreenPipeline.descriptor = mDevice.NewDescriptor(&mFullscreenPipeline.layout);
-		mFullscreenPipeline.descriptor.BindCombinedImageSampler(&mLightingPipeline.output, &mDefaultSampler, 0);
-		mFullscreenPipeline.descriptor.Update();
+		mFullscreenPipeline.descriptor[0] = mDevice.NewDescriptor(&mFullscreenPipeline.layout);
+		mFullscreenPipeline.descriptor[0].BindCombinedImageSampler(&mCurrentOutput[0], &mDefaultSampler, 0);
+		mFullscreenPipeline.descriptor[0].Update();
 
-		mFullscreenPipeline.fxaaDescriptor = mDevice.NewDescriptor(&mFullscreenPipeline.layout);
-		mFullscreenPipeline.fxaaDescriptor.BindCombinedImageSampler(&mCurrentOutput, &mDefaultSampler, 0);
-		mFullscreenPipeline.fxaaDescriptor.Update();
+		mFullscreenPipeline.descriptor[1] = mDevice.NewDescriptor(&mFullscreenPipeline.layout);
+		mFullscreenPipeline.descriptor[1].BindCombinedImageSampler(&mCurrentOutput[1], &mDefaultSampler, 0);
+		mFullscreenPipeline.descriptor[1].Update();
 
 
 	}
@@ -390,7 +393,8 @@ RenderManagerVk::~RenderManagerVk()
 
 	mSceneDataBuffer.Destroy();
 
-	mCurrentOutput.Destroy();
+	mCurrentOutput[0].Destroy();
+	mCurrentOutput[1].Destroy();
 	mHistory.Destroy();
 
 	globalDataManager.Destroy();
@@ -551,20 +555,90 @@ void RenderManagerVk::Render(CameraInfo& cameraInfo)
 	// Render the scene
 	RenderScene(renderInfo, mCmdList);
 
+
+
+	vk::ImageCopy imageCopy{};
+	imageCopy.dstLayer = 0;
+	imageCopy.srcLayer = 0;
+	imageCopy.w = mProperties.width;
+	imageCopy.h = mProperties.height;
+	imageCopy.srcX = 0;
+	imageCopy.srcY = 0;
+	imageCopy.dstX = 0;
+	imageCopy.dstY = 0;
+	mCmdList.CopyImage(&mLightingPipeline.output, vk::ImageLayout::General, &mCurrentOutput[0], vk::ImageLayout::General,&imageCopy );
+
 	vk::ImageBarrierInfo imgBarrier{};
+
+	// Lets start post process effects
+
+	uint32_t targetNum = 1;
+	uint32_t prevTarget = 0;
+
+
+	for (uint32_t i = 0; i < mPostProcessEffects.size(); i++)
+	{
+		// Loop through the stack and apply each effect 
+
+		PostProcessEffectVk* effect = mPostProcessEffects[i];
+		
+		if (effect->computeShader)
+		{
+			mCmdList.BindPipeline(&effect->computePipeline);
+
+			// If the descriptors need generating. 
+			// Generate them
+			if (mGeneratePostProcessDescriptors)
+			{
+				Log::Info("Renderer", "(Re)Created Post Process Descriptors");
+				effect->GenerateDescriptor(&mCurrentOutput[targetNum], &mCurrentOutput[prevTarget]);
+			}
+
+			imgBarrier.srcAccess = vk::AccessFlags::ShaderWrite;
+			imgBarrier.oldLayout = vk::ImageLayout::General;
+			imgBarrier.dstAccess = vk::AccessFlags::ShaderRead;
+			imgBarrier.newLayout = vk::ImageLayout::ShaderReadOnlyOptimal;
+
+			mCmdList.ImageBarrier(&mCurrentOutput[prevTarget], vk::PipelineStage::ComputeShader, vk::PipelineStage::FragmentShader, imgBarrier);
+
+			if (effect->createInfo.passGlobalData)
+				mCmdList.BindDescriptors({ globalDataManager.GetDescriptor(vk::ShaderStage::Compute), &effect->descriptor }, &effect->computePipeline, 0);
+			else 
+				mCmdList.BindDescriptors({ &effect->descriptor }, & effect->computePipeline, 0);
+
+			mCmdList.Dispatch(mProperties.width / 16, mProperties.height / 16, 1);
+
+			imgBarrier.srcAccess = vk::AccessFlags::ShaderRead;
+			imgBarrier.oldLayout = vk::ImageLayout::ShaderReadOnlyOptimal;
+			imgBarrier.dstAccess = vk::AccessFlags::ShaderWrite;
+			imgBarrier.newLayout = vk::ImageLayout::General;
+
+			mCmdList.ImageBarrier(&mCurrentOutput[prevTarget], vk::PipelineStage::FragmentShader, vk::PipelineStage::FragmentShader, imgBarrier);
+
+		}
+
+		if (mPostProcessEffects.size() > 1)
+		{
+			prevTarget = targetNum,
+				targetNum = frameCount % 2;
+		}
+
+	}
+
+	mGeneratePostProcessDescriptors = false;
+
 	imgBarrier.srcAccess = vk::AccessFlags::ShaderWrite;
 	imgBarrier.oldLayout = vk::ImageLayout::General;
 	imgBarrier.dstAccess = vk::AccessFlags::ShaderRead;
 	imgBarrier.newLayout = vk::ImageLayout::ShaderReadOnlyOptimal;
 
-	mCmdList.ImageBarrier(&mLightingPipeline.output, vk::PipelineStage::ComputeShader, vk::PipelineStage::FragmentShader, imgBarrier);
+	mCmdList.ImageBarrier(&mCurrentOutput[targetNum], vk::PipelineStage::ComputeShader, vk::PipelineStage::FragmentShader, imgBarrier);
 
-	if (aaMethod == AntiAliasingMethod::TemporalAA)
+	/*if (aaMethod == AntiAliasingMethod::TemporalAA)
 	{
 
 	}
-
-	if (aaMethod == AntiAliasingMethod::FastApproximateAA)
+	else if (aaMethod == AntiAliasingMethod::FastApproximateAA)
 	{
 		mCmdList.BeginDebugUtilsLabel("FXAA");
 		mCmdList.BeginRenderpass(&mFXAA.renderpass, false);
@@ -578,8 +652,7 @@ void RenderManagerVk::Render(CameraInfo& cameraInfo)
 
 		mCmdList.EndRenderpass();
 		mCmdList.EndDebugUtilsLabel();
-	}
-
+	}*/
 
 	// This final pass brings it all together and presents to screen
 
@@ -595,10 +668,8 @@ void RenderManagerVk::Render(CameraInfo& cameraInfo)
 
 	mCmdList.PushConstants(&mFullscreenPipeline.pipeline, vk::ShaderStage::Fragment, sizeof(int), 0, &tonemappingMode);
 
-	if (aaMethod == AntiAliasingMethod::None)
-		mCmdList.BindDescriptors({ &mFullscreenPipeline.descriptor }, & mFullscreenPipeline.pipeline, 0);
-	else if (aaMethod == AntiAliasingMethod::FastApproximateAA)
-		mCmdList.BindDescriptors({ &mFullscreenPipeline.fxaaDescriptor }, &mFullscreenPipeline.pipeline, 0);
+	mCmdList.BindDescriptors({ &mFullscreenPipeline.descriptor[targetNum]}, &mFullscreenPipeline.pipeline, 0);
+
 	mCmdList.Draw(3, 1, 0, 0);
 	
 	stats.drawCalls++;
@@ -613,65 +684,16 @@ void RenderManagerVk::Render(CameraInfo& cameraInfo)
 	mCmdList.EndRenderpass();
 
 	mCmdList.EndDebugUtilsLabel();
-	
+
+
 	imgBarrier.srcAccess = vk::AccessFlags::ShaderRead;
 	imgBarrier.oldLayout = vk::ImageLayout::ShaderReadOnlyOptimal;
 	imgBarrier.dstAccess = vk::AccessFlags::ShaderWrite;
 	imgBarrier.newLayout = vk::ImageLayout::General;
 
-	mCmdList.ImageBarrier(&mLightingPipeline.output, vk::PipelineStage::FragmentShader, vk::PipelineStage::ComputeShader, imgBarrier);
+	mCmdList.ImageBarrier(&mCurrentOutput[targetNum], vk::PipelineStage::FragmentShader, vk::PipelineStage::FragmentShader, imgBarrier);
 
-	// This next part handles the copying of the current output to the history target
-	// All the targets need to be transitioned to the correct layout and back again so it all works next frame
-	if (aaMethod == AntiAliasingMethod::TemporalAA)
-	{
-		imgBarrier.srcAccess = vk::AccessFlags::ShaderRead;
-		imgBarrier.oldLayout = vk::ImageLayout::ShaderReadOnlyOptimal;
-		imgBarrier.dstAccess = vk::AccessFlags::TransferRead;
-		imgBarrier.newLayout = vk::ImageLayout::TransferSrcOptimal;
-
-		mCmdList.ImageBarrier(&mCurrentOutput, vk::PipelineStage::FragmentShader, vk::PipelineStage::Transfer, imgBarrier);
-
-		imgBarrier.srcAccess = vk::AccessFlags::ShaderRead;
-		imgBarrier.oldLayout = vk::ImageLayout::General;
-		imgBarrier.dstAccess = vk::AccessFlags::TransferWrite;
-		imgBarrier.newLayout = vk::ImageLayout::TransferDstOptimal;
-
-		mCmdList.ImageBarrier(&mHistory, vk::PipelineStage::FragmentShader, vk::PipelineStage::Transfer, imgBarrier);
-
-		vk::ImageCopy imgCopy{};
-		imgCopy.srcX = 0, imgCopy.srcY = 0;
-		imgCopy.dstX = 0, imgCopy.dstY = 0;
-		imgCopy.w = mProperties.width;
-		imgCopy.h = mProperties.height;
-
-		mCmdList.CopyImage(&mCurrentOutput, vk::ImageLayout::TransferSrcOptimal, &mHistory, vk::ImageLayout::TransferDstOptimal, &imgCopy);
-
-		imgBarrier.srcAccess = vk::AccessFlags::TransferRead;
-		imgBarrier.oldLayout = vk::ImageLayout::TransferSrcOptimal;
-		imgBarrier.dstAccess = vk::AccessFlags::ShaderWrite;
-		imgBarrier.newLayout = vk::ImageLayout::General;
-
-		mCmdList.ImageBarrier(&mCurrentOutput, vk::PipelineStage::Transfer, vk::PipelineStage::FragmentShader, imgBarrier);
-
-		imgBarrier.srcAccess = vk::AccessFlags::TransferWrite;
-		imgBarrier.oldLayout = vk::ImageLayout::TransferDstOptimal;
-		imgBarrier.dstAccess = vk::AccessFlags::ShaderWrite;
-		imgBarrier.newLayout = vk::ImageLayout::General;
-
-		mCmdList.ImageBarrier(&mHistory, vk::PipelineStage::Transfer, vk::PipelineStage::ComputeShader, imgBarrier);
-	}
-	else if (aaMethod == AntiAliasingMethod::FastApproximateAA)
-	{
-
-		imgBarrier.srcAccess = vk::AccessFlags::ShaderRead;
-		imgBarrier.oldLayout = vk::ImageLayout::ShaderReadOnlyOptimal;
-		imgBarrier.dstAccess = vk::AccessFlags::ShaderWrite;
-		imgBarrier.newLayout = vk::ImageLayout::General;
-
-		mCmdList.ImageBarrier(&mCurrentOutput, vk::PipelineStage::FragmentShader, vk::PipelineStage::FragmentShader, imgBarrier);
-
-	}
+	
 	mCmdList.End();
 
 	mDevice.SubmitCommandListsAndPresent({ mCmdList });
@@ -685,6 +707,16 @@ void RenderManagerVk::Render(CameraInfo& cameraInfo)
 
 	mDeferredDraws.clear();
 
+}
+
+void RenderManagerVk::AddPostProcessEffect(PostProcessEffect* effect)
+{
+	mPostProcessEffects.push_back((PostProcessEffectVk*)effect);
+}
+
+PostProcessEffect* RenderManagerVk::CreatePostProcessEffect(const PostProcessCreateInfo& createInfo)
+{
+	return new PostProcessEffectVk(this, createInfo);
 }
 
 void RenderManagerVk::RenderDrawCmd(DrawCmd& cmd)

@@ -190,7 +190,6 @@ void main()
 	case 1: final = vec3(0.0, 0.0, 1.0); break;
 	case 2: final = vec3(1.0, 0.0, 0.0); break;
 	}*/
-	
 
 	// Store the final result to the output image
 	if (depth != 1.0)

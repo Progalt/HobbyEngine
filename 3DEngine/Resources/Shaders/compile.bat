@@ -19,4 +19,6 @@
 
 %VULKAN_SDK%/Bin/glslc.exe shadow.glsl.vert -o shadow.vert.spv
 
+%VULKAN_SDK%/Bin/glslc.exe Fog.glsl.comp -o Fog.comp.spv
+
 pause

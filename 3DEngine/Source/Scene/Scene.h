@@ -2,6 +2,7 @@
 
 #include "Actor.h"
 #include <vector>
+#include "../Renderer/RenderManager.h"
 
 class Scene
 {
@@ -19,6 +20,7 @@ public:
 
 	Actor* NewActor(const std::string& name);
 
+	// Get a list of the current actors with the specified component
 	template<typename _Ty>
 	std::vector<Actor*> View()
 	{
@@ -31,6 +33,9 @@ public:
 
 		return output;
 	}
+
+	
+	void Render(RenderManager* renderManager);
 
 private:
 

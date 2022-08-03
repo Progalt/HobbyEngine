@@ -10,6 +10,8 @@
 #include "GlobalData.h"
 #include "ShadowAtlas.h"
 #include <deque>
+#include <vector>
+#include "PostProcessEffectVk.h"
 
 class RenderManagerVk : public RenderManager
 {
@@ -50,6 +52,10 @@ public:
 
 	void UpdateScene(SceneInfo sceneInfo) override;
 
+	void AddPostProcessEffect(PostProcessEffect* effect) override;
+
+	PostProcessEffect* CreatePostProcessEffect(const PostProcessCreateInfo& createInfo) override;
+
 	void RenderDirectionalShadowMap(vk::CommandList& cmdList, CascadeShadowMap* shadowMap);
 
 	struct DrawCmd
@@ -65,7 +71,10 @@ public:
 
 	glm::mat4 mCachedVP = glm::mat4(1.0f);
 
-	
+	// Post process
+
+	std::vector<PostProcessEffectVk*> mPostProcessEffects;
+	bool mGeneratePostProcessDescriptors = true;
 
 	std::deque<DrawCmd> mDeferredDraws;
 	std::deque<DrawCmd> mForwardDraws;
@@ -81,10 +90,8 @@ public:
 	SceneInfo mSceneInfo;
 	vk::Buffer mSceneDataBuffer;
 
-	vk::Texture mCurrentOutput;
+	vk::Texture mCurrentOutput[2];
 	vk::Texture mHistory;
-
-
 
 	GlobalDataManager globalDataManager;
 
@@ -135,8 +142,7 @@ public:
 		vk::Pipeline pipeline;
 		vk::DescriptorLayout layout;
 
-		vk::Descriptor descriptor;
-		vk::Descriptor fxaaDescriptor;
+		vk::Descriptor descriptor[2];
 
 	} mFullscreenPipeline;
 
@@ -162,6 +168,15 @@ public:
 		vk::Renderpass renderpass;
 
 	} mSkyPass;
+
+	struct
+	{
+
+		vk::ComputePipeline pipeline;
+		vk::DescriptorLayout layout;
+		vk::Descriptor descriptor;
+
+	} mFogPass;
 	
 	struct {
 

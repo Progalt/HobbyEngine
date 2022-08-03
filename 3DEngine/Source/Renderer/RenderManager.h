@@ -8,6 +8,7 @@
 #include <functional>
 
 #include "GraphicsStructs.h"
+#include "PostProcessEffect.h"
 
 struct RenderStatistics
 {
@@ -78,6 +79,10 @@ public:
 	virtual void UpdateSettings() = 0;
 
 	virtual void UpdateScene(SceneInfo sceneInfo) = 0;
+
+	virtual void AddPostProcessEffect(PostProcessEffect* effect) = 0;
+
+	virtual PostProcessEffect* CreatePostProcessEffect(const PostProcessCreateInfo& createInfo) = 0;
 
 	void ImGuiDraw(std::function<void()> imgui)
 	{

@@ -38,7 +38,7 @@ public:
 
 		renderManager->ImGuiDraw([&]() { ImGuiRender(); });
 
-		renderManager->aaMethod = AntiAliasingMethod::FastApproximateAA;
+		renderManager->aaMethod = AntiAliasingMethod::None;
 
 
 		viewPos = glm::vec3(0.0f, 0.0f, 3.0f);
@@ -46,10 +46,23 @@ public:
 		renderManager->time = 45.0f;
 
 		Actor* worldTest = scene.NewActor("World Test");
-		MeshRenderer* meshRenderer = worldTest->AddComponent<MeshRenderer>();
-		meshRenderer->model = model;
+		worldTest->AddComponent<MeshRenderer>()->model = model;
 
 		worldTest->GetTransform().SetEuler({ 90.0f, 0.0f, 0.0f });
+
+		PostProcessCreateInfo fogCreateInfo{};
+		fogCreateInfo.computeShader = true;
+		fogCreateInfo.passGlobalData = true;
+		fogCreateInfo.inputs =
+		{
+			PostProcessInput::Colour, PostProcessInput::Depth
+		};
+		fogCreateInfo.uniformBufferSize = sizeof(float) * 2;
+		fogCreateInfo.shaderByteCode = FileSystem::ReadBytes("Resources/Shaders/Fog.comp.spv");
+
+		fogEffect = renderManager->CreatePostProcessEffect(fogCreateInfo);
+
+		renderManager->AddPostProcessEffect(fogEffect);
 	}
 
 	void Update() override
@@ -142,13 +155,6 @@ public:
 
 		ImGui::DragFloat("Time", &renderManager->time, 1.0f, -180.0f, 180.0f);
 		
-		static bool fxaa = true;
-		ImGui::Checkbox("FXAA", &fxaa);
-
-		if (fxaa)
-			renderManager->aaMethod = AntiAliasingMethod::FastApproximateAA;
-		else 
-			renderManager->aaMethod = AntiAliasingMethod::None;
 
 		const char* tonemappingModes[] = { "None", "Filmic", "Unreal", "Uncharted 2", "ACES"};
 		static const char* currentTonemap = "None";
@@ -198,24 +204,8 @@ public:
 
 		renderManager->UpdateScene(info);
 
-		std::vector<Actor*> renderables = scene.View<MeshRenderer>();
+		scene.Render(renderManager);
 
-		for (auto& renderable : renderables)
-		{
-			MeshRenderer* meshRenderer = renderable->GetComponent<MeshRenderer>();
-
-			meshRenderer->model->Queue(renderManager, renderable->GetTransform().ComputeMatrix(glm::mat4(1.0f)));
-		}
-
-		/*glm::mat4 transform = glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), {1.0f, 0.0f, 0.0f});
-		model->Queue(renderManager, transform);
-
-		for (uint32_t i = 0; i < 4; i++)
-		{
-			transform = glm::translate(glm::mat4(1.0f), { -3.0f + (float)i * 3.0f, -7.5f, -3.0f });
-			sphere->Queue(renderManager, transform);
-		}
-		*/
 
 		glm::mat4 viewProj = proj * view;
 
@@ -235,12 +225,16 @@ public:
 
 		renderManager->WaitForIdle();
 
+		fogEffect->Destroy();
+
 		ResourceManager::GetInstance().Discard();
 
 		RenderManager::Destroy(renderManager);
 	}
 
 	RenderManager* renderManager;
+
+	PostProcessEffect* fogEffect;
 
 	Scene scene;
 

@@ -40,3 +40,15 @@ Actor* Scene::NewActor(const std::string& name)
 
 	return actor;
 }
+
+void Scene::Render(RenderManager* renderManager)
+{
+	std::vector<Actor*> renderables = View<MeshRenderer>();
+
+	for (auto& renderable : renderables)
+	{
+		glm::mat4 matrix = renderable->GetTransform().ComputeMatrix(glm::mat4(1.0f));
+
+		renderable->GetComponent<MeshRenderer>()->model->Queue(renderManager, matrix);
+	}
+}
