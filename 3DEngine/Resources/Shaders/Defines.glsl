@@ -1,6 +1,15 @@
 
 
 
+struct PointLight
+{
+	vec3 position;
+	float radius;
+
+	vec4 colour;
+};
+
+
 // This was useful forum I modified for my own use
 // https://knarkowicz.wordpress.com/2014/04/16/octahedron-normal-vector-encoding/
 // https://discourse.panda3d.org/t/glsl-octahedral-normal-packing/15233

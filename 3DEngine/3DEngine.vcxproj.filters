@@ -117,6 +117,9 @@
     <ClCompile Include="Source\Renderer\VkImpl\PostProcessEffectVk.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Source\Renderer\VkImpl\LightManager.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\Renderer\Vulkan\Vendor\vk_mem_alloc.h">
@@ -281,6 +284,9 @@
     <ClInclude Include="Source\Renderer\VkImpl\PostProcessEffectVk.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Source\Renderer\VkImpl\LightManager.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="Resources\Shaders\base.glsl.vert" />
@@ -300,5 +306,7 @@
     <None Include="Resources\Shaders\shadow.glsl.vert" />
     <None Include="Resources\Shaders\Fog.glsl.comp" />
     <None Include="Resources\Shaders\FXAA.glsl.comp" />
+    <None Include="Resources\Shaders\ChromaticAberration.glsl.comp" />
+    <None Include="Resources\Shaders\LightBinning.glsl.comp" />
   </ItemGroup>
 </Project>

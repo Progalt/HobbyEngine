@@ -82,6 +82,8 @@ public:
 
 	virtual void AddPostProcessEffect(PostProcessEffect* effect) = 0;
 
+	virtual void RemovePostProcessEffect(PostProcessEffect* effect) = 0;
+
 	virtual PostProcessEffect* CreatePostProcessEffect(const PostProcessCreateInfo& createInfo) = 0;
 
 	void ImGuiDraw(std::function<void()> imgui)

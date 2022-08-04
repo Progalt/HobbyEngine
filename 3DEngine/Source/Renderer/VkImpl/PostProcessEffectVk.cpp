@@ -89,16 +89,16 @@ void PostProcessEffectVk::GenerateDescriptor(vk::Texture* target, vk::Texture* c
 		switch (type)
 		{
 		case PostProcessInput::Colour:
-			descriptor.BindCombinedImageSampler(currentColour, &rm->mDefaultSampler, currentOffset);
+			descriptor.BindCombinedImageSampler(currentColour, &rm->mTargetSampler, currentOffset);
 			break;
 		case PostProcessInput::Depth:
-			descriptor.BindCombinedImageSampler(&rm->mGeometryPass.depthTarget, &rm->mDefaultSampler, currentOffset);
+			descriptor.BindCombinedImageSampler(&rm->mGeometryPass.depthTarget, &rm->mTargetSampler, currentOffset);
 			break;
 		case PostProcessInput::Normal_Roughness_Metallic:
-			descriptor.BindCombinedImageSampler(&rm->mGeometryPass.normalTarget, &rm->mDefaultSampler, currentOffset);
+			descriptor.BindCombinedImageSampler(&rm->mGeometryPass.normalTarget, &rm->mTargetSampler, currentOffset);
 			break;
 		case PostProcessInput::Velocity:
-			descriptor.BindCombinedImageSampler(&rm->mGeometryPass.velocityTarget, &rm->mDefaultSampler, currentOffset);
+			descriptor.BindCombinedImageSampler(&rm->mGeometryPass.velocityTarget, &rm->mTargetSampler, currentOffset);
 			break;
 		}
 

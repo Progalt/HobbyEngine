@@ -23,4 +23,6 @@
 
 %VULKAN_SDK%/Bin/glslc.exe FXAA.glsl.comp -o FXAA.comp.spv
 
+%VULKAN_SDK%/Bin/glslc.exe ChromaticAberration.glsl.comp -o ChromaticAberration.comp.spv
+
 pause

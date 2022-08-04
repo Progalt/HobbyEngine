@@ -41,6 +41,15 @@ RenderManagerVk::RenderManagerVk(Window* window)
 		settings.maxAnisotropy = 3.0f;
 
 		mDefaultSampler = mDevice.NewSampler(&settings);
+
+		settings.modeU = vk::WrapMode::ClampToEdge;
+		settings.modeV = vk::WrapMode::ClampToEdge;
+		settings.minFilter = vk::Filter::Nearest;
+		settings.magFilter = vk::Filter::Nearest;
+		settings.anisotropy = false;
+		settings.maxAnisotropy = 3.0f;
+
+		mTargetSampler = mDevice.NewSampler(&settings);
 	}
 
 	{
@@ -372,11 +381,11 @@ RenderManagerVk::RenderManagerVk(Window* window)
 	{
 
 		mFullscreenPipeline.descriptor[0] = mDevice.NewDescriptor(&mFullscreenPipeline.layout);
-		mFullscreenPipeline.descriptor[0].BindCombinedImageSampler(&mCurrentOutput[0], &mDefaultSampler, 0);
+		mFullscreenPipeline.descriptor[0].BindCombinedImageSampler(&mCurrentOutput[0], &mTargetSampler, 0);
 		mFullscreenPipeline.descriptor[0].Update();
 
 		mFullscreenPipeline.descriptor[1] = mDevice.NewDescriptor(&mFullscreenPipeline.layout);
-		mFullscreenPipeline.descriptor[1].BindCombinedImageSampler(&mCurrentOutput[1], &mDefaultSampler, 0);
+		mFullscreenPipeline.descriptor[1].BindCombinedImageSampler(&mCurrentOutput[1], &mTargetSampler, 0);
 		mFullscreenPipeline.descriptor[1].Update();
 
 
@@ -392,6 +401,8 @@ RenderManagerVk::~RenderManagerVk()
 	mDevice.WaitIdle();
 
 	mSceneDataBuffer.Destroy();
+
+	mTargetSampler.Destroy();
 
 	mCurrentOutput[0].Destroy();
 	mCurrentOutput[1].Destroy();
@@ -585,9 +596,6 @@ void RenderManagerVk::Render(CameraInfo& cameraInfo)
 
 		PostProcessEffectVk* effect = mPostProcessEffects[i];
 
-		if (!effect->enabled)
-			continue;
-
 		postProcessNum++;
 		
 		if (effect->computeShader)
@@ -721,6 +729,15 @@ void RenderManagerVk::Render(CameraInfo& cameraInfo)
 void RenderManagerVk::AddPostProcessEffect(PostProcessEffect* effect)
 {
 	mPostProcessEffects.push_back((PostProcessEffectVk*)effect);
+}
+
+void RenderManagerVk::RemovePostProcessEffect(PostProcessEffect* effect)
+{
+	PostProcessEffectVk* ef = (PostProcessEffectVk*)effect;
+
+	for (uint32_t i = 0; i < mPostProcessEffects.size(); i++)
+		if (mPostProcessEffects[i] == ef)
+			mPostProcessEffects.erase(mPostProcessEffects.begin() + i);
 }
 
 PostProcessEffect* RenderManagerVk::CreatePostProcessEffect(const PostProcessCreateInfo& createInfo)

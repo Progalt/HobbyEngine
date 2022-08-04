@@ -1,0 +1,71 @@
+
+#version 450
+
+#include "Defines.glsl"
+
+layout(local_size_x = 16, local_size_y = 16) in;
+
+layout(binding = 0) uniform readonly buffer
+{
+	PointLight lights[];
+} lights;
+
+layout(binding = 1) uniform buffer
+{
+	int ZBIN[];
+};
+
+layout(binding = 2) uniform buffer
+{
+
+};
+
+layout(push_constant) uniform PushConstants
+{
+	vec3 viewPos;
+	uint lightCount;
+
+	uint numZBins;
+
+	float farPlane;
+	float nearPlane;
+} constants;
+
+shared float zBinSize = 0.0;
+
+bool WithinZBin(PointLight light, uint idx)
+{
+	// Get dir
+	vec3 dir = normalize(light.position - constants.viewPos);
+
+	float minDist = distance(constants.viewPos, light.position - (dir * light.radius)));
+	float minDist = distance(constants.viewPos, light.position + (dir * light.radius)));
+
+	float zBinMin = zBinSize * idx;
+	float zBinMax = zBinSize * (idx + 1);
+
+	if (minDist > zBinMin && maxDist < zBinMax)
+		return true;
+
+	return false;
+}
+
+void main()
+{
+	// Bin in Z
+	
+	zBinSize = constants.farPlane - constants.nearPlane;
+	zBinSize /= constants.numZBins;
+
+	for (uint i = 0; i < constants.numZBins; i++)
+	{
+		// Loop through each z bin
+
+		uint minLightIdx = 0, maxLightIdx = 0;
+
+		for (uint l = 0; l < constants.lightCount; l++)
+		{
+			
+		}
+	}
+}

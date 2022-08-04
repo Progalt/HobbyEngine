@@ -54,6 +54,8 @@ public:
 
 	void AddPostProcessEffect(PostProcessEffect* effect) override;
 
+	void RemovePostProcessEffect(PostProcessEffect* effect) override;
+
 	PostProcessEffect* CreatePostProcessEffect(const PostProcessCreateInfo& createInfo) override;
 
 	void RenderDirectionalShadowMap(vk::CommandList& cmdList, CascadeShadowMap* shadowMap);
@@ -84,6 +86,7 @@ public:
 	vk::CommandList mCmdList;
 
 	vk::Sampler mDefaultSampler;
+	vk::Sampler mTargetSampler;
 
 	GlobalData mGlobalDataStruct;
 

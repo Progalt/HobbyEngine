@@ -38,9 +38,6 @@ public:
 
 		renderManager->ImGuiDraw([&]() { ImGuiRender(); });
 
-		renderManager->aaMethod = AntiAliasingMethod::None;
-
-
 		viewPos = glm::vec3(0.0f, 0.0f, 3.0f);
 
 		renderManager->time = 45.0f;
@@ -74,8 +71,21 @@ public:
 
 		fxaaEffect = renderManager->CreatePostProcessEffect(fxaaCreateInfo);
 
+		PostProcessCreateInfo caCreateInfo{};
+		caCreateInfo.computeShader = true;
+		caCreateInfo.passGlobalData = false;
+		caCreateInfo.inputs =
+		{
+			PostProcessInput::Colour
+		};
+		caCreateInfo.uniformBufferSize = 0;
+		caCreateInfo.shaderByteCode = FileSystem::ReadBytes("Resources/Shaders/ChromaticAberration.comp.spv");
+
+		chromaticAberrationEffect = renderManager->CreatePostProcessEffect(caCreateInfo);
+
 		renderManager->AddPostProcessEffect(fogEffect);
 		renderManager->AddPostProcessEffect(fxaaEffect);
+		renderManager->AddPostProcessEffect(chromaticAberrationEffect);
 	}
 
 	void Update() override
@@ -169,11 +179,6 @@ public:
 
 		ImGui::DragFloat("Time", &renderManager->time, 1.0f, -180.0f, 180.0f);
 		
-		if (ImGui::Checkbox("FXAA", &fxaaEffect->enabled))
-			renderManager->updatePostProcessStack = true;
-
-		if (ImGui::Checkbox("Fog", &fogEffect->enabled))
-			renderManager->updatePostProcessStack = true;
 		
 		if (fogEffect->enabled)
 			ImGui::DragFloat("Fog Density", &fogData.fogDensity, 0.001, 0.0f, 0.5f);
@@ -255,6 +260,7 @@ public:
 
 		fogEffect->Destroy();
 		fxaaEffect->Destroy();
+		chromaticAberrationEffect->Destroy();
 
 		ResourceManager::GetInstance().Discard();
 
@@ -271,6 +277,7 @@ public:
 	} fogData;
 	PostProcessEffect* fogEffect;
 	PostProcessEffect* fxaaEffect;
+	PostProcessEffect* chromaticAberrationEffect;
 
 	Scene scene;
 

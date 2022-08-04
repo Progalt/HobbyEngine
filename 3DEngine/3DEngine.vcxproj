@@ -153,6 +153,7 @@
     <ClCompile Include="Source\Model\PMDL.cpp" />
     <ClCompile Include="Source\Renderer\RenderManager.cpp" />
     <ClCompile Include="Source\Renderer\VkImpl\GlobalData.cpp" />
+    <ClCompile Include="Source\Renderer\VkImpl\LightManager.cpp" />
     <ClCompile Include="Source\Renderer\VkImpl\MeshVk.cpp" />
     <ClCompile Include="Source\Renderer\VkImpl\PostProcessEffectVk.cpp" />
     <ClCompile Include="Source\Renderer\VkImpl\RenderManagerVk.cpp" />
@@ -204,6 +205,7 @@
     <ClInclude Include="Source\Renderer\SkyMaterial.h" />
     <ClInclude Include="Source\Renderer\Texture.h" />
     <ClInclude Include="Source\Renderer\VkImpl\GlobalData.h" />
+    <ClInclude Include="Source\Renderer\VkImpl\LightManager.h" />
     <ClInclude Include="Source\Renderer\VkImpl\MaterialVk.h" />
     <ClInclude Include="Source\Renderer\VkImpl\MeshVk.h" />
     <ClInclude Include="Source\Renderer\VkImpl\PostProcessEffectVk.h" />
@@ -237,6 +239,7 @@
   <ItemGroup>
     <None Include="Resources\Shaders\base.glsl.frag" />
     <None Include="Resources\Shaders\base.glsl.vert" />
+    <None Include="Resources\Shaders\ChromaticAberration.glsl.comp" />
     <None Include="Resources\Shaders\debug.glsl.frag" />
     <None Include="Resources\Shaders\debug.glsl.vert" />
     <None Include="Resources\Shaders\Defines.glsl" />
@@ -245,6 +248,7 @@
     <None Include="Resources\Shaders\fullscreen.glsl.vert" />
     <None Include="Resources\Shaders\FXAA.glsl.comp" />
     <None Include="Resources\Shaders\FXAA.glsl.frag" />
+    <None Include="Resources\Shaders\LightBinning.glsl.comp" />
     <None Include="Resources\Shaders\lighting.glsl.comp" />
     <None Include="Resources\Shaders\PBR.glsl" />
     <None Include="Resources\Shaders\shadow.glsl.vert" />
