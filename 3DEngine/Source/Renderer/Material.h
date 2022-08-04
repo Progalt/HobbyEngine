@@ -26,6 +26,9 @@ public:
 	Pass pass = Pass::Deferred;
 
 	Handle<Texture> albedo;
+	Handle<Texture> normalMap;
+	Handle<Texture> roughnessMap;
+	Handle<Texture> metallicMap;
 	glm::vec4 albedoColour;
 
 	float roughness = 0.5f;

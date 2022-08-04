@@ -81,6 +81,7 @@ public:
 		material->Get(AI_MATKEY_ROUGHNESS_FACTOR, roughness);
 		material->Get(AI_MATKEY_METALLIC_FACTOR, metallic);
 
+
 		if (material->GetTextureCount(aiTextureType_BASE_COLOR) != 0)
 		{
 			aiString path;
@@ -96,6 +97,51 @@ public:
 			textures.push_back(tex);
 
 			mat.albedoIndex = textures.size() - 1;
+		}
+
+		if (material->GetTextureCount(aiTextureType_NORMALS) != 0)
+		{
+			aiString path;
+			material->GetTexture(aiTextureType_NORMALS, 0, &path);
+
+			pmdl::Texture1 tex;
+			strcpy(tex.path, path.C_Str());
+			tex.pathSize = path.length;
+			printf("\t Normal Texture: %s\n", tex.path);
+
+			textures.push_back(tex);
+
+			mat.normalIndex = textures.size() - 1;
+		}
+
+		if (material->GetTextureCount(aiTextureType_DIFFUSE_ROUGHNESS) != 0)
+		{
+			aiString path;
+			material->GetTexture(aiTextureType_DIFFUSE_ROUGHNESS, 0, &path);
+
+			pmdl::Texture1 tex;
+			strcpy(tex.path, path.C_Str());
+			tex.pathSize = path.length;
+			printf("\t Roughness Texture: %s\n", tex.path);
+
+			textures.push_back(tex);
+
+			mat.roughnessIndex = textures.size() - 1;
+		}
+
+		if (material->GetTextureCount(aiTextureType_METALNESS) != 0)
+		{
+			aiString path;
+			material->GetTexture(aiTextureType_METALNESS, 0, &path);
+
+			pmdl::Texture1 tex;
+			strcpy(tex.path, path.C_Str());
+			tex.pathSize = path.length;
+			printf("\t Metallic Texture: %s\n", tex.path);
+
+			textures.push_back(tex);
+
+			mat.metallicIndex = textures.size() - 1;
 		}
 
 		mat.albedo = { color.r, color.g, color.b, 1.0f };

@@ -3,6 +3,7 @@
 layout(location = 0) in vec3 aPosition;
 layout(location = 1) in vec2 aTexCoord;
 layout(location = 2) in vec3 aNormal;
+layout(location = 3) in vec3 aTangent;
 
 layout(push_constant)  uniform Constants
 {
@@ -15,6 +16,8 @@ layout(location = 1) out vec3 vNormal;
 
 layout(location = 2) out vec4 vNewPos;
 layout(location = 3) out vec4 vOldPos;
+
+layout(location = 4) out vec3 vTangent;
 
 layout(set = 1, binding = 0) uniform GlobalData
 {
@@ -35,6 +38,7 @@ void main()
 	vTexCoord = aTexCoord;
 	gl_Position = global.jitteredVP * constants.model * vec4(aPosition, 1.0);
 
+	vTangent = aTangent;
 	vNewPos = global.VP * constants.model * vec4(aPosition, 1.0);
 	vOldPos = global.prevVP * constants.prevModel * vec4(aPosition, 1.0);
 }

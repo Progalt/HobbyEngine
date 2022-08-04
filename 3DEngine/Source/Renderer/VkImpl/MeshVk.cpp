@@ -27,6 +27,7 @@ void MeshVk::GenerateMesh()
 		glm::vec3 pos;
 		glm::vec2 texCoord = { 0.0f, 0.0f };
 		glm::vec3 normal = { 0.0f, 0.0f, 0.0f };
+		glm::vec3 tangent = { 0.0f, 0.0f, 0.0f };
 	};
 
 	// Pack into a vertex structure
@@ -45,6 +46,9 @@ void MeshVk::GenerateMesh()
 
 	for (size_t i = 0; i < normals.size(); i++)
 		vertices[i].normal = normals[i];
+
+	for (size_t i = 0; i < tangents.size(); i++)
+		vertices[i].tangent = tangents[i];
 
 	//Create the vertex buffer 
 

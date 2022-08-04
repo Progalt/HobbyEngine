@@ -29,6 +29,7 @@ void Model::LoadFromFile(const std::string& path, RenderManager* renderManager)
 	mesh->positions.resize(header.vertexCount);
 	mesh->texCoords.resize(header.vertexCount);
 	mesh->normals.resize(header.vertexCount);
+	mesh->tangents.resize(header.vertexCount);
 
 	// Add all the vertex and index data to the mesh
 	for (uint32_t i = 0; i < header.vertexCount; i++)
@@ -38,6 +39,7 @@ void Model::LoadFromFile(const std::string& path, RenderManager* renderManager)
 		mesh->positions[i] = { vertices[i].x, vertices[i].y, vertices[i].z };
 		mesh->texCoords[i] = { vertices[i].u, vertices[i].v };
 		mesh->normals[i] = { vertices[i].nx, vertices[i].ny, vertices[i].nz };
+		mesh->tangents[i] = { vertices[i].tx, vertices[i].ty, vertices[i].tz };
 	}
 
 	mesh->indices.resize(header.indexCount);
@@ -82,15 +84,34 @@ void Model::LoadFromFile(const std::string& path, RenderManager* renderManager)
 
 		material->albedoColour = { mat.albedo.x, mat.albedo.y, mat.albedo.z, mat.albedo.w };
 		material->albedo = ResourceManager::GetInstance().GetWhiteTexture();
+		material->roughnessMap = ResourceManager::GetInstance().GetWhiteTexture();
+		//material->normalMap = ResourceManager::GetInstance().GetWhiteTexture();
+		material->metallicMap = ResourceManager::GetInstance().GetWhiteTexture();
 		material->roughness = mat.roughness;
 		material->metallic = mat.metallic;
 
 		if (mat.albedoIndex != -1)
 		{
-
-
 			material->albedo = ResourceManager::GetInstance().NewTexture();
 			ResourceManager().GetInstance().GetTexturePtr(material->albedo)->CreateFromImage(textures[mat.albedoIndex], true, true);
+		}
+
+		if (mat.normalIndex != -1)
+		{
+			material->normalMap = ResourceManager::GetInstance().NewTexture();
+			ResourceManager().GetInstance().GetTexturePtr(material->normalMap)->CreateFromImage(textures[mat.normalIndex], true, false);
+		}
+
+		if (mat.roughnessIndex != -1)
+		{
+			material->roughnessMap = ResourceManager::GetInstance().NewTexture();
+			ResourceManager().GetInstance().GetTexturePtr(material->roughnessMap)->CreateFromImage(textures[mat.roughnessIndex], true, true);
+		}
+
+		if (mat.metallicIndex != -1)
+		{
+			material->metallicMap = ResourceManager::GetInstance().NewTexture();
+			ResourceManager().GetInstance().GetTexturePtr(material->metallicMap)->CreateFromImage(textures[mat.metallicIndex], true, true);
 		}
 
 		materials.push_back(material);

@@ -130,7 +130,7 @@ RenderManagerVk::RenderManagerVk(Window* window, const RenderManagerCreateInfo& 
 	vk::VertexDescription baseVertexDesc{};
 	baseVertexDesc.bindingDescs =
 	{
-		{ 0, sizeof(glm::vec3) + sizeof(glm::vec2) + sizeof(glm::vec3) }
+		{ 0, sizeof(glm::vec3) + sizeof(glm::vec2) + sizeof(glm::vec3) + sizeof(glm::vec3)}
 	};
 
 	baseVertexDesc.attributeDescs =
@@ -138,6 +138,7 @@ RenderManagerVk::RenderManagerVk(Window* window, const RenderManagerCreateInfo& 
 		{ 0, 0, vk::Format::FORMAT_R32G32B32_SFLOAT, 0 },
 		{ 0, 1, vk::Format::FORMAT_R32G32_SFLOAT, sizeof(glm::vec3)},
 		{ 0, 2, vk::Format::FORMAT_R32G32B32_SFLOAT, sizeof(glm::vec3) + sizeof(glm::vec2)},
+		{ 0, 3, vk::Format::FORMAT_R32G32B32_SFLOAT, sizeof(glm::vec3) + sizeof(glm::vec2) + sizeof(glm::vec3)},
 	};
 
 	{
@@ -154,6 +155,9 @@ RenderManagerVk::RenderManagerVk(Window* window, const RenderManagerCreateInfo& 
 		mBasePipeline.materialLayout = mDevice.NewLayout();
 		mBasePipeline.materialLayout.AddLayoutBinding({ 0, vk::ShaderInputType::UniformBuffer, 1, vk::ShaderStage::Fragment });
 		mBasePipeline.materialLayout.AddLayoutBinding({ 1, vk::ShaderInputType::ImageSampler, 1, vk::ShaderStage::Fragment });
+		mBasePipeline.materialLayout.AddLayoutBinding({ 2, vk::ShaderInputType::ImageSampler, 1, vk::ShaderStage::Fragment });
+		mBasePipeline.materialLayout.AddLayoutBinding({ 3, vk::ShaderInputType::ImageSampler, 1, vk::ShaderStage::Fragment });
+		mBasePipeline.materialLayout.AddLayoutBinding({ 4, vk::ShaderInputType::ImageSampler, 1, vk::ShaderStage::Fragment });
 		mBasePipeline.materialLayout.Create();
 
 

@@ -12,6 +12,8 @@ layout(location = 1) in vec3 vNormal;
 layout(location = 2) in vec4 vNewPos;
 layout(location = 3) in vec4 vOldPos;
 
+layout(location = 4) in vec3 vTangent;
+
 layout(set = 0, binding = 0) uniform MaterialParams
 {
 	vec4 albedo;
@@ -19,21 +21,42 @@ layout(set = 0, binding = 0) uniform MaterialParams
 	float roughness;
 	float metallic;
 
-	float padding[2];
+	int hasNormal;
+	float padding;
 
 } in_params;
 
 layout(set = 0, binding = 1) uniform sampler2D in_texture;
 
+layout(set = 0, binding = 2) uniform sampler2D in_normal;
+
+layout(set = 0, binding = 3) uniform sampler2D in_roughness;
+
+layout(set = 0, binding = 4) uniform sampler2D in_metallic;
+
+vec3 calculateNormal()
+{
+	if (in_params.hasNormal == 0)
+		return normalize(vNormal);
+
+	vec3 tangentNormal = texture(in_normal, vTexCoord).xyz * 2.0 - 1.0;
+
+	vec3 N = normalize(vNormal);
+	vec3 T = normalize(vTangent.xyz);
+	vec3 B = normalize(cross(N, T));
+	mat3 TBN = mat3(T, B, N);
+	return normalize(TBN * tangentNormal);
+}
 
 
 void main()
 {
 	outVelocity.rg = vec2(0.0, 0.0);
 
-	outNormal.rg = encode(vNormal);
-	outNormal.b = in_params.roughness;
-	outNormal.a = in_params.metallic;
+
+	outNormal.rg = encode(calculateNormal());
+	outNormal.b = texture(in_roughness, vTexCoord).r * in_params.roughness;
+	outNormal.a = texture(in_metallic, vTexCoord).r * in_params.metallic;
 
 	vec4 albedo = texture(in_texture, vTexCoord) * in_params.albedo;
 

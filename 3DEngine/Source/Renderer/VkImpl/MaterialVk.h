@@ -20,7 +20,9 @@ public:
 		float roughness;
 		float metallic;
 
-		float padding[2];
+		int hasNormal;
+
+		float padding;
 	};
 
 	void Discard() override
@@ -36,6 +38,9 @@ public:
 		paramsBuffer = device->NewBuffer();
 
 		TextureVk* tex = (TextureVk*)ResourceManager::GetInstance().GetTexturePtr(albedo);
+		TextureVk* normalTex = (TextureVk*)ResourceManager::GetInstance().GetTexturePtr(normalMap);
+		TextureVk* roughnessTex = (TextureVk*)ResourceManager::GetInstance().GetTexturePtr(roughnessMap);
+		TextureVk* metallicTex = (TextureVk*)ResourceManager::GetInstance().GetTexturePtr(metallicMap);
 
 		paramsBuffer.Create(vk::BufferType::Dynamic, vk::BufferUsage::Uniform, sizeof(MaterialParams), nullptr);
 
@@ -46,6 +51,9 @@ public:
 		descriptor.SetAutoUpdate(false);
 		descriptor.BindBuffer(&paramsBuffer, 0, sizeof(MaterialParams), 0);
 		descriptor.BindCombinedImageSampler(&tex->texture, tex->sampler, 1);
+		descriptor.BindCombinedImageSampler(&normalTex->texture, normalTex->sampler, 2);
+		descriptor.BindCombinedImageSampler(&roughnessTex->texture, roughnessTex->sampler, 3);
+		descriptor.BindCombinedImageSampler(&metallicTex->texture, metallicTex->sampler, 4);
 		descriptor.Update();
 
 		createdDescriptor = true;
@@ -59,6 +67,7 @@ public:
 		params.albedo = albedoColour;
 		params.roughness = roughness;
 		params.metallic = metallic;
+		params.hasNormal = (int)normalMap.Valid();
 
 		paramsBuffer.SetData(sizeof(MaterialParams), &params);
 

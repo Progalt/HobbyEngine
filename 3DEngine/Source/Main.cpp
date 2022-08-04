@@ -240,6 +240,7 @@ public:
 		float t = -renderManager->time;
 		info.dirLight.direction = { 0.0f, sin(glm::radians(t)), -cos(glm::radians(t)), 1.0f};
 		info.dirLight.colour = { 1.0f, 1.0f, 1.0f, 1.0f };
+		info.dirLight.colour *= 5.0f;
 		
 		fogData.sunDir = info.dirLight.direction;
 
