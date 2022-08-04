@@ -50,12 +50,17 @@ struct CameraInfo
 	float nearPlane, farPlane;
 };
 
+struct RenderManagerCreateInfo
+{
+	uint32_t renderWidth, renderHeight;
+};
+
 // Handles the rendering of the engine
 class RenderManager
 {
 public:
 
-	static RenderManager* Create(Window* window);
+	static RenderManager* Create(Window* window, const RenderManagerCreateInfo& createInfo);
 
 	static void Destroy(RenderManager* rm);
 

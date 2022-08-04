@@ -3,9 +3,9 @@
 
 #include "VkImpl/RenderManagerVk.h"
 
-RenderManager* RenderManager::Create(Window* window)
+RenderManager* RenderManager::Create(Window* window, const RenderManagerCreateInfo& createInfo)
 {
-	return new RenderManagerVk(window);
+	return new RenderManagerVk(window, createInfo);
 }
 
 void RenderManager::Destroy(RenderManager* rm)

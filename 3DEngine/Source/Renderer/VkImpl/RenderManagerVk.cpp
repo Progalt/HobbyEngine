@@ -11,8 +11,11 @@
 #include "../../Threading/JobSystem.h"
 
 
-RenderManagerVk::RenderManagerVk(Window* window)
+RenderManagerVk::RenderManagerVk(Window* window, const RenderManagerCreateInfo& info)
 {
+	mProperties.renderWidth = info.renderWidth;
+	mProperties.renderHeight = info.renderHeight;
+
 	vk::DeviceCreateInfo createInfo{};
 
 	createInfo.window = window;
@@ -92,19 +95,19 @@ RenderManagerVk::RenderManagerVk(Window* window)
 
 	{
 		mGeometryPass.colourTarget = mDevice.NewTexture();
-		mGeometryPass.colourTarget.CreateRenderTarget(vk::FORMAT_R8G8B8A8_SRGB, window->GetWidth(), window->GetHeight());
+		mGeometryPass.colourTarget.CreateRenderTarget(vk::FORMAT_R8G8B8A8_SRGB, mProperties.renderWidth, mProperties.renderHeight);
 
 
 		mGeometryPass.normalTarget = mDevice.NewTexture();
-		mGeometryPass.normalTarget.CreateRenderTarget(vk::FORMAT_R16G16B16A16_SFLOAT, window->GetWidth(), window->GetHeight());
+		mGeometryPass.normalTarget.CreateRenderTarget(vk::FORMAT_R16G16B16A16_SFLOAT, mProperties.renderWidth, mProperties.renderHeight);
 
 
 		mGeometryPass.velocityTarget = mDevice.NewTexture();
-		mGeometryPass.velocityTarget.CreateRenderTarget(vk::FORMAT_R16G16_SFLOAT, window->GetWidth(), window->GetHeight());
+		mGeometryPass.velocityTarget.CreateRenderTarget(vk::FORMAT_R16G16_SFLOAT, mProperties.renderWidth, mProperties.renderHeight);
 
 
 		mGeometryPass.depthTarget = mDevice.NewTexture();
-		mGeometryPass.depthTarget.CreateRenderTarget(vk::FORMAT_D32_SFLOAT, window->GetWidth(), window->GetHeight());
+		mGeometryPass.depthTarget.CreateRenderTarget(vk::FORMAT_D32_SFLOAT, mProperties.renderWidth, mProperties.renderHeight);
 
 		vk::RenderpassCreateInfo rpCreateInfo{};
 		rpCreateInfo.type = vk::RenderpassType::Offscreen;
@@ -112,6 +115,8 @@ RenderManagerVk::RenderManagerVk(Window* window)
 		rpCreateInfo.depthAttachment = &mGeometryPass.depthTarget;
 		rpCreateInfo.clearColour = { 0.0f, 0.0f, 0.0f, 1.0f };
 		rpCreateInfo.depthClear = 1.0f;
+		rpCreateInfo.extentWidth = mProperties.renderWidth;
+		rpCreateInfo.extentHeight = mProperties.renderHeight;
 		
 		mRenderpasses.geometryPass = mDevice.NewRenderpass(&rpCreateInfo);
 	}
@@ -209,20 +214,20 @@ RenderManagerVk::RenderManagerVk(Window* window)
 
 	{
 		mCurrentOutput[0] = mDevice.NewTexture();
-		mCurrentOutput[0].CreateRenderTarget(vk::FORMAT_R16G16B16A16_SFLOAT, window->GetWidth(), window->GetHeight(), true, vk::ImageLayout::General);
+		mCurrentOutput[0].CreateRenderTarget(vk::FORMAT_R16G16B16A16_SFLOAT, mProperties.renderWidth, mProperties.renderHeight, true, vk::ImageLayout::General);
 
 		mCurrentOutput[1] = mDevice.NewTexture();
-		mCurrentOutput[1].CreateRenderTarget(vk::FORMAT_R16G16B16A16_SFLOAT, window->GetWidth(), window->GetHeight(), true, vk::ImageLayout::General);
+		mCurrentOutput[1].CreateRenderTarget(vk::FORMAT_R16G16B16A16_SFLOAT, mProperties.renderWidth, mProperties.renderHeight, true, vk::ImageLayout::General);
 
 		mHistory = mDevice.NewTexture();
-		mHistory.CreateRenderTarget(vk::FORMAT_R16G16B16A16_SFLOAT, window->GetWidth(), window->GetHeight(), true, vk::ImageLayout::General);
+		mHistory.CreateRenderTarget(vk::FORMAT_R16G16B16A16_SFLOAT, mProperties.renderWidth, mProperties.renderHeight, true, vk::ImageLayout::General);
 	}
 
 	{
 
 
 		mLightingPipeline.output = mDevice.NewTexture();
-		mLightingPipeline.output.CreateRenderTarget(vk::FORMAT_R16G16B16A16_SFLOAT, window->GetWidth(), window->GetHeight(), true, vk::ImageLayout::General);
+		mLightingPipeline.output.CreateRenderTarget(vk::FORMAT_R16G16B16A16_SFLOAT, mProperties.renderWidth, mProperties.renderHeight, true, vk::ImageLayout::General);
 
 		mLightingPipeline.layout = mDevice.NewLayout();
 		//mLightingPipeline.layout.AddLayoutBinding({ 0, vk::ShaderInputType::UniformBuffer, 1, vk::ShaderStage::Compute });
@@ -263,44 +268,7 @@ RenderManagerVk::RenderManagerVk(Window* window)
 
 
 
-	// FXAA
-
-	{
-		mFXAA.layout = mDevice.NewLayout();
-		mFXAA.layout.AddLayoutBinding({ 0, vk::ShaderInputType::ImageSampler, 1, vk::ShaderStage::Fragment });
-		mFXAA.layout.Create();
-
-		vk::RenderpassCreateInfo rpInfo{};
-		rpInfo.colourAttachments = { &mCurrentOutput[0]};
-		rpInfo.type = vk::RenderpassType::Offscreen;
-		rpInfo.clearColour = { 0.0f, 0.0f, 0.0f, 1.0f };
-		rpInfo.colourAttachmentInitialLayouts = { vk::ImageLayout::General };
-
-		mFXAA.renderpass = mDevice.NewRenderpass(&rpInfo);
-
-		vk::ShaderBlob vertexBlob = mDevice.NewShaderBlob();
-		vk::ShaderBlob fragmentBlob = mDevice.NewShaderBlob();
-
-		vertexBlob.CreateFromSource(vk::ShaderStage::Vertex, FileSystem::ReadBytes("Resources/Shaders/fullscreen.vert.spv"));
-		fragmentBlob.CreateFromSource(vk::ShaderStage::Fragment, FileSystem::ReadBytes("Resources/Shaders/FXAA.frag.spv"));
-
-		vk::PipelineCreateInfo pipelineInfo{};
-		pipelineInfo.renderpass = &mFXAA.renderpass;
-		pipelineInfo.layout = { &mFXAA.layout };
-		pipelineInfo.pushConstantRanges = {};
-		pipelineInfo.topologyType = vk::Topology::TriangleList;
-		pipelineInfo.vertexDesc = nullptr;
-		pipelineInfo.shaders = { &vertexBlob, &fragmentBlob };
-
-		mFXAA.pipeline = mDevice.NewPipeline(&pipelineInfo);
-
-		mFXAA.descriptor = mDevice.NewDescriptor(&mFXAA.layout);
-		mFXAA.descriptor.BindCombinedImageSampler(&mLightingPipeline.output, &mDefaultSampler, 0);
-		mFXAA.descriptor.Update();
-
-		vertexBlob.Destroy();
-		fragmentBlob.Destroy();
-	}
+	
 
 	// Sky
 	{
@@ -310,6 +278,8 @@ RenderManagerVk::RenderManagerVk(Window* window)
 		rpInfo.depthInitialLayout = { vk::ImageLayout::ShaderReadOnlyOptimal };
 		rpInfo.loadAttachments = true;
 		rpInfo.loadDepth = true;
+		rpInfo.extentWidth = mProperties.renderWidth;
+		rpInfo.extentHeight = mProperties.renderHeight;
 		rpInfo.type = vk::RenderpassType::Offscreen;
 		rpInfo.colourAttachmentInitialLayouts = { vk::ImageLayout::General };
 		// NOTE: It transitions to a shader resource immediately after this so we could do that within the renderpass its self
@@ -415,10 +385,6 @@ RenderManagerVk::~RenderManagerVk()
 	{
 		mShadowData.directionalShadowMap.Destroy();
 	}
-
-	mFXAA.layout.Destroy();
-	mFXAA.pipeline.Destroy();
-	mFXAA.renderpass.Destroy();
 
 	mSkyPass.renderpass.Destroy();
 	mSkyPass.pipeline.Destroy();
@@ -560,8 +526,8 @@ void RenderManagerVk::Render(CameraInfo& cameraInfo)
 	RenderInfo renderInfo{};
 	renderInfo.data = mGlobalDataStruct;
 	renderInfo.globalManager = globalDataManager;
-	renderInfo.renderWidth = mProperties.width;
-	renderInfo.renderHeight = mProperties.height;
+	renderInfo.renderWidth = mProperties.renderWidth;
+	renderInfo.renderHeight = mProperties.renderHeight;
 	renderInfo.target = nullptr;
 
 	// Render the scene
@@ -572,8 +538,8 @@ void RenderManagerVk::Render(CameraInfo& cameraInfo)
 	vk::ImageCopy imageCopy{};
 	imageCopy.dstLayer = 0;
 	imageCopy.srcLayer = 0;
-	imageCopy.w = mProperties.width;
-	imageCopy.h = mProperties.height;
+	imageCopy.w = mProperties.renderWidth;
+	imageCopy.h = mProperties.renderHeight;
 	imageCopy.srcX = 0;
 	imageCopy.srcY = 0;
 	imageCopy.dstX = 0;
@@ -623,7 +589,7 @@ void RenderManagerVk::Render(CameraInfo& cameraInfo)
 			else 
 				mCmdList.BindDescriptors({ &effect->descriptor }, & effect->computePipeline, 0);
 
-			mCmdList.Dispatch(mProperties.width / 16, mProperties.height / 16, 1);
+			mCmdList.Dispatch(mProperties.renderWidth / 16, mProperties.renderHeight / 16, 1);
 
 			stats.dispatchCalls++;
 
@@ -832,7 +798,7 @@ void RenderManagerVk::RenderScene( RenderInfo& renderInfo, vk::CommandList& cmdL
 
 	cmdList.BeginDebugUtilsLabel("Geometry Pass");
 
-	cmdList.BeginRenderpass(&mRenderpasses.geometryPass, false);
+	cmdList.BeginRenderpass(&mRenderpasses.geometryPass, false, renderInfo.renderWidth, renderInfo.renderHeight);
 
 
 	cmdList.SetViewport(0, 0, renderInfo.renderWidth, renderInfo.renderHeight);
@@ -924,7 +890,7 @@ void RenderManagerVk::RenderScene( RenderInfo& renderInfo, vk::CommandList& cmdL
 	{
 		cmdList.BeginDebugUtilsLabel("Sky Pass");
 
-		cmdList.BeginRenderpass(&mSkyPass.renderpass, false);
+		cmdList.BeginRenderpass(&mSkyPass.renderpass, false, renderInfo.renderWidth, renderInfo.renderHeight);
 
 		cmdList.BindPipeline(&mSkyPass.pipeline);
 		cmdList.BindDescriptors({ renderInfo.globalManager.GetDescriptor(vk::ShaderStage::Vertex) }, &mSkyPass.pipeline, 0);

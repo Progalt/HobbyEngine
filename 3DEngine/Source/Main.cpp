@@ -19,7 +19,10 @@ public:
 
 	void Start() override
 	{
-		renderManager = RenderManager::Create(&window);
+		RenderManagerCreateInfo rmInfo{};
+		rmInfo.renderWidth = window.GetWidth() / 2;
+		rmInfo.renderHeight = window.GetHeight() / 2;
+		renderManager = RenderManager::Create(&window, rmInfo);
 
 		ResourceManager::GetInstance().SetRenderManager(renderManager);
 		model = ResourceManager::GetInstance().NewModel();

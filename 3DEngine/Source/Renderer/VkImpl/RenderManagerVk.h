@@ -17,7 +17,7 @@ class RenderManagerVk : public RenderManager
 {
 public:
 
-	RenderManagerVk(Window* window);
+	RenderManagerVk(Window* window, const RenderManagerCreateInfo& info);
 
 	~RenderManagerVk();
 
@@ -129,15 +129,6 @@ public:
 
 	} mDebugPass;
 
-	struct
-	{
-		vk::Renderpass renderpass;
-		vk::Pipeline pipeline;
-
-		vk::DescriptorLayout layout;
-		vk::Descriptor descriptor;
-
-	} mFXAA;
 
 	struct
 	{
@@ -209,6 +200,7 @@ public:
 	struct
 	{
 		uint32_t width, height;
+		uint32_t renderWidth, renderHeight;
 	} mProperties;
 
 	struct Sky
