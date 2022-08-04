@@ -125,8 +125,7 @@ namespace pmdl
 
 	struct Texture1
 	{
-		uint32_t pathSize;
-
+		uint16_t pathSize;
 		// Could this be done better? 
 		char path[256];
 	};
@@ -208,11 +207,6 @@ namespace pmdl
 	// This frees all allocated memory associated with a PMDL 
 	void FreePMDL(PMDL* pmdl);
 
-	Texture1 InitTexture1(const char* path);
-
-	// Helper function to free all memory assocated with a texture
-	// Does not free the texture itself
-	void FreeTextureMemory1(Texture1* tex);
 
 	uint32_t GetTextureSize(Texture1* tex);
 
@@ -244,6 +238,8 @@ namespace pmdl
 
 	Material1 ReadMaterial1(FILE* file, Header1* header, uint32_t materialIndex);
 
+	Texture1 ReadTexture(FILE* file, Header1* header, uint32_t texIndex);
+
 
 	// ---- Writing Functions -----
 
@@ -259,42 +255,15 @@ namespace pmdl
 
 	void WriteMaterial1(FILE* file, Header1* header, Material1* material, uint32_t materialIndex);
 
+	void WriteTexture1(FILE* file, Header1* header, Texture1* texture, uint32_t texIndex);
+
 }
 
 #ifdef PMDL_IMPLEMENTATION
 
 namespace pmdl
 {
-	Texture1 InitTexture1(const char* path)
-	{
 
-		Texture1 tex;
-
-		tex.pathSize = strlen(path);
-
-		PMDL_ASSERT(tex.pathSize != 0);
-
-		strcpy(tex.path, path);
-
-		return tex;
-	}
-
-	void FreeTextureMemory1(Texture1* tex)
-	{
-		PMDL_ASSERT(tex);
-
-		if (tex->path)
-			PMDL_FREE(tex->path);
-	}
-
-	uint32_t GetTextureSize(Texture1* tex)
-	{
-		PMDL_ASSERT(tex);
-
-		uint32_t size = sizeof(tex->pathSize) + strlen(tex->path) * sizeof(char);
-
-		return size;
-	}
 
 	void FreePMDL(PMDL* pmdl)
 	{
@@ -311,13 +280,8 @@ namespace pmdl
 			PMDL_FREE(pmdl->materials);
 
 		if (pmdl->textures)
-		{
-			// Textures have some sub allocated memory in the struct so free that as well
-			for (uint32_t i = 0; i < pmdl->textureCount; i++)
-				FreeTextureMemory1(&pmdl->textures[i]);
-
 			PMDL_FREE(pmdl->textures);
-		}
+		
 	}
 
 	void InitHeader(Header1* header)
@@ -477,6 +441,22 @@ namespace pmdl
 
 	}
 
+	Texture1 ReadTexture(FILE* file, Header1* header, uint32_t texIndex)
+	{
+		PMDL_ASSERT(file && header);
+		PMDL_ASSERT(header->textureCount != 0);
+		PMDL_ASSERT(header->textureCount > texIndex);
+
+		Texture1 out;
+
+		uint32_t offset = header->textureDataOffset + sizeof(Texture1) * texIndex;
+
+		fseek(file, offset, SEEK_SET);
+		fread(&out, sizeof(Texture1), 1, file);
+
+		return out;
+	}
+
 	// Writing implementation
 
 	void WriteHeader1(FILE* file, Header1* header)
@@ -542,6 +522,15 @@ namespace pmdl
 		fwrite(material, sizeof(Material1), 1, file);
 	}
 
+	void WriteTexture1(FILE* file, Header1* header, Texture1* texture, uint32_t texIndex)
+	{
+		PMDL_ASSERT(file && header && texture);
+		PMDL_ASSERT(texIndex < header->textureCount);
+
+		uint32_t offset = header->textureDataOffset + sizeof(Texture1) * texIndex;
+		fseek(file, offset, SEEK_SET);
+		fwrite(texture, sizeof(Texture1), 1, file);
+	}
 
 }
 

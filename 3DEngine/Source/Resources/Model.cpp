@@ -3,6 +3,7 @@
 #include "../Renderer/RenderManager.h"
 #include "../Renderer/Mesh.h"
 #include "../Model/PMDL.h"
+#include "../Core/Log.h"
 
 void Model::Discard()
 {
@@ -59,6 +60,20 @@ void Model::LoadFromFile(const std::string& path, RenderManager* renderManager)
 		submeshes.push_back(mesh);
 	}
 
+	std::vector<Image> textures(header.textureCount);
+
+	std::string directory = FileSystem::GetDirectory(path);
+
+
+	for (uint16_t i = 0; i < header.textureCount; i++)
+	{
+		pmdl::Texture1 texture = pmdl::ReadTexture(file, &header, i);
+
+		std::string path = directory + "/" + std::string(texture.path, texture.pathSize);
+		Log::Info("Model Loader", "Loading texture: %s", path.c_str());
+		textures[i].LoadFromFile(path);
+	}
+
 	for (uint16_t i = 0; i < header.materialCount; i++)
 	{
 		pmdl::Material1 mat = pmdl::ReadMaterial1(file, &header, i);
@@ -67,6 +82,16 @@ void Model::LoadFromFile(const std::string& path, RenderManager* renderManager)
 
 		material->albedoColour = { mat.albedo.x, mat.albedo.y, mat.albedo.z, mat.albedo.w };
 		material->albedo = ResourceManager::GetInstance().GetWhiteTexture();
+		material->roughness = mat.roughness;
+		material->metallic = mat.metallic;
+
+		if (mat.albedoIndex != -1)
+		{
+
+
+			material->albedo = ResourceManager::GetInstance().NewTexture();
+			ResourceManager().GetInstance().GetTexturePtr(material->albedo)->CreateFromImage(textures[mat.albedoIndex], true, true);
+		}
 
 		materials.push_back(material);
 	}

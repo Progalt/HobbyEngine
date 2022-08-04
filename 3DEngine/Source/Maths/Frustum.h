@@ -63,14 +63,14 @@ public:
 		}
 
 		// check frustum outside/inside box
-		int out;
+		/*int out;
 		out = 0; for (int i = 0; i < 8; i++) out += ((mPoints[i].x > bb.max.x) ? 1 : 0); if (out == 8) return false;
 		out = 0; for (int i = 0; i < 8; i++) out += ((mPoints[i].x < bb.min.x) ? 1 : 0); if (out == 8) return false;
 		out = 0; for (int i = 0; i < 8; i++) out += ((mPoints[i].y > bb.max.y) ? 1 : 0); if (out == 8) return false;
 		out = 0; for (int i = 0; i < 8; i++) out += ((mPoints[i].y < bb.min.y) ? 1 : 0); if (out == 8) return false;
 		out = 0; for (int i = 0; i < 8; i++) out += ((mPoints[i].z > bb.max.z) ? 1 : 0); if (out == 8) return false;
 		out = 0; for (int i = 0; i < 8; i++) out += ((mPoints[i].z < bb.min.z) ? 1 : 0); if (out == 8) return false;
-
+		*/
 		return true;
 	}
 

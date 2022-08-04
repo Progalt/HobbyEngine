@@ -87,6 +87,28 @@ float textureProj(vec4 shadowCoord, vec2 offset, uint cascadeIndex)
 
 }
 
+float filterPCF(vec4 sc, uint cascadeIndex)
+{
+	ivec2 texDim = textureSize(cascadeAtlas, 0).xy;
+	texDim.x /= 3;
+	float scale = 1.2;
+	float dx = scale * 1.0 / float(texDim.x);
+	float dy = scale * 1.0 / float(texDim.y);
+
+	float shadowFactor = 0.0;
+	int count = 0;
+	int range = 1;
+	
+	for (int x = -range; x <= range; x++) {
+		for (int y = -range; y <= range; y++) {
+			shadowFactor += textureProj(sc, vec2(dx*x, dy*y), cascadeIndex);
+			count++;
+		}
+	}
+	return shadowFactor / count;
+}
+
+
 
 vec4 shadowCoord;
 
@@ -110,6 +132,7 @@ vec3 DirectionalLightContribution(vec3 n, DirectionalLight light, vec3 v, vec3 f
 
 	float shadow = 0;
 	shadow = textureProj(shadowCoord / shadowCoord.w, vec2(0.0), cascadeIndex);
+	//shadow = filterPCF(shadowCoord / shadowCoord.w, cascadeIndex);
 
 	vec3 l = light.direction.xyz;
 

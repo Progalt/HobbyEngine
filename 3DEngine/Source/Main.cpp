@@ -20,14 +20,13 @@ public:
 	void Start() override
 	{
 		RenderManagerCreateInfo rmInfo{};
-		rmInfo.renderWidth = window.GetWidth() / 2;
-		rmInfo.renderHeight = window.GetHeight() / 2;
+		rmInfo.renderWidth = window.GetWidth();
+		rmInfo.renderHeight = window.GetHeight();
 		renderManager = RenderManager::Create(&window, rmInfo);
 
 		ResourceManager::GetInstance().SetRenderManager(renderManager);
 		model = ResourceManager::GetInstance().NewModel();
-		model->LoadFromFile("Resources/WorldTest.pmdl", renderManager);
-		model->materials[0]->roughness = 0.7f;
+		model->LoadFromFile("Resources/MMTest.pmdl", renderManager);
 
 		sphere = ResourceManager::GetInstance().NewModel();
 
@@ -46,7 +45,17 @@ public:
 		Actor* worldTest = scene.NewActor("World Test");
 		worldTest->AddComponent<MeshRenderer>()->model = model;
 
-		worldTest->GetTransform().SetEuler({ 90.0f, 0.0f, 0.0f });
+		worldTest->GetTransform().SetEuler({ 180.0f, 0.0f, 0.0f });
+		worldTest->GetTransform().SetScale({ 4.0f, 4.0f, 4.0f });
+
+		for (uint32_t x = 0; x < 8; x++)
+			for (uint32_t y = 0; y < 8; y++)
+			{
+				Actor* sphereActor = scene.NewActor("Sphere" + std::to_string(x + y));
+				sphereActor->AddComponent<MeshRenderer>()->model = sphere;
+
+				sphereActor->GetTransform().SetPosition({ (-8.0f  * 3.0f) / 2 + (float)x * 3.0f, (float)y * -3.0f, 0.0f });
+			}
 
 		PostProcessCreateInfo fogCreateInfo{};
 		fogCreateInfo.computeShader = true;
@@ -122,7 +131,7 @@ public:
 				pitch = -89.0f;
 		}
 
-		float velocity = 4.0f;
+		float velocity = 10.0f;
 
 		if (input.IsKeyPressed(KeyCode::W))
 		{

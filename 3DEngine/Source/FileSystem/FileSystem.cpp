@@ -15,3 +15,11 @@ std::vector<int8_t> FileSystem::ReadBytes(const std::filesystem::path& path)
 
     return bytes;
 }
+
+std::string FileSystem::GetDirectory(const std::string& path)
+{
+    size_t pos = path.find_last_of("\\/");
+    return (std::string::npos == pos)
+        ? ""
+        : path.substr(0, pos);
+}

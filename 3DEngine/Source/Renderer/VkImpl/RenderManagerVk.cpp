@@ -739,14 +739,14 @@ void RenderManagerVk::RenderDirectionalShadowMap(vk::CommandList& cmdList, Casca
 		{
 			MeshVk* mesh = (MeshVk*)cmd.mesh;
 
-			/*mesh->boundingBox.Transform(cmd.transform);
+			mesh->boundingBox.Transform(cmd.transform);
 			if (!frustum.Test(mesh->boundingBox))
 			{
 				// Remove it from the list
 				// and continuee
 				stats.culledMeshes++;
 				continue;
-			}*/
+			}
 
 			struct
 			{
@@ -816,13 +816,13 @@ void RenderManagerVk::RenderScene( RenderInfo& renderInfo, vk::CommandList& cmdL
 		MaterialVk* mat = (MaterialVk*)cmd.material;
 		MeshVk* mesh = (MeshVk*)cmd.mesh;
 
-		// Cull the mesh against the frustum
+		// Cull the mesh against the frustums
 		// It skips it and removes it from the draw list
 
 		// TODO: Fix Culling
 
 		// Transform the bounding box to the transform specified
-		/*mesh->boundingBox.Transform(cmd.transform);
+		mesh->boundingBox.Transform(cmd.transform);
 		if (!frustum.Test(mesh->boundingBox))
 		{
 			// Remove it from the list 
@@ -830,7 +830,7 @@ void RenderManagerVk::RenderScene( RenderInfo& renderInfo, vk::CommandList& cmdL
 			stats.culledMeshes++;
 			draws.pop_front();
 			continue;
-		}*/
+		}
 
 		// If the descriptor isn't created. We should create it now
 		// A Just In Time sort of scenario

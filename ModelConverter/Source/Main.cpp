@@ -22,6 +22,7 @@ public:
 	std::vector<pmdl::Mesh> meshes;
 	std::vector<pmdl::Mesh> lods;
 	std::vector<pmdl::Material1> materials;
+	std::vector<pmdl::Texture1> textures;
 
 	std::vector<pmdl::Vertex> vertices;
 	std::vector<uint32_t> indices;
@@ -72,13 +73,38 @@ public:
 	{
 		pmdl::Material1 mat;
 
+		printf("Processing Material: \n");
+		
 		aiColor3D color(0.f, 0.f, 0.f);
 		material->Get(AI_MATKEY_COLOR_DIFFUSE, color);
+		float roughness, metallic;
+		material->Get(AI_MATKEY_ROUGHNESS_FACTOR, roughness);
+		material->Get(AI_MATKEY_METALLIC_FACTOR, metallic);
+
+		if (material->GetTextureCount(aiTextureType_BASE_COLOR) != 0)
+		{
+			aiString path;
+			material->GetTexture(aiTextureType_BASE_COLOR, 0, &path);
+
+			
+
+			pmdl::Texture1 tex;
+			strcpy(tex.path, path.C_Str());
+			tex.pathSize = path.length;
+			printf("\t Base Colour Texture: %s\n", tex.path);
+
+			textures.push_back(tex);
+
+			mat.albedoIndex = textures.size() - 1;
+		}
 
 		mat.albedo = { color.r, color.g, color.b, 1.0f };
-
-		mat.roughness = 0.5f;
-		mat.metallic = 0.5f;
+		mat.roughness = roughness;
+		mat.metallic = metallic;
+		
+		printf("\t Albedo Colour: %.3f, %.3f, %.3f\n", color.r, color.g, color.b);
+		printf("\t Roughness: %.3f\n", roughness);
+		printf("\t Metallic: %.3f\n", metallic);
 
 		return mat;
 	}
@@ -186,7 +212,7 @@ void ExportUsingArgs()
 		pmdl::Header1 header{};
 		pmdl::InitHeader(&header);
 		pmdl::InitHeaderOffsets1(&header, model.vertices.size(), model.indices.size(),
-			model.meshes.size(), model.materials.size(), 0, model.meshes.size());
+			model.meshes.size(), model.materials.size(), model.textures.size(), model.meshes.size());
 
 		FILE* file = fopen(arguments.outputPath, "wb");
 
@@ -208,9 +234,13 @@ void ExportUsingArgs()
 
 		printf("Number of Meshes Written: %d\n", model.meshes.size());
 		printf("Number of LOD Meshes Written: %d\n", model.lods.size());
+		printf("Number of Textures Written: %d\n", model.textures.size());
 
 		for (uint32_t i = 0; i < model.materials.size(); i++)
 			pmdl::WriteMaterial1(file, &header, &model.materials[i], i);
+
+		for (uint32_t i = 0; i < model.textures.size(); i++)
+			pmdl::WriteTexture1(file, &header, &model.textures[i], i);
 
 		printf("Number of Materials Written: %d\n", model.materials.size());
 
