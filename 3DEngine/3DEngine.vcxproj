@@ -178,6 +178,7 @@
     <ClCompile Include="Source\Scene\Actor.cpp" />
     <ClCompile Include="Source\Scene\Component.cpp" />
     <ClCompile Include="Source\Scene\Scene.cpp" />
+    <ClCompile Include="Source\Threading\JobSystem.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\Core\Application.h" />
@@ -203,6 +204,7 @@
     <ClInclude Include="Source\Renderer\ReflectionProbe.h" />
     <ClInclude Include="Source\Renderer\RenderManager.h" />
     <ClInclude Include="Source\Renderer\SkyMaterial.h" />
+    <ClInclude Include="Source\Renderer\Terrain.h" />
     <ClInclude Include="Source\Renderer\Texture.h" />
     <ClInclude Include="Source\Renderer\VkImpl\GlobalData.h" />
     <ClInclude Include="Source\Renderer\VkImpl\LightManager.h" />
@@ -235,6 +237,8 @@
     <ClInclude Include="Source\Scene\Component.h" />
     <ClInclude Include="Source\Scene\Scene.h" />
     <ClInclude Include="Source\Scene\Transform.h" />
+    <ClInclude Include="Source\Threading\JobSystem.h" />
+    <ClInclude Include="Source\Threading\ThreadSafeQueue.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Resources\Shaders\base.glsl.frag" />

@@ -13,6 +13,8 @@ layout(push_constant) uniform PushConstants
 	int tonemappingMode;
 } constants;
 
+float desaturationFactor = 0.7;
+
 void main()
 {
 	outColour = texture(in_texture, inUV);
@@ -25,4 +27,5 @@ void main()
 		outColour.rgb = uncharted2(outColour.rgb);
 	else if (constants.tonemappingMode == 4)
 		outColour.rgb = aces(outColour.rgb);
+
 }

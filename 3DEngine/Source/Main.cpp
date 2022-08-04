@@ -22,9 +22,7 @@ public:
 		renderManager = RenderManager::Create(&window);
 
 		ResourceManager::GetInstance().SetRenderManager(renderManager);
-
 		model = ResourceManager::GetInstance().NewModel();
-
 		model->LoadFromFile("Resources/WorldTest.pmdl", renderManager);
 		model->materials[0]->roughness = 0.7f;
 

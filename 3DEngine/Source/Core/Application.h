@@ -3,7 +3,7 @@
 #include "Window.h"
 
 #include "Input.h"
-
+#include "../Threading/JobSystem.h"
 
 class Application
 {
@@ -22,6 +22,8 @@ public:
 
 	void Run(const StartInfo& info)
 	{
+		JobSystem::Init();
+
 		window.Create(info.title, info.width, info.height, WindowContext::Vulkan);
 
 		EventManager::GetInstance().Init();

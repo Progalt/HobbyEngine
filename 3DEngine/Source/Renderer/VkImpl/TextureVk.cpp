@@ -11,6 +11,7 @@ void TextureVk::Discard()
 	texture.Destroy();
 }
 
+
 void TextureVk::CreateFromImage(const Image& img, const bool generateMipMaps, const bool srgb)
 {
 	CreateInfo info;

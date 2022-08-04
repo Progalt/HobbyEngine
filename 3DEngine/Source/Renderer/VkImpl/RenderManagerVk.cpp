@@ -8,6 +8,7 @@
 #include "../../Maths/Frustum.h"
 #include "../../Core/Log.h"
 #include <glm/gtc/matrix_transform.hpp>
+#include "../../Threading/JobSystem.h"
 
 
 RenderManagerVk::RenderManagerVk(Window* window)
@@ -15,7 +16,7 @@ RenderManagerVk::RenderManagerVk(Window* window)
 	vk::DeviceCreateInfo createInfo{};
 
 	createInfo.window = window;
-	createInfo.threadCount = 1;
+	createInfo.threadCount = JobSystem::GetThreadCount();
 	createInfo.width = window->GetWidth();
 	createInfo.height = window->GetHeight();
 #ifdef _DEBUG

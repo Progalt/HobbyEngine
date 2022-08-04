@@ -4,6 +4,7 @@
 
 #include "UtilityVK.h"
 
+
 namespace vk
 {
 
@@ -194,6 +195,7 @@ namespace vk
 		}
 		
 	}
+
 
 
 	void Texture::Destroy()
