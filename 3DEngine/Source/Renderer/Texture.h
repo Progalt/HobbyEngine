@@ -30,4 +30,6 @@ public:
 
 	uint32_t width, height;
 
+	bool created = false;
+
 };

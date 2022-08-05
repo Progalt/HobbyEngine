@@ -321,4 +321,7 @@
     <None Include="Resources\Shaders\ChromaticAberration.glsl.comp" />
     <None Include="Resources\Shaders\LightBinning.glsl.comp" />
   </ItemGroup>
+  <ItemGroup>
+    <Text Include="Resources\Shaders\PostProcess\FilmGrain.glsl.comp" />
+  </ItemGroup>
 </Project>

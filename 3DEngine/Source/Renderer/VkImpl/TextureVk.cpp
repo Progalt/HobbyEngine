@@ -51,4 +51,6 @@ void TextureVk::Create(const CreateInfo& createInfo)
 			createInfo.pixels, createInfo.layers,
 			(createInfo.generateMipMaps) ? vk::CalculateMipLevels(createInfo.width, createInfo.height) : 1);
 	}
+
+	created = true;
 }

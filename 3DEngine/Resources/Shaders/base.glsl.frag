@@ -5,6 +5,7 @@
 layout(location = 0) out vec4 outColour;
 layout(location = 1) out vec4 outNormal;
 layout(location = 2) out vec4 outVelocity;
+layout(location = 3) out vec4 outEmissive;
 
 layout(location = 0) in vec2 vTexCoord;
 layout(location = 1) in vec3 vNormal;
@@ -23,6 +24,8 @@ layout(set = 0, binding = 0) uniform MaterialParams
 
 	int hasNormal;
 	float padding;
+
+	vec4 emissive;
 
 } in_params;
 
@@ -61,6 +64,9 @@ void main()
 	vec4 albedo = texture(in_texture, vTexCoord) * in_params.albedo;
 
 	outColour = albedo;
+
+	outEmissive.rgba = vec4(0.0, 0.0, 0.0, 1.0);
+	outEmissive.rgb = in_params.emissive.rgb;
 
 	vec2 newPos = (vNewPos.xy / vNewPos.w);
 	vec2 prePos = (vOldPos.xy / vOldPos.w);

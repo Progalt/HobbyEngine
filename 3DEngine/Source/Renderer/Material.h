@@ -31,6 +31,8 @@ public:
 	Handle<Texture> metallicMap;
 	glm::vec4 albedoColour;
 
+	glm::vec4 emissiveColour = { 0.0f, 0.0f, 0.0f, 1.0f };
+
 	float roughness = 0.5f;
 	float metallic = 0.5f;
 

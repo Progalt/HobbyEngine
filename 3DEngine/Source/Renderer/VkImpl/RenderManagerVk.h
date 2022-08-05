@@ -177,6 +177,7 @@ public:
 		vk::Texture colourTarget;
 		vk::Texture normalTarget;
 		vk::Texture velocityTarget;
+		vk::Texture emissiveTarget;
 
 		vk::Texture depthTarget;
 

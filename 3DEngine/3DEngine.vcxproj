@@ -261,6 +261,9 @@
     <None Include="Resources\Shaders\StructInclude.glsl" />
     <None Include="Resources\Shaders\TAA.glsl.comp" />
   </ItemGroup>
+  <ItemGroup>
+    <Text Include="Resources\Shaders\PostProcess\FilmGrain.glsl.comp" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

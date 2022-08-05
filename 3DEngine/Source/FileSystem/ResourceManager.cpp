@@ -11,8 +11,8 @@ void ResourceManager::Discard()
 	Log::Info("Resource Manager", "Freed %d texture(s)", mLoadedTextures.size());
 	for (auto& texture : mLoadedTextures)
 	{
-		texture->Discard();
-		delete texture;
+		texture.texture->Discard();
+		delete texture.texture;
 	}
 
 	Log::Info("Resource Manager", "Freed %d material(s)", mMaterials.size());
@@ -39,9 +39,18 @@ Material* ResourceManager::NewMaterial()
 	return mMaterials[mMaterials.size() - 1];
 }
 
-Handle<Texture> ResourceManager::NewTexture()
+Handle<Texture> ResourceManager::NewTexture(const std::string& name)
 {
-	mLoadedTextures.push_back(mRenderManager->NewTexture());
+	uint32_t index = 0;
+	for (auto& tex : mLoadedTextures)
+	{
+		if (tex.name == name)
+			return Handle<Texture>(index, 1);
+
+		index++;
+	}
+
+	mLoadedTextures.push_back({ name, mRenderManager->NewTexture() });
 
 	return Handle<Texture>(mLoadedTextures.size() - 1, 1);
 }
@@ -57,7 +66,7 @@ Texture* ResourceManager::GetTexturePtr(Handle<Texture> texture)
 {
 	if (texture.Valid())
 	{
-		return mLoadedTextures[texture.mID];
+		return mLoadedTextures[texture.mID].texture;
 	}
 
 	return GetTexturePtr(GetErrorTexture());
@@ -67,7 +76,7 @@ Handle<Texture> ResourceManager::GetWhiteTexture()
 {
 	if (!mWhiteTexture.created)
 	{
-		mWhiteTexture.tex = NewTexture();
+		mWhiteTexture.tex = NewTexture("WhiteTex");
 
 		char pixels[16] = { 255,255,255,255,  255,255,255,255, 255,255,255,255, 255,255,255,255 };
 
@@ -92,7 +101,7 @@ Handle<Texture> ResourceManager::GetBlackTexture()
 {
 	if (!mBlackTexture.created)
 	{
-		mBlackTexture.tex = NewTexture();
+		mBlackTexture.tex = NewTexture("BlackTex");
 
 		char pixels[16] = { 0,0,0,255,  0,0,0,255, 0,0,0,255, 0,0,0,255 };
 
@@ -117,7 +126,7 @@ Handle<Texture> ResourceManager::GetErrorTexture()
 {
 	if (!mErrorTexture.created)
 	{
-		mErrorTexture.tex = NewTexture();
+		mErrorTexture.tex = NewTexture("ErrorTex");
 
 		char pixels[16] = { 0,0,0,255,255,0,255,255,  255,0,255,255,  0,0,0,255 };
 

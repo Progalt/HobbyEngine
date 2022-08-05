@@ -17,7 +17,9 @@ enum class PostProcessInput
 	Normal_Roughness_Metallic,
 
 	// Velocity of the scene
-	Velocity
+	Velocity,
+
+	Emissive
 };
 
 struct PostProcessCreateInfo
@@ -39,6 +41,11 @@ struct PostProcessCreateInfo
 
 	// shader byte code
 	std::vector<int8_t> shaderByteCode;
+
+	// This must only be for one post process effect. 
+	// This is where it will cache the history after
+	// Useful for after the TAA pass for example.
+	bool cacheHistory = false;
 };
 
 class PostProcessEffect

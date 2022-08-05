@@ -62,7 +62,13 @@ void Model::LoadFromFile(const std::string& path, RenderManager* renderManager)
 		submeshes.push_back(mesh);
 	}
 
-	std::vector<Image> textures(header.textureCount);
+	struct Img
+	{
+		std::string name;
+		Image img;
+	};
+
+	std::vector<Img> textures(header.textureCount);
 
 	std::string directory = FileSystem::GetDirectory(path);
 
@@ -73,7 +79,8 @@ void Model::LoadFromFile(const std::string& path, RenderManager* renderManager)
 
 		std::string path = directory + "/" + std::string(texture.path, texture.pathSize);
 		Log::Info("Model Loader", "Loading texture: %s", path.c_str());
-		textures[i].LoadFromFile(path);
+		textures[i].img.LoadFromFile(path);
+		textures[i].name = std::string(texture.path, texture.pathSize);
 	}
 
 	for (uint16_t i = 0; i < header.materialCount; i++)
@@ -92,26 +99,30 @@ void Model::LoadFromFile(const std::string& path, RenderManager* renderManager)
 
 		if (mat.albedoIndex != -1)
 		{
-			material->albedo = ResourceManager::GetInstance().NewTexture();
-			ResourceManager().GetInstance().GetTexturePtr(material->albedo)->CreateFromImage(textures[mat.albedoIndex], true, true);
+			material->albedo = ResourceManager::GetInstance().NewTexture(textures[mat.albedoIndex].name);
+			if (!ResourceManager().GetInstance().GetTexturePtr(material->albedo)->created)
+				ResourceManager().GetInstance().GetTexturePtr(material->albedo)->CreateFromImage(textures[mat.albedoIndex].img, true, true);
 		}
 
 		if (mat.normalIndex != -1)
 		{
-			material->normalMap = ResourceManager::GetInstance().NewTexture();
-			ResourceManager().GetInstance().GetTexturePtr(material->normalMap)->CreateFromImage(textures[mat.normalIndex], true, false);
+			material->normalMap = ResourceManager::GetInstance().NewTexture(textures[mat.normalIndex].name);
+			if (!ResourceManager().GetInstance().GetTexturePtr(material->normalMap)->created)
+				ResourceManager().GetInstance().GetTexturePtr(material->normalMap)->CreateFromImage(textures[mat.normalIndex].img, true, false);
 		}
 
 		if (mat.roughnessIndex != -1)
 		{
-			material->roughnessMap = ResourceManager::GetInstance().NewTexture();
-			ResourceManager().GetInstance().GetTexturePtr(material->roughnessMap)->CreateFromImage(textures[mat.roughnessIndex], true, true);
+			material->roughnessMap = ResourceManager::GetInstance().NewTexture(textures[mat.roughnessIndex].name);
+			if (!ResourceManager().GetInstance().GetTexturePtr(material->roughnessMap)->created)
+				ResourceManager().GetInstance().GetTexturePtr(material->roughnessMap)->CreateFromImage(textures[mat.roughnessIndex].img, true, true);
 		}
 
 		if (mat.metallicIndex != -1)
 		{
-			material->metallicMap = ResourceManager::GetInstance().NewTexture();
-			ResourceManager().GetInstance().GetTexturePtr(material->metallicMap)->CreateFromImage(textures[mat.metallicIndex], true, true);
+			material->metallicMap = ResourceManager::GetInstance().NewTexture(textures[mat.metallicIndex].name);
+			if (!ResourceManager().GetInstance().GetTexturePtr(material->metallicMap)->created)
+				ResourceManager().GetInstance().GetTexturePtr(material->metallicMap)->CreateFromImage(textures[mat.metallicIndex].img, true, true);
 		}
 
 		materials.push_back(material);

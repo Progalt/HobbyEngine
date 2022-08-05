@@ -39,8 +39,8 @@ RenderManagerVk::RenderManagerVk(Window* window, const RenderManagerCreateInfo& 
 		vk::SamplerSettings settings{};
 		settings.modeU = vk::WrapMode::Repeat;
 		settings.modeV = vk::WrapMode::Repeat;
-		settings.minFilter = vk::Filter::Nearest;
-		settings.magFilter = vk::Filter::Nearest;
+		settings.minFilter = vk::Filter::Linear;
+		settings.magFilter = vk::Filter::Linear;
 		settings.anisotropy = true;
 		settings.maxAnisotropy = 3.0f;
 
@@ -109,9 +109,12 @@ RenderManagerVk::RenderManagerVk(Window* window, const RenderManagerCreateInfo& 
 		mGeometryPass.depthTarget = mDevice.NewTexture();
 		mGeometryPass.depthTarget.CreateRenderTarget(vk::FORMAT_D32_SFLOAT, mProperties.renderWidth, mProperties.renderHeight);
 
+		mGeometryPass.emissiveTarget = mDevice.NewTexture();
+		mGeometryPass.emissiveTarget.CreateRenderTarget(vk::FORMAT_R8G8B8A8_UNORM, mProperties.renderWidth, mProperties.renderHeight);
+
 		vk::RenderpassCreateInfo rpCreateInfo{};
 		rpCreateInfo.type = vk::RenderpassType::Offscreen;
-		rpCreateInfo.colourAttachments = { &mGeometryPass.colourTarget ,&mGeometryPass.normalTarget, &mGeometryPass.velocityTarget };
+		rpCreateInfo.colourAttachments = { &mGeometryPass.colourTarget ,&mGeometryPass.normalTarget, &mGeometryPass.velocityTarget, &mGeometryPass.emissiveTarget };
 		rpCreateInfo.depthAttachment = &mGeometryPass.depthTarget;
 		rpCreateInfo.clearColour = { 0.0f, 0.0f, 0.0f, 1.0f };
 		rpCreateInfo.depthClear = 1.0f;
@@ -224,7 +227,7 @@ RenderManagerVk::RenderManagerVk(Window* window, const RenderManagerCreateInfo& 
 		mCurrentOutput[1].CreateRenderTarget(vk::FORMAT_R16G16B16A16_SFLOAT, mProperties.renderWidth, mProperties.renderHeight, true, vk::ImageLayout::General);
 
 		mHistory = mDevice.NewTexture();
-		mHistory.CreateRenderTarget(vk::FORMAT_R16G16B16A16_SFLOAT, mProperties.renderWidth, mProperties.renderHeight, true, vk::ImageLayout::General);
+		mHistory.CreateRenderTarget(vk::FORMAT_R16G16B16A16_SFLOAT, mProperties.renderWidth, mProperties.renderHeight, true, vk::ImageLayout::ShaderReadOnlyOptimal);
 	}
 
 	{
@@ -240,6 +243,7 @@ RenderManagerVk::RenderManagerVk(Window* window, const RenderManagerCreateInfo& 
 		mLightingPipeline.layout.AddLayoutBinding({ 3, vk::ShaderInputType::ImageSampler, 1, vk::ShaderStage::Compute });
 		mLightingPipeline.layout.AddLayoutBinding({ 4, vk::ShaderInputType::StorageImage, 1, vk::ShaderStage::Compute });
 		mLightingPipeline.layout.AddLayoutBinding({ 5, vk::ShaderInputType::ImageSampler, 1, vk::ShaderStage::Compute });
+		mLightingPipeline.layout.AddLayoutBinding({ 6, vk::ShaderInputType::ImageSampler, 1, vk::ShaderStage::Compute });
 		mLightingPipeline.layout.Create();
 
 		mLightingPipeline.shadowLayout = mDevice.NewLayout();
@@ -259,10 +263,11 @@ RenderManagerVk::RenderManagerVk(Window* window, const RenderManagerCreateInfo& 
 		mLightingPipeline.descriptor = mDevice.NewDescriptor(&mLightingPipeline.layout);
 		//mLightingPipeline.descriptor.BindBuffer(&mGlobalData, 0, sizeof(GlobalData), 0);
 		mLightingPipeline.descriptor.BindStorageBuffer(&mSceneDataBuffer, 0, sizeof(SceneInfo), 1);
-		mLightingPipeline.descriptor.BindCombinedImageSampler(&mGeometryPass.colourTarget, &mDefaultSampler, 2);
-		mLightingPipeline.descriptor.BindCombinedImageSampler(&mGeometryPass.normalTarget, &mDefaultSampler, 3);
+		mLightingPipeline.descriptor.BindCombinedImageSampler(&mGeometryPass.colourTarget, &mTargetSampler, 2);
+		mLightingPipeline.descriptor.BindCombinedImageSampler(&mGeometryPass.normalTarget, &mTargetSampler, 3);
 		mLightingPipeline.descriptor.BindStorageImage(&mLightingPipeline.output, 4);
-		mLightingPipeline.descriptor.BindCombinedImageSampler(&mGeometryPass.depthTarget, &mDefaultSampler, 5);
+		mLightingPipeline.descriptor.BindCombinedImageSampler(&mGeometryPass.depthTarget, &mTargetSampler, 5);
+		mLightingPipeline.descriptor.BindCombinedImageSampler(&mGeometryPass.emissiveTarget, &mTargetSampler, 6);
 		mLightingPipeline.descriptor.Update();
 
 		
@@ -399,6 +404,7 @@ RenderManagerVk::~RenderManagerVk()
 	mGeometryPass.depthTarget.Destroy();
 	mGeometryPass.normalTarget.Destroy();
 	mGeometryPass.velocityTarget.Destroy();
+	mGeometryPass.emissiveTarget.Destroy();
 
 	mShadowData.pipeline.Destroy();
 	mShadowData.descriptorLayout.Destroy();
@@ -603,6 +609,36 @@ void RenderManagerVk::Render(CameraInfo& cameraInfo)
 			imgBarrier.newLayout = vk::ImageLayout::General;
 
 			mCmdList.ImageBarrier(&mCurrentOutput[prevTarget], vk::PipelineStage::FragmentShader, vk::PipelineStage::FragmentShader, imgBarrier);
+
+			if (effect->createInfo.cacheHistory)
+			{
+				// Copy the current output to the history
+
+				imgBarrier.srcAccess = vk::AccessFlags::ShaderRead;
+				imgBarrier.oldLayout = vk::ImageLayout::ShaderReadOnlyOptimal;
+				imgBarrier.dstAccess = vk::AccessFlags::ShaderWrite;
+				imgBarrier.newLayout = vk::ImageLayout::General;
+
+				mCmdList.ImageBarrier(&mHistory, vk::PipelineStage::ComputeShader, vk::PipelineStage::ComputeShader, imgBarrier);
+
+				vk::ImageCopy copy{};
+
+				copy.srcLayer = 0;
+				copy.dstLayer = 0;
+				copy.srcX = 0; copy.srcY = 0;
+				copy.dstX = 0; copy.dstY = 0;
+				copy.w = mProperties.renderWidth;
+				copy.h = mProperties.renderHeight;
+
+				mCmdList.CopyImage(&mCurrentOutput[prevTarget], vk::ImageLayout::General, &mHistory, vk::ImageLayout::General, &copy);
+
+				imgBarrier.srcAccess = vk::AccessFlags::ShaderWrite;
+				imgBarrier.oldLayout = vk::ImageLayout::General;
+				imgBarrier.dstAccess = vk::AccessFlags::ShaderRead;
+				imgBarrier.newLayout = vk::ImageLayout::ShaderReadOnlyOptimal;
+
+				mCmdList.ImageBarrier(&mHistory, vk::PipelineStage::ComputeShader, vk::PipelineStage::ComputeShader, imgBarrier);
+			}
 
 		}
 

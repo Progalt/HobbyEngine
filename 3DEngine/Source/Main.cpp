@@ -77,6 +77,7 @@ public:
 			PostProcessInput::Colour
 		};
 		fxaaCreateInfo.uniformBufferSize = 0;
+		fxaaCreateInfo.cacheHistory = true;
 		fxaaCreateInfo.shaderByteCode = FileSystem::ReadBytes("Resources/Shaders/FXAA.comp.spv");
 
 		fxaaEffect = renderManager->CreatePostProcessEffect(fxaaCreateInfo);
@@ -93,9 +94,22 @@ public:
 
 		chromaticAberrationEffect = renderManager->CreatePostProcessEffect(caCreateInfo);
 
+		PostProcessCreateInfo filmGrainCreateInfo{};
+		filmGrainCreateInfo.computeShader = true;
+		filmGrainCreateInfo.passGlobalData = false;
+		filmGrainCreateInfo.inputs =
+		{
+			PostProcessInput::Colour
+		};
+		filmGrainCreateInfo.uniformBufferSize = sizeof(filmGrainUniforms);
+		filmGrainCreateInfo.shaderByteCode = FileSystem::ReadBytes("Resources/Shaders/PostProcess/FilmGrain.comp.spv");
+
+		filmGrainEffect = renderManager->CreatePostProcessEffect(filmGrainCreateInfo);
+
 		renderManager->AddPostProcessEffect(fogEffect);
 		renderManager->AddPostProcessEffect(fxaaEffect);
 		renderManager->AddPostProcessEffect(chromaticAberrationEffect);
+		renderManager->AddPostProcessEffect(filmGrainEffect);
 	}
 
 	void Update() override
@@ -232,24 +246,29 @@ public:
 
 	SceneInfo info;
 
+	float ticks = 0.0f;
+
 	void Render() override
 	{
-
+		ticks += 0.05f;
 		info.hasDirectionalLight = 1;
 		info.lightCount = 0;
 		float t = -renderManager->time;
 		info.dirLight.direction = { 0.0f, sin(glm::radians(t)), -cos(glm::radians(t)), 1.0f};
 		info.dirLight.colour = { 1.0f, 1.0f, 1.0f, 1.0f };
-		info.dirLight.colour *= 5.0f;
+		info.dirLight.colour *= 7.5f;
 		
 		fogData.sunDir = info.dirLight.direction;
 
 		renderManager->UpdateScene(info);
 
+
+		filmGrainUniforms.time = ticks;
+		filmGrainUniforms.strength = 0.01f;
 		fogEffect->UpdateUniformBuffer(&fogData);
+		filmGrainEffect->UpdateUniformBuffer(&filmGrainUniforms);
 
 		scene.Render(renderManager);
-
 
 		glm::mat4 viewProj = proj * view;
 
@@ -272,6 +291,7 @@ public:
 		fogEffect->Destroy();
 		fxaaEffect->Destroy();
 		chromaticAberrationEffect->Destroy();
+		filmGrainEffect->Destroy();
 
 		ResourceManager::GetInstance().Discard();
 
@@ -283,12 +303,20 @@ public:
 	struct
 	{
 		glm::vec4 sunDir;
-		float fogDensity = 0.0075;
+		float fogDensity = 0.002;
 		float padding[3];
 	} fogData;
 	PostProcessEffect* fogEffect;
 	PostProcessEffect* fxaaEffect;
 	PostProcessEffect* chromaticAberrationEffect;
+	
+	struct
+	{
+		float time;
+		float strength;
+		float padding[2];
+	} filmGrainUniforms;
+	PostProcessEffect* filmGrainEffect;
 
 	Scene scene;
 

@@ -25,4 +25,7 @@
 
 %VULKAN_SDK%/Bin/glslc.exe ChromaticAberration.glsl.comp -o ChromaticAberration.comp.spv
 
+%VULKAN_SDK%/Bin/glslc.exe PostProcess/FilmGrain.glsl.comp -o PostProcess/FilmGrain.comp.spv
+
+
 pause

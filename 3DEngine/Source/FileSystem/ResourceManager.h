@@ -46,7 +46,7 @@ public:
 
 	void Discard();
 
-	Handle<Texture> NewTexture();
+	Handle<Texture> NewTexture(const std::string& name);
 
 	Material* NewMaterial();
 
@@ -82,7 +82,14 @@ private:
 
 	RenderManager* mRenderManager;
 
-	std::vector<Texture*> mLoadedTextures;
+	struct LoadedTexture
+	{
+		std::string name;
+		Texture* texture;
+		uint32_t refs;
+	};
+
+	std::vector<LoadedTexture> mLoadedTextures;
 
 	std::vector<Material*> mMaterials;
 
