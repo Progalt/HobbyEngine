@@ -19,7 +19,11 @@ enum class PostProcessInput
 	// Velocity of the scene
 	Velocity,
 
-	Emissive
+	// Output with the emissive colours written
+	Emissive,
+
+	// Last frame
+	History
 };
 
 struct PostProcessCreateInfo

@@ -89,6 +89,7 @@ private:
 		uint32_t refs;
 	};
 
+
 	std::vector<LoadedTexture> mLoadedTextures;
 
 	std::vector<Material*> mMaterials;

@@ -106,10 +106,27 @@ public:
 
 		filmGrainEffect = renderManager->CreatePostProcessEffect(filmGrainCreateInfo);
 
+		PostProcessCreateInfo taaCreateInfo{};
+		taaCreateInfo.computeShader = true;
+		taaCreateInfo.passGlobalData = false;
+		taaCreateInfo.inputs =
+		{
+			PostProcessInput::Colour, PostProcessInput::Velocity, PostProcessInput::History, PostProcessInput::Depth
+		};
+		taaCreateInfo.uniformBufferSize = sizeof(taaData);
+		taaCreateInfo.cacheHistory = true;
+		taaCreateInfo.shaderByteCode = FileSystem::ReadBytes("Resources/Shaders/TAA.comp.spv");
+
+		taaEffect = renderManager->CreatePostProcessEffect(taaCreateInfo);
+
+		renderManager->jitterVertices = true;
+
 		renderManager->AddPostProcessEffect(fogEffect);
-		renderManager->AddPostProcessEffect(fxaaEffect);
-		renderManager->AddPostProcessEffect(chromaticAberrationEffect);
-		renderManager->AddPostProcessEffect(filmGrainEffect);
+		//renderManager->AddPostProcessEffect(fxaaEffect);
+		renderManager->AddPostProcessEffect(taaEffect);
+		//renderManager->AddPostProcessEffect(fxaaEffect);
+		//renderManager->AddPostProcessEffect(chromaticAberrationEffect);
+		//renderManager->AddPostProcessEffect(filmGrainEffect);
 	}
 
 	void Update() override
@@ -247,6 +264,7 @@ public:
 	SceneInfo info;
 
 	float ticks = 0.0f;
+	bool firstFrame = true;
 
 	void Render() override
 	{
@@ -268,6 +286,9 @@ public:
 		fogEffect->UpdateUniformBuffer(&fogData);
 		filmGrainEffect->UpdateUniformBuffer(&filmGrainUniforms);
 
+		taaData.firstFrame = (firstFrame) ? 1 : 0;
+		taaEffect->UpdateUniformBuffer(&taaData);
+
 		scene.Render(renderManager);
 
 		glm::mat4 viewProj = proj * view;
@@ -281,6 +302,7 @@ public:
 
 		renderManager->Render(cameraInfo);
 
+		firstFrame = false;
 	}
 
 	void Destroy() override
@@ -292,6 +314,7 @@ public:
 		fxaaEffect->Destroy();
 		chromaticAberrationEffect->Destroy();
 		filmGrainEffect->Destroy();
+		taaEffect->Destroy();
 
 		ResourceManager::GetInstance().Discard();
 
@@ -309,6 +332,13 @@ public:
 	PostProcessEffect* fogEffect;
 	PostProcessEffect* fxaaEffect;
 	PostProcessEffect* chromaticAberrationEffect;
+
+	struct
+	{
+		int firstFrame;
+		float padding[3];
+	} taaData;
+	PostProcessEffect* taaEffect;
 	
 	struct
 	{

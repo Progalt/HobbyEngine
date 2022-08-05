@@ -103,6 +103,9 @@ void PostProcessEffectVk::GenerateDescriptor(vk::Texture* target, vk::Texture* c
 		case PostProcessInput::Emissive:
 			descriptor.BindCombinedImageSampler(&rm->mGeometryPass.emissiveTarget, &rm->mTargetSampler, currentOffset);
 			break;
+		case PostProcessInput::History:
+			descriptor.BindCombinedImageSampler(&rm->mHistory, &rm->mTargetSampler, currentOffset);
+			break;
 		}
 
 

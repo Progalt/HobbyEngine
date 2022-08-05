@@ -106,6 +106,8 @@ public:
 
 	bool updatePostProcessStack = true;
 
+	bool jitterVertices = false;
+
 	// time is the time to render at. 
 	float time = 0.0f;
 

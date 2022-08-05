@@ -456,38 +456,29 @@ void RenderManagerVk::Render(CameraInfo& cameraInfo)
 
 	// Let's compute the jitter matrix
 	// https://community.arm.com/arm-community-blogs/b/graphics-gaming-and-vr-blog/posts/temporal-anti-aliasing
-	static const glm::vec2 SAMPLE_LOCS_16[16] = {
-		glm::vec2(-8.0f, 0.0f) / 8.0f,
-		glm::vec2(-6.0f, -4.0f) / 8.0f,
-		glm::vec2(-3.0f, -2.0f) / 8.0f,
-		glm::vec2(-2.0f, -6.0f) / 8.0f,
-		glm::vec2(1.0f, -1.0f) / 8.0f,
-		glm::vec2(2.0f, -5.0f) / 8.0f,
-		glm::vec2(6.0f, -7.0f) / 8.0f,
-		glm::vec2(5.0f, -3.0f) / 8.0f,
-		glm::vec2(4.0f, 1.0f) / 8.0f,
-		glm::vec2(7.0f, 4.0f) / 8.0f,
-		glm::vec2(3.0f, 5.0f) / 8.0f,
-		glm::vec2(0.0f, 7.0f) / 8.0f,
-		glm::vec2(-1.0f, 3.0f) / 8.0f,
-		glm::vec2(-4.0f, 6.0f) / 8.0f,
-		glm::vec2(-7.0f, 8.0f) / 8.0f,
-		glm::vec2(-5.0f, 2.0f) / 8.0f 
-	};
+	static const glm::vec2 SAMPLE_LOCS_8[8] = {
+		glm::vec2(-7.0f, 1.0f) / 8.0f,
+		glm::vec2(-5.0f, -5.0f) / 8.0f,
+		glm::vec2(-1.0f, -3.0f) / 8.0f,
+		glm::vec2(3.0f, -7.0f) / 8.0f,
+		glm::vec2(5.0f, -1.0f) / 8.0f,
+		glm::vec2(7.0f, 7.0f) / 8.0f,
+		glm::vec2(1.0f, 3.0f) / 8.0f,
+		glm::vec2(-3.0f, 5.0f) / 8.0f };
 	
-	const unsigned SubsampleIdx = frameCount % 16;
+	const unsigned SubsampleIdx = frameCount % 8;
 
-	const glm::vec2 TexSize(1.0f / glm::vec2(mProperties.width, mProperties.height)); 
+	const glm::vec2 TexSize(1.0f / glm::vec2(mProperties.renderWidth, mProperties.renderHeight)); 
 	const glm::vec2 SubsampleSize = TexSize * 2.0f;
 
-	const glm::vec2 S = SAMPLE_LOCS_16[SubsampleIdx]; 
+	const glm::vec2 S = SAMPLE_LOCS_8[SubsampleIdx]; 
 
 	glm::vec2 Subsample = S * SubsampleSize; 
 	Subsample *= 0.5f;
 
 	glm::mat4 jitteredMatrix = glm::translate(glm::mat4(1.0f), { Subsample.x, Subsample.y, 0.0f });
 
-	if (aaMethod == AntiAliasingMethod::TemporalAA)
+	if (jitterVertices)
 		mGlobalDataStruct.jitteredVP = cameraInfo.proj * cameraInfo.view * jitteredMatrix;
 	else
 		mGlobalDataStruct.jitteredVP = cameraInfo.proj * cameraInfo.view;
@@ -630,7 +621,7 @@ void RenderManagerVk::Render(CameraInfo& cameraInfo)
 				copy.w = mProperties.renderWidth;
 				copy.h = mProperties.renderHeight;
 
-				mCmdList.CopyImage(&mCurrentOutput[prevTarget], vk::ImageLayout::General, &mHistory, vk::ImageLayout::General, &copy);
+				mCmdList.CopyImage(&mCurrentOutput[targetNum], vk::ImageLayout::General, &mHistory, vk::ImageLayout::General, &copy);
 
 				imgBarrier.srcAccess = vk::AccessFlags::ShaderWrite;
 				imgBarrier.oldLayout = vk::ImageLayout::General;
