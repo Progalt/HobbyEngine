@@ -5,6 +5,11 @@
 
 #define PI 3.14159265359
 
+vec3 SchlickRoughness(float u, vec3 f0, float roughness)
+{
+    return f0 + (max(vec3(1.0 - roughness), f0) - f0) * pow(clamp(1.0 - u, 0.0, 1.0), 5.0);
+}   
+
 float Schlick(float u, float f0, float f90) 
 {
     return f0 + (f90 - f0) * pow(1.0 - u, 5.0);

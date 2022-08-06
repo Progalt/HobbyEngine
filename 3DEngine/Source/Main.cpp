@@ -31,7 +31,8 @@ public:
 		sphere = ResourceManager::GetInstance().NewModel();
 
 		sphere->LoadFromFile("Resources/Sphere.pmdl", renderManager);
-		sphere->materials[0]->roughness = 0.3f;
+		sphere->materials[0]->roughness = 0.1f;
+		sphere->materials[0]->metallic = 0.8f;
 
 		proj = glm::perspective(glm::radians(60.0f), (float)window.GetWidth() / (float)window.GetHeight(), 0.01f, 1000.0f);
 		viewPos = { 0.0f, 0.0f, 0.0f };
@@ -125,7 +126,7 @@ public:
 		//renderManager->AddPostProcessEffect(taaEffect);
 		renderManager->AddPostProcessEffect(fxaaEffect);
 		//renderManager->AddPostProcessEffect(chromaticAberrationEffect);
-		renderManager->AddPostProcessEffect(filmGrainEffect);
+		//renderManager->AddPostProcessEffect(filmGrainEffect);
 	}
 
 	void Update() override

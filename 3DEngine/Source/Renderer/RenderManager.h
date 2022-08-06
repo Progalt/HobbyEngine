@@ -4,7 +4,6 @@
 #include "Texture.h"
 #include "../Core/Window.h"
 
-#include "SkyMaterial.h"
 #include <functional>
 
 #include "GraphicsStructs.h"
@@ -80,8 +79,6 @@ public:
 	virtual Material* NewMaterial() = 0;
 
 	virtual LightProbe* NewLightProbe(uint32_t resolution) = 0;
-
-	virtual void SetSkyMaterial(SkyMaterial* material) = 0;
 
 	virtual void Render(CameraInfo& cameraInfo) = 0;
 

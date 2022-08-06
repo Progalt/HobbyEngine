@@ -218,9 +218,6 @@
     <ClInclude Include="Source\Renderer\VkImpl\MaterialVk.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Renderer\SkyMaterial.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="Source\Core\EventManager.h">
       <Filter>Header Files</Filter>
     </ClInclude>

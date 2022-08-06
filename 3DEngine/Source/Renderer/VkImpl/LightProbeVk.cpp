@@ -67,7 +67,8 @@ void LightProbeVk::Create(vk::Device* device, uint32_t baseRes, vk::DescriptorLa
 		createInfo.computeBlob = &blob;
 
 		shaders.genIrradiance.pipeline = device->NewComputePipeline(&createInfo);
-		
+	
+		blob.Destroy();
 	}
 
 	shaders.refs++;
@@ -112,8 +113,8 @@ void LightProbeVk::UpdateData()
 	for (uint32_t i = 0; i < 6; i++)
 	{
 		data[i].viewPos = glm::vec4(position, 1.0f);
-		data[i].proj = glm::perspective((float)(M_PI / 2.0), 1.0f, 0.1f, 512.0f);
-		data[i].view = glm::translate(glm::mat4(1.0f), position) * matrices[i];
+		data[i].proj = glm::perspective(-(float)(M_PI / 2.0), 1.0f, 0.1f, 512.0f);
+		data[i].view = matrices[i] * glm::translate(glm::mat4(1.0f), position);
 		data[i].VP = data[i].proj * data[i].view;
 		data[i].jitteredVP = data[i].VP;
 		data[i].prevVP = data[i].VP;

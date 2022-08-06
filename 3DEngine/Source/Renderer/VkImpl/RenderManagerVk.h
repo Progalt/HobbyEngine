@@ -36,8 +36,6 @@ public:
 
 	void QueueMesh(Mesh* mesh, Material* material, glm::mat4 transform = glm::mat4(1.0f), uint32_t firstIndex = 0, uint32_t indexCount = 0, uint32_t vertexOffset = 0) override;
 
-	void SetSkyMaterial(SkyMaterial* material) override;
-
 	struct RenderInfo
 	{
 		vk::Texture* target;
@@ -49,7 +47,7 @@ public:
 		GlobalDataManager globalManager;
 	};
 
-	void RenderScene( RenderInfo& renderInfo, vk::CommandList& cmdList, bool renderSkyOnly);
+	void RenderScene( RenderInfo& renderInfo, vk::CommandList& cmdList, bool renderSkyOnly, bool useIBL);
 
 	void UpdateSettings() override;
 
@@ -213,14 +211,4 @@ public:
 		uint32_t renderWidth, renderHeight;
 	} mProperties;
 
-	struct Sky
-	{
-
-		Mesh* skydome;
-
-		bool generated;
-
-		SkyMaterial* skyMaterial;
-
-	} sky;
 };

@@ -99,7 +99,7 @@ RenderManagerVk::RenderManagerVk(Window* window, const RenderManagerCreateInfo& 
 
 
 		mGeometryPass.normalTarget = mDevice.NewTexture();
-		mGeometryPass.normalTarget.CreateRenderTarget(vk::FORMAT_R8G8B8A8_UNORM, mProperties.renderWidth, mProperties.renderHeight);
+		mGeometryPass.normalTarget.CreateRenderTarget(vk::FORMAT_R16G16B16A16_UNORM, mProperties.renderWidth, mProperties.renderHeight);
 
 
 		mGeometryPass.velocityTarget = mDevice.NewTexture();
@@ -262,6 +262,9 @@ RenderManagerVk::RenderManagerVk(Window* window, const RenderManagerCreateInfo& 
 		vk::ComputePipelineCreateInfo createInfo{};
 		createInfo.computeBlob = &shaderBlob;
 		createInfo.layout = { &mLightingPipeline.layout, globalDataManager.GetLayout(vk::ShaderStage::Compute), &mLightingPipeline.shadowLayout, &mLightingPipeline.envLayout };
+		createInfo.pushConstantRanges = {
+			{ vk::ShaderStage::Compute, 0, sizeof(int) }
+		};
 
 		mLightingPipeline.pipeline = mDevice.NewComputePipeline(&createInfo);
 
@@ -378,6 +381,7 @@ RenderManagerVk::RenderManagerVk(Window* window, const RenderManagerCreateInfo& 
 
 	{
 		probe = NewLightProbe(512);
+		probe->position = { 0.0f, 0.0f, 0.0f };
 
 		mLightProbes.push_back((LightProbeVk*)probe);
 	}
@@ -426,6 +430,7 @@ RenderManagerVk::~RenderManagerVk()
 	mLightingPipeline.layout.Destroy();
 	mLightingPipeline.pipeline.Destroy();
 	mLightingPipeline.shadowLayout.Destroy();
+	mLightingPipeline.envLayout.Destroy();
 
 	mRenderpasses.geometryPass.Destroy();
 	
@@ -543,7 +548,7 @@ void RenderManagerVk::Render(CameraInfo& cameraInfo)
 			renderInfo.target = &lightProbe->cubemap;
 			renderInfo.level = i;
 
-			RenderScene(renderInfo, mCmdList, true);
+			RenderScene(renderInfo, mCmdList, false, false);
 		}
 
 		lightProbe->GenerateIrradiance(mCmdList);
@@ -576,7 +581,7 @@ void RenderManagerVk::Render(CameraInfo& cameraInfo)
 	renderInfo.level = 0;
 
 	// Render the scene
-	RenderScene(renderInfo, mCmdList, false);
+	RenderScene(renderInfo, mCmdList, false, true);
 
 
 
@@ -857,7 +862,7 @@ void RenderManagerVk::RenderDirectionalShadowMap(vk::CommandList& cmdList, Casca
 	cmdList.EndDebugUtilsLabel();
 }
 
-void RenderManagerVk::RenderScene(RenderInfo& renderInfo, vk::CommandList& cmdList, bool renderSkyOnly)
+void RenderManagerVk::RenderScene(RenderInfo& renderInfo, vk::CommandList& cmdList, bool renderSkyOnly, bool useIBL)
 {
 
 	// Create a frustum for the current view projection
@@ -1009,6 +1014,10 @@ void RenderManagerVk::RenderScene(RenderInfo& renderInfo, vk::CommandList& cmdLi
 
 		cmdList.BindPipeline(&mLightingPipeline.pipeline);
 
+		int ibl = (int)useIBL;
+
+		cmdList.PushConstants(&mLightingPipeline.pipeline, vk::ShaderStage::Compute, sizeof(int), 0, &ibl);
+
 		cmdList.BindDescriptors({ &mLightingPipeline.descriptor, renderInfo.globalManager.GetDescriptor(vk::ShaderStage::Compute), &mLightingPipeline.shadowDescriptor, &((LightProbeVk*)probe)->lightingDescriptor }, & mLightingPipeline.pipeline, 0);
 		cmdList.Dispatch(renderInfo.renderWidth / 8, renderInfo.renderHeight / 8, 1);
 
@@ -1064,16 +1073,6 @@ void RenderManagerVk::QueueMesh(Mesh* mesh, Material* material, glm::mat4 transf
 		mForwardDraws.push_back({ mesh, transform, material, firstIndex, indexCount, vertexOffset });
 }
 
-
-void RenderManagerVk::SetSkyMaterial(SkyMaterial* material)
-{
-	sky.skyMaterial = material;
-
-	if (!sky.generated && material != nullptr)
-	{
-		// Generate the skydome
-	}
-}
 
 Mesh* RenderManagerVk::NewMesh()
 {

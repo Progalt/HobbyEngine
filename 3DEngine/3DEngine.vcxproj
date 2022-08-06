@@ -204,7 +204,6 @@
     <ClInclude Include="Source\Renderer\PostProcessEffect.h" />
     <ClInclude Include="Source\Renderer\LightProbe.h" />
     <ClInclude Include="Source\Renderer\RenderManager.h" />
-    <ClInclude Include="Source\Renderer\SkyMaterial.h" />
     <ClInclude Include="Source\Renderer\Terrain.h" />
     <ClInclude Include="Source\Renderer\Texture.h" />
     <ClInclude Include="Source\Renderer\VkImpl\GlobalData.h" />

@@ -48,6 +48,11 @@ layout(set = 2, binding = 1) uniform sampler2DShadow cascadeAtlas;
 
 layout(set = 3, binding = 0) uniform samplerCube irradianceCube;
 
+layout(push_constant) uniform PushConstants
+{
+	int useIBL;
+} constants;
+
 struct Material
 {
 	vec3 albedo;
@@ -134,8 +139,9 @@ vec3 DirectionalLightContribution(vec3 n, DirectionalLight light, vec3 v, vec3 f
 	shadowCoord = (biasMat * shadowData.matrices[cascadeIndex]) * vec4(fragPos, 1.0);	
 
 	float shadow = 0;
-	shadow = textureProj(shadowCoord / shadowCoord.w, vec2(0.0), cascadeIndex);
-	//shadow = filterPCF(shadowCoord / shadowCoord.w, cascadeIndex);
+	if (constants.useIBL==1)
+		//shadow = textureProj(shadowCoord / shadowCoord.w, vec2(0.0), cascadeIndex);
+		shadow = filterPCF(shadowCoord / shadowCoord.w, cascadeIndex);
 
 	vec3 l = light.direction.xyz;
 
@@ -153,7 +159,7 @@ vec3 DirectionalLightContribution(vec3 n, DirectionalLight light, vec3 v, vec3 f
 	//vec3 Fd = light.colour.xyz * Diffuse_Burley(NoV, NoL, LoH, roughness);
 
     float D = GGX(NoH, roughness);
-    vec3  F = Schlick(LoH, f0);
+    vec3  F = SchlickRoughness(LoH, f0, roughness);
     float V = SmithGGXCorrelated(NoV, NoL, roughness);
 
     // specular BRDF
@@ -190,7 +196,10 @@ void main()
 	vec2 encodedNormal = gNormalSampled.xy;
 	vec3 normal = normalize(decode(encodedNormal));
 
-	vec3 irradiance = texture(irradianceCube, normal).rgb;
+	vec3 irradiance = vec3(0.15);
+
+	if (constants.useIBL == 1)
+		irradiance = texture(irradianceCube, normal).rgb;
 
 	// Albedo is the first 3 channels of the target
 	material.albedo = (1.0 - material.metallic) * gColourSampled.rgb;
@@ -225,7 +234,7 @@ void main()
 
 	// Store the final result to the output image
 	if (depth != 1.0)
-		imageStore(finalOutput, ivec2(gl_GlobalInvocationID.xy), vec4(ambient, 1.0));
+		imageStore(finalOutput, ivec2(gl_GlobalInvocationID.xy), vec4(final, 1.0));
 	else 
 		imageStore(finalOutput, coord, vec4(prev, 1.0));
 	
