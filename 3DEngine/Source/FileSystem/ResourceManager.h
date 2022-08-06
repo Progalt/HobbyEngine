@@ -60,6 +60,7 @@ public:
 
 	Handle<Texture> GetErrorTexture();
 
+
 private:
 
 	struct
