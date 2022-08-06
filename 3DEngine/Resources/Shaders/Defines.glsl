@@ -16,14 +16,18 @@ vec2 sign_not_zero(vec2 v)
 vec2 encode (vec3 v)
 {
 	vec2 p = v.xy * (1.0 / (abs(v.x) + abs(v.y) + abs(v.z)));
-	return (v.z <= 0.0) ? ((1.0 - abs(p.yx))  * sign_not_zero(p)) : p;
+    vec2 enc =  (v.z <= 0.0) ? ((1.0 - abs(p.yx))  * sign_not_zero(p)) : p;
+    enc = enc * 0.5 + 0.5;
+	return enc;
 }
 
 vec3 decode(vec2 enc)
 {
+    enc = enc * 2 - 1;
     vec3 v = vec3(enc.xy, 1.0 - abs(enc.x) - abs(enc.y));
     if (v.z < 0) v.xy = (1.0 - abs(v.yx)) * sign_not_zero(v.xy);
-	return normalize(v);
+    vec3 n = normalize(v);
+	return n;
 }
 
 vec3 WorldPosFromDepth(float depth, mat4 invProj, mat4 invView, vec2 TexCoord) {

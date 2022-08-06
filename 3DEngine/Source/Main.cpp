@@ -119,14 +119,13 @@ public:
 
 		taaEffect = renderManager->CreatePostProcessEffect(taaCreateInfo);
 
-		renderManager->jitterVertices = true;
+		renderManager->jitterVertices = false;
 
 		renderManager->AddPostProcessEffect(fogEffect);
-		//renderManager->AddPostProcessEffect(fxaaEffect);
-		renderManager->AddPostProcessEffect(taaEffect);
-		//renderManager->AddPostProcessEffect(fxaaEffect);
+		//renderManager->AddPostProcessEffect(taaEffect);
+		renderManager->AddPostProcessEffect(fxaaEffect);
 		//renderManager->AddPostProcessEffect(chromaticAberrationEffect);
-		//renderManager->AddPostProcessEffect(filmGrainEffect);
+		renderManager->AddPostProcessEffect(filmGrainEffect);
 	}
 
 	void Update() override

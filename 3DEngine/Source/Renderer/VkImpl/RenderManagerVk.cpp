@@ -99,7 +99,7 @@ RenderManagerVk::RenderManagerVk(Window* window, const RenderManagerCreateInfo& 
 
 
 		mGeometryPass.normalTarget = mDevice.NewTexture();
-		mGeometryPass.normalTarget.CreateRenderTarget(vk::FORMAT_R16G16B16A16_SFLOAT, mProperties.renderWidth, mProperties.renderHeight);
+		mGeometryPass.normalTarget.CreateRenderTarget(vk::FORMAT_R8G8B8A8_UNORM, mProperties.renderWidth, mProperties.renderHeight);
 
 
 		mGeometryPass.velocityTarget = mDevice.NewTexture();
@@ -454,29 +454,29 @@ void RenderManagerVk::Render(CameraInfo& cameraInfo)
 
 	
 
-	// Let's compute the jitter matrix
-	// https://community.arm.com/arm-community-blogs/b/graphics-gaming-and-vr-blog/posts/temporal-anti-aliasing
-	static const glm::vec2 SAMPLE_LOCS_8[8] = {
-		glm::vec2(-7.0f, 1.0f) / 8.0f,
-		glm::vec2(-5.0f, -5.0f) / 8.0f,
-		glm::vec2(-1.0f, -3.0f) / 8.0f,
-		glm::vec2(3.0f, -7.0f) / 8.0f,
-		glm::vec2(5.0f, -1.0f) / 8.0f,
-		glm::vec2(7.0f, 7.0f) / 8.0f,
-		glm::vec2(1.0f, 3.0f) / 8.0f,
-		glm::vec2(-3.0f, 5.0f) / 8.0f };
-	
-	const unsigned SubsampleIdx = frameCount % 8;
+	auto Halton = [](uint32_t i, uint32_t b)
+	{
+		float f = 1.0f;
+		float r = 0.0f;
 
-	const glm::vec2 TexSize(1.0f / glm::vec2(mProperties.renderWidth, mProperties.renderHeight)); 
-	const glm::vec2 SubsampleSize = TexSize * 2.0f;
+		while (i > 0)
+		{
+			f /= static_cast<float>(b);
+			r = r + f * static_cast<float>(i % b);
+			i = static_cast<uint32_t>(floorf(static_cast<float>(i) / static_cast<float>(b)));
+		}
 
-	const glm::vec2 S = SAMPLE_LOCS_8[SubsampleIdx]; 
+		return r;
+	};
 
-	glm::vec2 Subsample = S * SubsampleSize; 
-	Subsample *= 0.5f;
+	uint32_t jitterIndex = frameCount % 16;
 
-	glm::mat4 jitteredMatrix = glm::translate(glm::mat4(1.0f), { Subsample.x, Subsample.y, 0.0f });
+	float haltonX = 2.0f * Halton(jitterIndex + 1, 2) - 1.0f;
+	float haltonY = 2.0f * Halton(jitterIndex + 1, 3) - 1.0f;
+	float jitterX = (haltonX / (float)mProperties.renderWidth) * 2.0f;
+	float jitterY = (haltonY / (float)mProperties.renderWidth) * 2.0f;
+
+	glm::mat4 jitteredMatrix = glm::translate(glm::mat4(1.0f), { jitterX, jitterY, 0.0f });
 
 	if (jitterVertices)
 		mGlobalDataStruct.jitteredVP = cameraInfo.proj * cameraInfo.view * jitteredMatrix;
