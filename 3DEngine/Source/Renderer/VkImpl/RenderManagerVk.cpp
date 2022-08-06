@@ -228,6 +228,7 @@ RenderManagerVk::RenderManagerVk(Window* window, const RenderManagerCreateInfo& 
 
 		mHistory = mDevice.NewTexture();
 		mHistory.CreateRenderTarget(vk::FORMAT_R16G16B16A16_SFLOAT, mProperties.renderWidth, mProperties.renderHeight, true, vk::ImageLayout::ShaderReadOnlyOptimal);
+
 	}
 
 	{
@@ -251,12 +252,16 @@ RenderManagerVk::RenderManagerVk(Window* window, const RenderManagerCreateInfo& 
 		mLightingPipeline.shadowLayout.AddLayoutBinding({ 1, vk::ShaderInputType::ImageSampler, 1, vk::ShaderStage::Compute });
 		mLightingPipeline.shadowLayout.Create();
 
+		mLightingPipeline.envLayout = mDevice.NewLayout();
+		mLightingPipeline.envLayout.AddLayoutBinding({ 0, vk::ShaderInputType::ImageSampler, 1, vk::ShaderStage::Compute });
+		mLightingPipeline.envLayout.Create();
+
 		vk::ShaderBlob shaderBlob = mDevice.NewShaderBlob();
 		shaderBlob.CreateFromSource(vk::ShaderStage::Compute, FileSystem::ReadBytes("Resources/Shaders/lighting.comp.spv"));
 		
 		vk::ComputePipelineCreateInfo createInfo{};
 		createInfo.computeBlob = &shaderBlob;
-		createInfo.layout = { &mLightingPipeline.layout, globalDataManager.GetLayout(vk::ShaderStage::Compute), &mLightingPipeline.shadowLayout};
+		createInfo.layout = { &mLightingPipeline.layout, globalDataManager.GetLayout(vk::ShaderStage::Compute), &mLightingPipeline.shadowLayout, &mLightingPipeline.envLayout };
 
 		mLightingPipeline.pipeline = mDevice.NewComputePipeline(&createInfo);
 
@@ -371,6 +376,11 @@ RenderManagerVk::RenderManagerVk(Window* window, const RenderManagerCreateInfo& 
 
 	}
 
+	{
+		probe = NewLightProbe(512);
+
+		mLightProbes.push_back((LightProbeVk*)probe);
+	}
 
 	vk::Imgui::Init(&mDevice, window, &mRenderpasses.swapchain);
 
@@ -379,6 +389,9 @@ RenderManagerVk::RenderManagerVk(Window* window, const RenderManagerCreateInfo& 
 RenderManagerVk::~RenderManagerVk()
 {
 	mDevice.WaitIdle();
+
+	probe->Destroy();
+
 
 	mSceneDataBuffer.Destroy();
 
@@ -508,13 +521,43 @@ void RenderManagerVk::Render(CameraInfo& cameraInfo)
 		RenderDirectionalShadowMap(mCmdList, &mShadowData.directionalShadowMap);
 	}
 
-	
+	// Lets render light probes
+
+	RenderInfo renderInfo{};
+
+	mCmdList.BeginDebugUtilsLabel("Light Probes");
+	for (auto& lightProbe : mLightProbes)
+	{ 
+		if (lightProbe->update == false)
+			continue;
+
+		lightProbe->UpdateData();
+
+		for (uint32_t i = 0; i < 6; i++)
+		{
+			renderInfo.data = lightProbe->data[i];
+			renderInfo.globalManager = lightProbe->globalDataManager[i];
+			
+			renderInfo.renderWidth = lightProbe->resolution;
+			renderInfo.renderHeight = lightProbe->resolution;
+			renderInfo.target = &lightProbe->cubemap;
+			renderInfo.level = i;
+
+			RenderScene(renderInfo, mCmdList, true);
+		}
+
+		lightProbe->GenerateIrradiance(mCmdList);
+
+		lightProbe->update = false;
+	}
+	mCmdList.EndDebugUtilsLabel();
 	// Begin the Geometry pass
 	// If you know about how a deferred renderer works this functions the same as that mostly.
 	// Currently it outputs: 
 	//		Target 1 : rgb = colour, a = unused
 	//		Target 2 : rg = normal, b = roughness, a = metallic
 	//		Target 3 : rg = velocity
+	//		Target 4 : rgb = emissive
 	// Thats just for now of course the ba in the target 2 is probably going to be metallic and roughness.
 	// With a normal only taking rg its quite obvious it is encoded. 
 	// 
@@ -522,17 +565,21 @@ void RenderManagerVk::Render(CameraInfo& cameraInfo)
 	// This works if I store all material data in a large buffer and index into it
 
 	// This render system allows me to render and specify a target to render too. It will then do the standard rendering pipeline and render it all
-	
 
-	RenderInfo renderInfo{};
+
 	renderInfo.data = mGlobalDataStruct;
 	renderInfo.globalManager = globalDataManager;
+
 	renderInfo.renderWidth = mProperties.renderWidth;
 	renderInfo.renderHeight = mProperties.renderHeight;
 	renderInfo.target = nullptr;
+	renderInfo.level = 0;
 
 	// Render the scene
-	RenderScene(renderInfo, mCmdList);
+	RenderScene(renderInfo, mCmdList, false);
+
+
+
 
 
 
@@ -810,13 +857,17 @@ void RenderManagerVk::RenderDirectionalShadowMap(vk::CommandList& cmdList, Casca
 	cmdList.EndDebugUtilsLabel();
 }
 
-void RenderManagerVk::RenderScene( RenderInfo& renderInfo, vk::CommandList& cmdList)
+void RenderManagerVk::RenderScene(RenderInfo& renderInfo, vk::CommandList& cmdList, bool renderSkyOnly)
 {
+
 	// Create a frustum for the current view projection
 	// Objects are culled against this later
 	Frustum frustum(renderInfo.data.proj * renderInfo.data.view);
 
 	std::deque<DrawCmd> draws(mDeferredDraws.begin(), mDeferredDraws.end());
+
+	if (renderSkyOnly)
+		draws.clear();
 
 	// Lets do a sort first. This reduces overdraw by drawing front to back
 	std::sort(draws.begin(), draws.end(), [renderInfo](DrawCmd& a, DrawCmd& b)
@@ -938,35 +989,49 @@ void RenderManagerVk::RenderScene( RenderInfo& renderInfo, vk::CommandList& cmdL
 		cmdList.EndDebugUtilsLabel();
 	}
 
-	if (!mLightingPipeline.createdShadowDescriptor)
+	if (!renderSkyOnly)
 	{
-		mLightingPipeline.shadowDescriptor = mDevice.NewDescriptor(&mLightingPipeline.shadowLayout);
-		mLightingPipeline.shadowDescriptor.BindBuffer(&mShadowData.directionalShadowMap.uniformBuffer, 0, sizeof(CascadeShadowMap::DataBuffer), 0);
-		mLightingPipeline.shadowDescriptor.BindCombinedImageSampler(&mShadowData.directionalShadowMap.atlas, &mShadowData.sampler, 1);
-		mLightingPipeline.shadowDescriptor.Update();
 
-		mLightingPipeline.createdShadowDescriptor = true;
+		if (!mLightingPipeline.createdShadowDescriptor)
+		{
+			mLightingPipeline.shadowDescriptor = mDevice.NewDescriptor(&mLightingPipeline.shadowLayout);
+			mLightingPipeline.shadowDescriptor.BindBuffer(&mShadowData.directionalShadowMap.uniformBuffer, 0, sizeof(CascadeShadowMap::DataBuffer), 0);
+			mLightingPipeline.shadowDescriptor.BindCombinedImageSampler(&mShadowData.directionalShadowMap.atlas, &mShadowData.sampler, 1);
+			mLightingPipeline.shadowDescriptor.Update();
+
+			mLightingPipeline.createdShadowDescriptor = true;
+		}
+
+		cmdList.BeginDebugUtilsLabel("Lighting Pass");
+		// this is the lighting pass for deferred lighting. 
+
+		// It is done in a compute shader instead of a fullscreen quad
+
+		cmdList.BindPipeline(&mLightingPipeline.pipeline);
+
+		cmdList.BindDescriptors({ &mLightingPipeline.descriptor, renderInfo.globalManager.GetDescriptor(vk::ShaderStage::Compute), &mLightingPipeline.shadowDescriptor, &((LightProbeVk*)probe)->lightingDescriptor }, & mLightingPipeline.pipeline, 0);
+		cmdList.Dispatch(renderInfo.renderWidth / 8, renderInfo.renderHeight / 8, 1);
+
+		stats.dispatchCalls++;
+
+
+
+		cmdList.EndDebugUtilsLabel();
 	}
-
-	cmdList.BeginDebugUtilsLabel("Lighting Pass");
-	// this is the lighting pass for deferred lighting. 
-
-	// It is done in a compute shader instead of a fullscreen quad
-
-	cmdList.BindPipeline(&mLightingPipeline.pipeline);
-
-	cmdList.BindDescriptors({ &mLightingPipeline.descriptor, renderInfo.globalManager.GetDescriptor(vk::ShaderStage::Compute), &mLightingPipeline.shadowDescriptor }, &mLightingPipeline.pipeline, 0);
-	cmdList.Dispatch(renderInfo.renderWidth / 8, renderInfo.renderHeight / 8, 1);
-
-	stats.dispatchCalls++;
-
-
-
-	cmdList.EndDebugUtilsLabel();
 
 	if (renderInfo.target != nullptr)
 	{
 		// We want to copy to the target if it is not nullptr
+		vk::ImageCopy copy{};
+		copy.srcLayer = 0;
+		copy.dstLayer = renderInfo.level;
+		copy.srcX = 0;
+		copy.srcY = 0;
+		copy.dstX = 0;
+		copy.dstY = 0;
+		copy.w = renderInfo.renderWidth;
+		copy.h = renderInfo.renderHeight;
+		cmdList.CopyImage(&mLightingPipeline.output, vk::ImageLayout::General, renderInfo.target, vk::ImageLayout::General, &copy);
 	}
 }
 
@@ -1029,4 +1094,12 @@ Material* RenderManagerVk::NewMaterial()
 	MaterialVk* mat = new MaterialVk(&mDevice, &mBasePipeline.materialLayout);
 	
 	return mat;
+}
+
+LightProbe* RenderManagerVk::NewLightProbe(uint32_t resolution)
+{
+	LightProbeVk* probe = new LightProbeVk();
+	probe->Create(&mDevice, resolution, &mLightingPipeline.envLayout, &mDefaultSampler);
+
+	return probe;
 }

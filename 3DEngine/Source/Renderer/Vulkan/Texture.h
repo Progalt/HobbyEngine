@@ -51,6 +51,8 @@ namespace vk
 		
 		void CreateRenderTarget(Format format, uint32_t width, uint32_t height, bool storageImage = false,  vk::ImageLayout transitionTo = vk::ImageLayout::Undefined, uint32_t levels = 1);
 
+		void CreateCubeMapTarget(Format format, uint32_t res, vk::ImageLayout transitionTo = vk::ImageLayout::Undefined);
+
 		void Destroy();
 
 		uint32_t GetWidth() const { return m_Width; }

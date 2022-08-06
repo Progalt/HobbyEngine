@@ -8,6 +8,7 @@
 void Model::Discard()
 {
 	mesh->Destroy();
+	delete mesh;
 }
 
 void Model::LoadFromFile(const std::string& path, RenderManager* renderManager)

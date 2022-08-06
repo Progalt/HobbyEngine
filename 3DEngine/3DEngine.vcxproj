@@ -154,6 +154,7 @@
     <ClCompile Include="Source\Renderer\RenderManager.cpp" />
     <ClCompile Include="Source\Renderer\VkImpl\GlobalData.cpp" />
     <ClCompile Include="Source\Renderer\VkImpl\LightManager.cpp" />
+    <ClCompile Include="Source\Renderer\VkImpl\LightProbeVk.cpp" />
     <ClCompile Include="Source\Renderer\VkImpl\MeshVk.cpp" />
     <ClCompile Include="Source\Renderer\VkImpl\PostProcessEffectVk.cpp" />
     <ClCompile Include="Source\Renderer\VkImpl\RenderManagerVk.cpp" />
@@ -201,7 +202,7 @@
     <ClInclude Include="Source\Renderer\Material.h" />
     <ClInclude Include="Source\Renderer\Mesh.h" />
     <ClInclude Include="Source\Renderer\PostProcessEffect.h" />
-    <ClInclude Include="Source\Renderer\ReflectionProbe.h" />
+    <ClInclude Include="Source\Renderer\LightProbe.h" />
     <ClInclude Include="Source\Renderer\RenderManager.h" />
     <ClInclude Include="Source\Renderer\SkyMaterial.h" />
     <ClInclude Include="Source\Renderer\Terrain.h" />
@@ -211,7 +212,7 @@
     <ClInclude Include="Source\Renderer\VkImpl\MaterialVk.h" />
     <ClInclude Include="Source\Renderer\VkImpl\MeshVk.h" />
     <ClInclude Include="Source\Renderer\VkImpl\PostProcessEffectVk.h" />
-    <ClInclude Include="Source\Renderer\VkImpl\ReflectionProbeVk.h" />
+    <ClInclude Include="Source\Renderer\VkImpl\LightProbeVk.h" />
     <ClInclude Include="Source\Renderer\VkImpl\RenderManagerVk.h" />
     <ClInclude Include="Source\Renderer\VkImpl\ShadowAtlas.h" />
     <ClInclude Include="Source\Renderer\VkImpl\TextureVk.h" />
@@ -252,6 +253,7 @@
     <None Include="Resources\Shaders\fullscreen.glsl.vert" />
     <None Include="Resources\Shaders\FXAA.glsl.comp" />
     <None Include="Resources\Shaders\FXAA.glsl.frag" />
+    <None Include="Resources\Shaders\genIrradiance.glsl.comp" />
     <None Include="Resources\Shaders\LightBinning.glsl.comp" />
     <None Include="Resources\Shaders\lighting.glsl.comp" />
     <None Include="Resources\Shaders\PBR.glsl" />

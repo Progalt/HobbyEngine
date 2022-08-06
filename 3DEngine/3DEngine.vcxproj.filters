@@ -123,6 +123,9 @@
     <ClCompile Include="Source\Threading\JobSystem.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Source\Renderer\VkImpl\LightProbeVk.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\Renderer\Vulkan\Vendor\vk_mem_alloc.h">
@@ -263,10 +266,10 @@
     <ClInclude Include="Source\Renderer\VkImpl\ShadowAtlas.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Renderer\ReflectionProbe.h">
+    <ClInclude Include="Source\Renderer\LightProbe.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Renderer\VkImpl\ReflectionProbeVk.h">
+    <ClInclude Include="Source\Renderer\VkImpl\LightProbeVk.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Source\Scene\Scene.h">
@@ -320,6 +323,7 @@
     <None Include="Resources\Shaders\FXAA.glsl.comp" />
     <None Include="Resources\Shaders\ChromaticAberration.glsl.comp" />
     <None Include="Resources\Shaders\LightBinning.glsl.comp" />
+    <None Include="Resources\Shaders\genIrradiance.glsl.comp" />
   </ItemGroup>
   <ItemGroup>
     <Text Include="Resources\Shaders\PostProcess\FilmGrain.glsl.comp" />

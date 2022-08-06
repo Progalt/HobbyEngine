@@ -196,7 +196,64 @@ namespace vk
 		
 	}
 
+	void Texture::CreateCubeMapTarget(Format format, uint32_t res, vk::ImageLayout transitionTo)
+	{
+		VkFormat vkf = (VkFormat)format;
 
+		VkImageUsageFlags usageFlags = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+		VkImageLayout targetLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+		this->format = format;
+
+		bool depthImage = false;
+
+		if (vkf == VK_FORMAT_D16_UNORM || vkf == VK_FORMAT_D16_UNORM_S8_UINT ||
+			vkf == VK_FORMAT_D24_UNORM_S8_UINT || vkf == VK_FORMAT_D32_SFLOAT ||
+			vkf == VK_FORMAT_D32_SFLOAT_S8_UINT)
+		{
+			depthImage = true;
+
+			usageFlags = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+			targetLayout = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL;
+		}
+
+		usageFlags |= VK_IMAGE_USAGE_STORAGE_BIT;
+		usageFlags |= VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+
+		createImage(m_Allocator, res, res, 1, (VkFormat)format, VK_IMAGE_TYPE_2D, VK_IMAGE_TILING_OPTIMAL,
+			usageFlags, VMA_MEMORY_USAGE_GPU_ONLY, m_Image, m_Allocation, 1, 6, VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT);
+
+		VkImageViewCreateInfo viewInfo{};
+		viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+		viewInfo.image = m_Image;
+		viewInfo.viewType = VK_IMAGE_VIEW_TYPE_CUBE;
+		viewInfo.format = (VkFormat)format;
+		viewInfo.subresourceRange.aspectMask = (depthImage) ? VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT;
+		viewInfo.subresourceRange.baseMipLevel = 0;
+		viewInfo.subresourceRange.levelCount = 1;
+		viewInfo.subresourceRange.baseArrayLayer = 0;
+		viewInfo.subresourceRange.layerCount = 6;
+
+		m_ResourceRange = viewInfo.subresourceRange;
+
+		m_Width = res;
+		m_Height = res;
+		m_MipLevels = 1;
+
+		if (vkCreateImageView(m_Device->m_Device, &viewInfo, nullptr, &m_ImageView) != VK_SUCCESS)
+		{
+			throw std::runtime_error("failed to create texture image view");
+		}
+
+		if (transitionTo != vk::ImageLayout::Undefined)
+		{
+			SingleUseCommandBuffer cmd = m_Device->GetSingleUsageCommandBuffer(false);
+
+			transitionImageLayout(cmd, m_Image, (VkFormat)format, VK_IMAGE_LAYOUT_UNDEFINED, (VkImageLayout)transitionTo, 1, 6);
+
+			m_Device->ExecuteTransfer(cmd);
+		}
+	}
 
 	void Texture::Destroy()
 	{

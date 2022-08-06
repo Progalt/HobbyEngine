@@ -12,6 +12,7 @@
 #include <deque>
 #include <vector>
 #include "PostProcessEffectVk.h"
+#include "LightProbeVk.h"
 
 class RenderManagerVk : public RenderManager
 {
@@ -31,6 +32,8 @@ public:
 
 	Material* NewMaterial() override;
 
+	LightProbe* NewLightProbe(uint32_t resolution) override;
+
 	void QueueMesh(Mesh* mesh, Material* material, glm::mat4 transform = glm::mat4(1.0f), uint32_t firstIndex = 0, uint32_t indexCount = 0, uint32_t vertexOffset = 0) override;
 
 	void SetSkyMaterial(SkyMaterial* material) override;
@@ -46,7 +49,7 @@ public:
 		GlobalDataManager globalManager;
 	};
 
-	void RenderScene( RenderInfo& renderInfo, vk::CommandList& cmdList);
+	void RenderScene( RenderInfo& renderInfo, vk::CommandList& cmdList, bool renderSkyOnly);
 
 	void UpdateSettings() override;
 
@@ -81,6 +84,9 @@ public:
 	std::deque<DrawCmd> mDeferredDraws;
 	std::deque<DrawCmd> mForwardDraws;
 
+	std::deque<LightProbeVk*> mLightProbes;
+	LightProbe* probe;
+
 	vk::Device mDevice;
 
 	vk::CommandList mCmdList;
@@ -97,6 +103,7 @@ public:
 	vk::Texture mHistory;
 
 	GlobalDataManager globalDataManager;
+
 
 	struct
 	{
@@ -149,6 +156,8 @@ public:
 
 		vk::DescriptorLayout shadowLayout;
 		vk::Descriptor shadowDescriptor;
+
+		vk::DescriptorLayout envLayout;
 
 		bool createdShadowDescriptor = false;
 

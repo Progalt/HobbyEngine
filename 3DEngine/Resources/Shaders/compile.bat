@@ -27,5 +27,6 @@
 
 %VULKAN_SDK%/Bin/glslc.exe PostProcess/FilmGrain.glsl.comp -o PostProcess/FilmGrain.comp.spv
 
+%VULKAN_SDK%/Bin/glslc.exe genIrradiance.glsl.comp -o genIrradiance.comp.spv
 
 pause

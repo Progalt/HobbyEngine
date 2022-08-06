@@ -315,6 +315,12 @@ public:
 		filmGrainEffect->Destroy();
 		taaEffect->Destroy();
 
+		delete fogEffect;
+		delete fxaaEffect;
+		delete chromaticAberrationEffect;
+		delete filmGrainEffect;
+		delete taaEffect;
+
 		ResourceManager::GetInstance().Discard();
 
 		RenderManager::Destroy(renderManager);

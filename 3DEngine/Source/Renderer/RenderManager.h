@@ -10,6 +10,8 @@
 #include "GraphicsStructs.h"
 #include "PostProcessEffect.h"
 
+#include "LightProbe.h"
+
 struct RenderStatistics
 {
 	uint32_t drawCalls;
@@ -76,6 +78,8 @@ public:
 	virtual Texture* NewTexture() = 0;
 
 	virtual Material* NewMaterial() = 0;
+
+	virtual LightProbe* NewLightProbe(uint32_t resolution) = 0;
 
 	virtual void SetSkyMaterial(SkyMaterial* material) = 0;
 
