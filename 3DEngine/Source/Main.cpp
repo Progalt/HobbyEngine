@@ -49,8 +49,8 @@ public:
 		worldTest->GetTransform().SetEuler({ 180.0f, 0.0f, 0.0f });
 		worldTest->GetTransform().SetScale({ 4.0f, 4.0f, 4.0f });
 
-		for (uint32_t x = 0; x < 8; x++)
-			for (uint32_t y = 0; y < 8; y++)
+		for (uint32_t x = 0; x < 4; x++)
+			for (uint32_t y = 0; y < 4; y++)
 			{
 				Actor* sphereActor = scene.NewActor("Sphere" + std::to_string(x + y));
 				sphereActor->AddComponent<MeshRenderer>()->model = sphere;
@@ -125,7 +125,7 @@ public:
 		renderManager->AddPostProcessEffect(fogEffect);
 		//renderManager->AddPostProcessEffect(taaEffect);
 		renderManager->AddPostProcessEffect(fxaaEffect);
-		//renderManager->AddPostProcessEffect(chromaticAberrationEffect);
+		renderManager->AddPostProcessEffect(chromaticAberrationEffect);
 		//renderManager->AddPostProcessEffect(filmGrainEffect);
 	}
 
@@ -280,14 +280,17 @@ public:
 
 		renderManager->UpdateScene(info);
 
+		if (firstFrame)
+		{
 
-		filmGrainUniforms.time = ticks;
-		filmGrainUniforms.strength = 0.01f;
-		fogEffect->UpdateUniformBuffer(&fogData);
-		filmGrainEffect->UpdateUniformBuffer(&filmGrainUniforms);
+			filmGrainUniforms.time = ticks;
+			filmGrainUniforms.strength = 0.01f;
+			fogEffect->UpdateUniformBuffer(&fogData);
+			filmGrainEffect->UpdateUniformBuffer(&filmGrainUniforms);
+		}
 
-		taaData.firstFrame = (firstFrame) ? 1 : 0;
-		taaEffect->UpdateUniformBuffer(&taaData);
+		//taaData.firstFrame = (firstFrame) ? 1 : 0;
+		//taaEffect->UpdateUniformBuffer(&taaData);
 
 		scene.Render(renderManager);
 

@@ -140,8 +140,8 @@ vec3 DirectionalLightContribution(vec3 n, DirectionalLight light, vec3 v, vec3 f
 
 	float shadow = 0;
 	if (constants.useIBL==1)
-		//shadow = textureProj(shadowCoord / shadowCoord.w, vec2(0.0), cascadeIndex);
-		shadow = filterPCF(shadowCoord / shadowCoord.w, cascadeIndex);
+		shadow = textureProj(shadowCoord / shadowCoord.w, vec2(0.0), cascadeIndex);
+		//shadow = filterPCF(shadowCoord / shadowCoord.w, cascadeIndex);
 
 	vec3 l = light.direction.xyz;
 

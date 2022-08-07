@@ -53,8 +53,13 @@ namespace vk
 		renderPassInfo.renderArea.offset = { 0, 0 };
 
 		VkExtent2D extent;
+#ifdef VK_DONT_USE_BOOTSTRAP
 		extent.width = (renderAreaW == -1) ? m_Device->m_Swapchain.getExtent().width : renderAreaW;
 		extent.height = (renderAreaH == -1) ? m_Device->m_Swapchain.getExtent().height : renderAreaH;
+#else 
+		extent.width = (renderAreaW == -1) ? m_Device->m_Swapchain.extent.width : renderAreaW;
+		extent.height = (renderAreaH == -1) ? m_Device->m_Swapchain.extent.height : renderAreaH;
+#endif
 
 		renderPassInfo.renderArea.extent = extent;
 

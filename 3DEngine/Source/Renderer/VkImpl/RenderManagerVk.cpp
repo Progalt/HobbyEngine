@@ -28,7 +28,7 @@ RenderManagerVk::RenderManagerVk(Window* window, const RenderManagerCreateInfo& 
 	createInfo.debugInfo = false;
 #endif
 	createInfo.requestSRGBBackBuffer = true;
-	createInfo.requestVSync = true;
+	createInfo.requestVSync = false;
 
 	this->mProperties.width = window->GetWidth();
 	this->mProperties.height = window->GetHeight();
@@ -107,7 +107,7 @@ RenderManagerVk::RenderManagerVk(Window* window, const RenderManagerCreateInfo& 
 
 
 		mGeometryPass.depthTarget = mDevice.NewTexture();
-		mGeometryPass.depthTarget.CreateRenderTarget(vk::FORMAT_D32_SFLOAT, mProperties.renderWidth, mProperties.renderHeight);
+		mGeometryPass.depthTarget.CreateRenderTarget(vk::FORMAT_D24_UNORM_S8_UINT, mProperties.renderWidth, mProperties.renderHeight);
 
 		mGeometryPass.emissiveTarget = mDevice.NewTexture();
 		mGeometryPass.emissiveTarget.CreateRenderTarget(vk::FORMAT_R8G8B8A8_UNORM, mProperties.renderWidth, mProperties.renderHeight);
@@ -905,8 +905,6 @@ void RenderManagerVk::RenderScene(RenderInfo& renderInfo, vk::CommandList& cmdLi
 
 		// Cull the mesh against the frustums
 		// It skips it and removes it from the draw list
-
-		// TODO: Fix Culling
 
 		// Transform the bounding box to the transform specified
 		mesh->boundingBox.Transform(cmd.transform);
