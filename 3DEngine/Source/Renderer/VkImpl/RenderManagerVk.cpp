@@ -19,7 +19,7 @@ RenderManagerVk::RenderManagerVk(Window* window, const RenderManagerCreateInfo& 
 	vk::DeviceCreateInfo createInfo{};
 
 	createInfo.window = window;
-	createInfo.threadCount = JobSystem::GetThreadCount();
+	createInfo.threadCount = 1;
 	createInfo.width = window->GetWidth();
 	createInfo.height = window->GetHeight();
 #ifdef _DEBUG
@@ -487,12 +487,12 @@ void RenderManagerVk::Render(CameraInfo& cameraInfo)
 		return r;
 	};
 
-	uint32_t jitterIndex = frameCount % 16;
+	uint32_t jitterIndex = frameCount % 8;
 
 	float haltonX = 2.0f * Halton(jitterIndex + 1, 2) - 1.0f;
 	float haltonY = 2.0f * Halton(jitterIndex + 1, 3) - 1.0f;
-	float jitterX = (haltonX / (float)mProperties.renderWidth) * 2.0f;
-	float jitterY = (haltonY / (float)mProperties.renderWidth) * 2.0f;
+	float jitterX = (haltonX / (float)mProperties.renderWidth);
+	float jitterY = (haltonY / (float)mProperties.renderWidth);
 
 	glm::mat4 jitteredMatrix = glm::translate(glm::mat4(1.0f), { jitterX, jitterY, 0.0f });
 
@@ -583,9 +583,22 @@ void RenderManagerVk::Render(CameraInfo& cameraInfo)
 	// Render the scene
 	RenderScene(renderInfo, mCmdList, false, true);
 
+	vk::ImageBarrierInfo imgBarrier{};
+
+	imgBarrier.srcAccess = vk::AccessFlags::ShaderWrite;
+	imgBarrier.oldLayout = vk::ImageLayout::General;
+	imgBarrier.dstAccess = vk::AccessFlags::TransferRead;
+	imgBarrier.newLayout = vk::ImageLayout::TransferSrcOptimal;
+
+	mCmdList.ImageBarrier(&mLightingPipeline.output, vk::PipelineStage::ComputeShader, vk::PipelineStage::Transfer, imgBarrier);
 
 
+	imgBarrier.srcAccess = vk::AccessFlags::ShaderWrite;
+	imgBarrier.oldLayout = vk::ImageLayout::General;
+	imgBarrier.dstAccess = vk::AccessFlags::TransferWrite;
+	imgBarrier.newLayout = vk::ImageLayout::TransferDstOptimal;
 
+	mCmdList.ImageBarrier(&mCurrentOutput[0], vk::PipelineStage::ComputeShader, vk::PipelineStage::Transfer, imgBarrier);
 
 
 	vk::ImageCopy imageCopy{};
@@ -597,9 +610,22 @@ void RenderManagerVk::Render(CameraInfo& cameraInfo)
 	imageCopy.srcY = 0;
 	imageCopy.dstX = 0;
 	imageCopy.dstY = 0;
-	mCmdList.CopyImage(&mLightingPipeline.output, vk::ImageLayout::General, &mCurrentOutput[0], vk::ImageLayout::General,&imageCopy );
+	mCmdList.CopyImage(&mLightingPipeline.output, vk::ImageLayout::TransferSrcOptimal, &mCurrentOutput[0], vk::ImageLayout::TransferDstOptimal,&imageCopy );
 
-	vk::ImageBarrierInfo imgBarrier{};
+	imgBarrier.srcAccess = vk::AccessFlags::TransferRead;
+	imgBarrier.oldLayout = vk::ImageLayout::TransferSrcOptimal;
+	imgBarrier.dstAccess = vk::AccessFlags::ShaderWrite;
+	imgBarrier.newLayout = vk::ImageLayout::General;
+
+	mCmdList.ImageBarrier(&mLightingPipeline.output, vk::PipelineStage::Transfer, vk::PipelineStage::ComputeShader, imgBarrier);
+
+
+	imgBarrier.srcAccess = vk::AccessFlags::TransferWrite;
+	imgBarrier.oldLayout = vk::ImageLayout::TransferDstOptimal;
+	imgBarrier.dstAccess = vk::AccessFlags::ShaderWrite;
+	imgBarrier.newLayout = vk::ImageLayout::General;
+
+	mCmdList.ImageBarrier(&mCurrentOutput[0], vk::PipelineStage::Transfer, vk::PipelineStage::ComputeShader, imgBarrier);
 
 	// Lets start post process effects
 
@@ -642,9 +668,11 @@ void RenderManagerVk::Render(CameraInfo& cameraInfo)
 			else 
 				mCmdList.BindDescriptors({ &effect->descriptor }, & effect->computePipeline, 0);
 
-			mCmdList.Dispatch(mProperties.renderWidth / 16, mProperties.renderHeight / 16, 1);
+			mCmdList.Dispatch((int)ceilf((float)mProperties.renderWidth / THREAD_GROUP_SIZE), (int)ceilf((float)mProperties.renderHeight / THREAD_GROUP_SIZE), 1);
 
 			stats.dispatchCalls++;
+
+			// TODO: This could probably be improved
 
 			imgBarrier.srcAccess = vk::AccessFlags::ShaderRead;
 			imgBarrier.oldLayout = vk::ImageLayout::ShaderReadOnlyOptimal;
@@ -1017,7 +1045,7 @@ void RenderManagerVk::RenderScene(RenderInfo& renderInfo, vk::CommandList& cmdLi
 		cmdList.PushConstants(&mLightingPipeline.pipeline, vk::ShaderStage::Compute, sizeof(int), 0, &ibl);
 
 		cmdList.BindDescriptors({ &mLightingPipeline.descriptor, renderInfo.globalManager.GetDescriptor(vk::ShaderStage::Compute), &mLightingPipeline.shadowDescriptor, &((LightProbeVk*)probe)->lightingDescriptor }, & mLightingPipeline.pipeline, 0);
-		cmdList.Dispatch(renderInfo.renderWidth / 8, renderInfo.renderHeight / 8, 1);
+		cmdList.Dispatch((int)ceilf((float)mProperties.renderWidth / THREAD_GROUP_SIZE), (int)ceilf((float)mProperties.renderHeight / THREAD_GROUP_SIZE), 1);
 
 		stats.dispatchCalls++;
 

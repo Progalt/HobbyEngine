@@ -22,38 +22,45 @@ public:
 
 	void Run(const StartInfo& info)
 	{
-		JobSystem::Init();
-
-		window.Create(info.title, info.width, info.height, WindowContext::Vulkan);
-
-		EventManager::GetInstance().Init();
-
-		EventManager::GetInstance().Attach(&input, EventType::KeyboardInput);
-		EventManager::GetInstance().Attach(&input, EventType::MouseButton);
-
-		Start();
-
-		Uint64 NOW = SDL_GetPerformanceCounter();
-		Uint64 LAST = 0;
-
-		while (window.IsOpen())
+		try
 		{
-			LAST = NOW;
-			NOW = SDL_GetPerformanceCounter();
+			//JobSystem::Init();
 
-			time.delta = (float)((NOW - LAST) * 1000 / (float)SDL_GetPerformanceFrequency()) * 0.001f;
+			window.Create(info.title, info.width, info.height, WindowContext::Vulkan);
+
+			EventManager::GetInstance().Init();
+
+			EventManager::GetInstance().Attach(&input, EventType::KeyboardInput);
+			EventManager::GetInstance().Attach(&input, EventType::MouseButton);
+
+			Start();
+
+			Uint64 NOW = SDL_GetPerformanceCounter();
+			Uint64 LAST = 0;
+
+			while (window.IsOpen())
+			{
+				LAST = NOW;
+				NOW = SDL_GetPerformanceCounter();
+
+				time.delta = (float)((NOW - LAST) * 1000 / (float)SDL_GetPerformanceFrequency()) * 0.001f;
 
 
-			window.PollEvents();
+				window.PollEvents();
 
 
 
-			Update();
-			Render();
+				Update();
+				Render();
 
+			}
+
+			Destroy();
 		}
-
-		Destroy();
+		catch(std::exception& ex)
+		{
+			SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Error", ex.what(), NULL);
+		}
 	}
 
 

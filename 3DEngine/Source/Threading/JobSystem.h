@@ -6,6 +6,7 @@
 #include <functional>
 #include "ThreadSafeQueue.h"
 #include <atomic>
+#include <semaphore>
 
 class JobSystem
 {

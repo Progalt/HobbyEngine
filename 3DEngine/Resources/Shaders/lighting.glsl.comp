@@ -4,7 +4,7 @@
 #include "Defines.glsl"
 #include "PBR.glsl"
 
-layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
+layout(local_size_x = THREAD_GROUP_SIZE, local_size_y = THREAD_GROUP_SIZE, local_size_z = 1) in;
 
 layout(set = 1, binding = 0) uniform GlobalData
 {
@@ -175,6 +175,10 @@ void main()
 {
 
 	ivec2 coord = ivec2(gl_GlobalInvocationID.xy);
+	ivec2 imgSize = ivec2(imageSize(finalOutput));
+
+	if (coord.x > imgSize.x || coord.y > imgSize.y)
+		return;
 
 	vec3 prev = imageLoad(finalOutput, coord).xyz;
 

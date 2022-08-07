@@ -35,7 +35,7 @@ namespace vk
 #else 
 
 		vkb::InstanceBuilder instance_builder;
-		instance_builder.set_debug_messenger_severity(VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT ).use_default_debug_messenger().request_validation_layers();
+		instance_builder.set_debug_messenger_severity(VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT).use_default_debug_messenger().request_validation_layers();
 #ifdef _DEBUG
 		instance_builder.enable_extension("VK_EXT_debug_utils");
 #endif
@@ -44,6 +44,8 @@ namespace vk
 			throw std::runtime_error(instance_ret.error().message());
 		}
 		m_Instance = instance_ret.value();
+
+		std::cout << "Created Instance\n";
 
 		m_Surface = info->window->CreateSurface(m_Instance);
 
@@ -58,6 +60,8 @@ namespace vk
 		}
 		m_PhysicalDevice = phys_device_ret.value();
 
+		std::cout << "Selected Physical Device: " << m_PhysicalDevice.name << "\n";
+
 		vkb::DeviceBuilder device_builder{ m_PhysicalDevice };
 		auto device_ret = device_builder.build();
 		if (!device_ret) {
@@ -65,6 +69,8 @@ namespace vk
 		}
 
 		m_Device = device_ret.value();
+
+		std::cout << "Created Device\n";
 
 		// Retrieve queues
 
@@ -74,7 +80,21 @@ namespace vk
 		m_PresentQueueFamily = m_Device.get_queue_index(vkb::QueueType::present).value();
 		m_PresentQueue = m_Device.get_queue(vkb::QueueType::present).value();
 
-		ResizeSwapchain(0, 0);
+		vkb::SwapchainBuilder swapchain_builder{ m_Device };
+
+		if (m_RequestVSync)
+			swapchain_builder.set_desired_present_mode(VK_PRESENT_MODE_FIFO_KHR);
+		else
+			swapchain_builder.set_desired_present_mode(VK_PRESENT_MODE_IMMEDIATE_KHR);
+
+		swapchain_builder.add_fallback_present_mode(VK_PRESENT_MODE_FIFO_KHR);
+		auto swap_ret = swapchain_builder.build();
+		if (!swap_ret) {
+			std::cout << swap_ret.error().message() << " " << swap_ret.vk_result() << "\n";
+		}
+		m_Swapchain = swap_ret.value();
+
+		std::cout << "Created Swapchain\n";
 
 #endif
 
@@ -89,6 +109,8 @@ namespace vk
 		CreateSyncObjects();
 
 		m_DescriptorAllocator.Init(m_Device);
+
+		std::cout << "Finished Vulkan Setup\n";
 	}
 
 	void Device::ResizeSwapchain(uint32_t width, uint32_t height)
@@ -116,6 +138,7 @@ namespace vk
 		if (!swap_ret) {
 			std::cout << swap_ret.error().message() << " " << swap_ret.vk_result() << "\n";
 		}
+
 		vkb::destroy_swapchain(m_Swapchain);
 		m_Swapchain = swap_ret.value();
 

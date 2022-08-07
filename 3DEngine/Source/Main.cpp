@@ -115,17 +115,17 @@ public:
 			PostProcessInput::Colour, PostProcessInput::Velocity, PostProcessInput::History, PostProcessInput::Depth
 		};
 		taaCreateInfo.uniformBufferSize = sizeof(taaData);
-		taaCreateInfo.cacheHistory = true;
+		taaCreateInfo.cacheHistory = false;
 		taaCreateInfo.shaderByteCode = FileSystem::ReadBytes("Resources/Shaders/TAA.comp.spv");
 
 		taaEffect = renderManager->CreatePostProcessEffect(taaCreateInfo);
 
-		renderManager->jitterVertices = false;
+		renderManager->jitterVertices = true;
 
 		renderManager->AddPostProcessEffect(fogEffect);
-		//renderManager->AddPostProcessEffect(taaEffect);
+		renderManager->AddPostProcessEffect(taaEffect);
 		renderManager->AddPostProcessEffect(fxaaEffect);
-		renderManager->AddPostProcessEffect(chromaticAberrationEffect);
+		//renderManager->AddPostProcessEffect(chromaticAberrationEffect);
 		//renderManager->AddPostProcessEffect(filmGrainEffect);
 	}
 

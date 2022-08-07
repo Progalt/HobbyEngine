@@ -14,6 +14,8 @@
 #include "PostProcessEffectVk.h"
 #include "LightProbeVk.h"
 
+#define THREAD_GROUP_SIZE 32
+
 class RenderManagerVk : public RenderManager
 {
 public:
