@@ -22,7 +22,7 @@ public:
 
 		int hasNormal;
 
-		float padding;
+		int roughnessMetallicPacked;
 
 		glm::vec4 emissive;
 	};
@@ -71,6 +71,7 @@ public:
 		params.metallic = metallic;
 		params.hasNormal = (int)normalMap.Valid();
 		params.emissive = emissiveColour;
+		params.roughnessMetallicPacked = (int)roughnessMetallicShareTexture;
 
 		paramsBuffer.SetData(sizeof(MaterialParams), &params);
 

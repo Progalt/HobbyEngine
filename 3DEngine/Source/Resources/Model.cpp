@@ -21,9 +21,13 @@ void Model::LoadFromFile(const std::string& path, RenderManager* renderManager)
 	FILE* file = fopen(path.c_str(), "rb");
 
 	pmdl::Header1 header = pmdl::ReadHeader1(file);
+	
+	Log::Info("Model Loader", "Loading Model with %d vertices and %d indices", header.vertexCount, header.indexCount);
 
 	pmdl::Vertex* vertices = pmdl::ReadVertices(file, &header);
 	uint32_t* indices = pmdl::ReadIndices32bit(file, &header);
+
+	Log::Info("Model Loader", "Loaded Vertices and indices");
 
 	mesh = renderManager->NewMesh();
 
@@ -53,15 +57,17 @@ void Model::LoadFromFile(const std::string& path, RenderManager* renderManager)
 
 	this->mesh->GenerateMesh();
 
+	Log::Info("Model Loader", "Generated Mesh");
+	Log::Info("Model Loader", "Mesh Count: %d", header.meshCount);
+
 	for (uint16_t i = 0; i < header.meshCount; i++)
 	{
 		pmdl::Mesh mesh = pmdl::ReadMesh1(file, &header, i);
 
-		for (uint16_t l = mesh.firstLOD; l < mesh.firstLOD + mesh.LODCount; l++)
-			LODs.push_back(pmdl::ReadLOD1(file, &header, l));
-
 		submeshes.push_back(mesh);
 	}
+
+	Log::Info("Model Loader", "Read Mesh Data from file");
 
 	struct Img
 	{
@@ -83,6 +89,8 @@ void Model::LoadFromFile(const std::string& path, RenderManager* renderManager)
 		textures[i].img.LoadFromFile(path);
 		textures[i].name = std::string(texture.path, texture.pathSize);
 	}
+
+	Log::Info("Model Loader", "Loaded Textures");
 
 	for (uint16_t i = 0; i < header.materialCount; i++)
 	{
@@ -125,9 +133,15 @@ void Model::LoadFromFile(const std::string& path, RenderManager* renderManager)
 			if (!ResourceManager().GetInstance().GetTexturePtr(material->metallicMap)->created)
 				ResourceManager().GetInstance().GetTexturePtr(material->metallicMap)->CreateFromImage(textures[mat.metallicIndex].img, true, true);
 		}
+		
+		if (material->metallicMap == material->roughnessMap)
+			material->roughnessMetallicShareTexture = true;
 
 		materials.push_back(material);
 	}
+
+	Log::Info("Model Loader", "Loaded Materials: %d", header.materialCount);
+
 
 	fclose(file);
 

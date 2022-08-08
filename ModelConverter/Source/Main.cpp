@@ -5,8 +5,6 @@
 #include <assimp/Importer.hpp>
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
-#include <meshoptimizer.h>
-
 #include <vector>
 
 constexpr float LOD_INDEX_TARGET[3] =
@@ -42,7 +40,11 @@ public:
 		}
 		dir = filepath;
 
+		
+
 		processNode(scene->mRootNode, scene);
+
+		printf("Materials In Scene: %d", scene->mNumMaterials);
 
 		for (uint32_t i = 0; i < scene->mNumMaterials; i++)
 		{

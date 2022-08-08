@@ -13,6 +13,7 @@
 #include <vector>
 #include "PostProcessEffectVk.h"
 #include "LightProbeVk.h"
+#include "CACAOImpl.h"
 
 #define THREAD_GROUP_SIZE 32
 
@@ -104,6 +105,18 @@ public:
 
 	GlobalDataManager globalDataManager;
 
+	vk::Texture ssaoOutput;
+	CACAO mCacao;
+
+	struct
+	{
+
+		vk::Renderpass renderpass;
+		vk::Pipeline pipeline;
+		vk::DescriptorLayout layout;
+		vk::Descriptor descriptor;
+
+	} mApplyAOPass;
 
 	struct
 	{

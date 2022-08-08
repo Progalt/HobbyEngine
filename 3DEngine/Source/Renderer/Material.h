@@ -5,6 +5,7 @@
 
 enum class Pass
 {
+	DontCare, 
 	Deferred, 
 	Forward
 };
@@ -21,9 +22,12 @@ public:
 	virtual void Discard() = 0;
 
 	// Use this to override what pass the material is drawn in. 
-	// By default all materials are drawn in the deferred. 
-	// Some material parameters such as transparency or more advanced shader effects are drawn in forward pass
-	Pass pass = Pass::Deferred;
+	// Don't care means the renderer will decide what pass to put it in.
+	Pass pass = Pass::DontCare;
+
+	bool castShadows = true;
+
+	int roughnessMetallicShareTexture = false;
 
 	Handle<Texture> albedo;
 	Handle<Texture> normalMap;

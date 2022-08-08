@@ -29,4 +29,6 @@
 
 %VULKAN_SDK%/Bin/glslc.exe genIrradiance.glsl.comp -o genIrradiance.comp.spv
 
+%VULKAN_SDK%/Bin/glslc.exe PostProcess/ApplyAO.glsl.frag -o PostProcess/ApplyAO.frag.spv
+
 pause

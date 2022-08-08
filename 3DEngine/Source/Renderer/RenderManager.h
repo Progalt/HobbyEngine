@@ -107,6 +107,8 @@ public:
 
 	bool updatePostProcessStack = true;
 
+	bool cacao = true;
+
 	bool jitterVertices = false;
 
 	// time is the time to render at. 

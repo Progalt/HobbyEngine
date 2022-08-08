@@ -25,7 +25,7 @@ RenderManagerVk::RenderManagerVk(Window* window, const RenderManagerCreateInfo& 
 #ifdef _DEBUG
 	createInfo.debugInfo = true;
 #else 
-	createInfo.debugInfo = false;
+	createInfo.debugInfo = true;
 #endif
 	createInfo.requestSRGBBackBuffer = true;
 	createInfo.requestVSync = false;
@@ -299,7 +299,6 @@ RenderManagerVk::RenderManagerVk(Window* window, const RenderManagerCreateInfo& 
 		rpInfo.extentHeight = mProperties.renderHeight;
 		rpInfo.type = vk::RenderpassType::Offscreen;
 		rpInfo.colourAttachmentInitialLayouts = { vk::ImageLayout::General };
-		// NOTE: It transitions to a shader resource immediately after this so we could do that within the renderpass its self
 		rpInfo.colourAttachmentFinalLayouts = { vk::ImageLayout::General };	
 
 		mSkyPass.renderpass = mDevice.NewRenderpass(&rpInfo);
@@ -386,6 +385,59 @@ RenderManagerVk::RenderManagerVk(Window* window, const RenderManagerCreateInfo& 
 		mLightProbes.push_back((LightProbeVk*)probe);
 	}
 
+	{
+		ssaoOutput = mDevice.NewTexture();
+		ssaoOutput.CreateRenderTarget( vk::FORMAT_R8_UNORM, mProperties.renderWidth, mProperties.renderHeight, true, vk::ImageLayout::ShaderReadOnlyOptimal);
+
+		mCacao.Create(&mDevice);
+		
+		mCacao.SetUp(mProperties.renderWidth, mProperties.renderHeight, &mGeometryPass.depthTarget, nullptr, &ssaoOutput);
+
+		vk::RenderpassCreateInfo rpInfo{};
+		rpInfo.colourAttachments = { &mCurrentOutput[0] };
+		rpInfo.depthAttachment = nullptr;
+		rpInfo.loadAttachments = true;
+		rpInfo.loadDepth = true;
+		rpInfo.extentWidth = mProperties.renderWidth;
+		rpInfo.extentHeight = mProperties.renderHeight;
+		rpInfo.type = vk::RenderpassType::Offscreen;
+		rpInfo.colourAttachmentInitialLayouts = { vk::ImageLayout::Undefined };
+		rpInfo.colourAttachmentFinalLayouts = { vk::ImageLayout::General };
+
+		mApplyAOPass.renderpass = mDevice.NewRenderpass(&rpInfo);
+
+		mApplyAOPass.layout = mDevice.NewLayout();
+		mApplyAOPass.layout.AddLayoutBinding({ 0, vk::ShaderInputType::ImageSampler, 1, vk::ShaderStage::Fragment });
+		mApplyAOPass.layout.AddLayoutBinding({ 1, vk::ShaderInputType::ImageSampler, 1, vk::ShaderStage::Fragment });
+		mApplyAOPass.layout.Create();
+
+		vk::ShaderBlob vertexBlob = mDevice.NewShaderBlob();
+		vk::ShaderBlob fragmentBlob = mDevice.NewShaderBlob();
+
+		vertexBlob.CreateFromSource(vk::ShaderStage::Vertex, FileSystem::ReadBytes("Resources/Shaders/fullscreen.vert.spv"));
+		fragmentBlob.CreateFromSource(vk::ShaderStage::Fragment, FileSystem::ReadBytes("Resources/Shaders/PostProcess/ApplyAO.frag.spv"));
+
+		vk::PipelineCreateInfo pipelineInfo{};
+		pipelineInfo.renderpass = &mApplyAOPass.renderpass;
+		pipelineInfo.layout = { &mApplyAOPass.layout };
+		pipelineInfo.pushConstantRanges = {
+		};
+		pipelineInfo.topologyType = vk::Topology::TriangleList;
+		pipelineInfo.vertexDesc = nullptr;
+		pipelineInfo.shaders = { &vertexBlob, &fragmentBlob };
+
+		mApplyAOPass.pipeline = mDevice.NewPipeline(&pipelineInfo);
+
+		mApplyAOPass.descriptor = mDevice.NewDescriptor(&mApplyAOPass.layout);
+		mApplyAOPass.descriptor.BindCombinedImageSampler(&mLightingPipeline.output, &mTargetSampler, 0);
+		mApplyAOPass.descriptor.BindCombinedImageSampler(&ssaoOutput, &mTargetSampler, 1);
+		mApplyAOPass.descriptor.Update();
+
+
+		vertexBlob.Destroy();
+		fragmentBlob.Destroy();
+	}
+
 	vk::Imgui::Init(&mDevice, window, &mRenderpasses.swapchain);
 
 }
@@ -396,6 +448,12 @@ RenderManagerVk::~RenderManagerVk()
 
 	probe->Destroy();
 
+	ssaoOutput.Destroy();
+	mCacao.Destroy();
+
+	mApplyAOPass.layout.Destroy();
+	mApplyAOPass.pipeline.Destroy();
+	mApplyAOPass.renderpass.Destroy();
 
 	mSceneDataBuffer.Destroy();
 
@@ -497,7 +555,7 @@ void RenderManagerVk::Render(CameraInfo& cameraInfo)
 	glm::mat4 jitteredMatrix = glm::translate(glm::mat4(1.0f), { jitterX, jitterY, 0.0f });
 
 	if (jitterVertices)
-		mGlobalDataStruct.jitteredVP = cameraInfo.proj * cameraInfo.view * jitteredMatrix;
+		mGlobalDataStruct.jitteredVP = jitteredMatrix * cameraInfo.proj * cameraInfo.view;
 	else
 		mGlobalDataStruct.jitteredVP = cameraInfo.proj * cameraInfo.view;
 
@@ -514,6 +572,8 @@ void RenderManagerVk::Render(CameraInfo& cameraInfo)
 	mDevice.NextFrame();
 
 	mCmdList.Begin();
+
+	vk::ImageBarrierInfo imgBarrier{};
 
 	// First lets render some shadows
 
@@ -583,50 +643,93 @@ void RenderManagerVk::Render(CameraInfo& cameraInfo)
 	// Render the scene
 	RenderScene(renderInfo, mCmdList, false, true);
 
-	vk::ImageBarrierInfo imgBarrier{};
+	// CACAO ----
 
-	imgBarrier.srcAccess = vk::AccessFlags::ShaderWrite;
-	imgBarrier.oldLayout = vk::ImageLayout::General;
-	imgBarrier.dstAccess = vk::AccessFlags::TransferRead;
-	imgBarrier.newLayout = vk::ImageLayout::TransferSrcOptimal;
+	if (cacao)
+	{
 
-	mCmdList.ImageBarrier(&mLightingPipeline.output, vk::PipelineStage::ComputeShader, vk::PipelineStage::Transfer, imgBarrier);
+		mCmdList.BeginDebugUtilsLabel("FidelityFX CACAO");
+
+		mCacao.Execute(&mCmdList, renderInfo.data.proj, renderInfo.data.view);
+
+		stats.dispatchCalls += 19;
+
+		imgBarrier.srcAccess = vk::AccessFlags::ShaderWrite;
+		imgBarrier.oldLayout = vk::ImageLayout::General;
+		imgBarrier.dstAccess = vk::AccessFlags::ShaderRead;
+		imgBarrier.newLayout = vk::ImageLayout::ShaderReadOnlyOptimal;
+
+		mCmdList.ImageBarrier(&mLightingPipeline.output, vk::PipelineStage::ComputeShader, vk::PipelineStage::FragmentShader, imgBarrier);
+
+		mCmdList.BeginRenderpass(&mApplyAOPass.renderpass, false);
+
+		mCmdList.BindPipeline(&mApplyAOPass.pipeline);
+
+		mCmdList.BindDescriptors({ &mApplyAOPass.descriptor }, &mApplyAOPass.pipeline, 0);
+
+		mCmdList.Draw(3, 1, 0, 0);
+
+		stats.drawCalls++;
+
+		mCmdList.EndRenderpass();
+
+		imgBarrier.srcAccess = vk::AccessFlags::ShaderRead;
+		imgBarrier.oldLayout = vk::ImageLayout::ShaderReadOnlyOptimal;
+		imgBarrier.dstAccess = vk::AccessFlags::ShaderWrite;
+		imgBarrier.newLayout = vk::ImageLayout::General;
+
+		mCmdList.ImageBarrier(&mLightingPipeline.output, vk::PipelineStage::FragmentShader, vk::PipelineStage::ComputeShader, imgBarrier);
+
+		mCmdList.EndDebugUtilsLabel();
+
+	}
+	else
+	{
+
+		vk::ImageBarrierInfo imgBarrier{};
+
+		imgBarrier.srcAccess = vk::AccessFlags::ShaderWrite;
+		imgBarrier.oldLayout = vk::ImageLayout::General;
+		imgBarrier.dstAccess = vk::AccessFlags::TransferRead;
+		imgBarrier.newLayout = vk::ImageLayout::TransferSrcOptimal;
+
+		mCmdList.ImageBarrier(&mLightingPipeline.output, vk::PipelineStage::ComputeShader, vk::PipelineStage::Transfer, imgBarrier);
 
 
-	imgBarrier.srcAccess = vk::AccessFlags::ShaderWrite;
-	imgBarrier.oldLayout = vk::ImageLayout::General;
-	imgBarrier.dstAccess = vk::AccessFlags::TransferWrite;
-	imgBarrier.newLayout = vk::ImageLayout::TransferDstOptimal;
+		imgBarrier.srcAccess = vk::AccessFlags::ShaderWrite;
+		imgBarrier.oldLayout = vk::ImageLayout::General;
+		imgBarrier.dstAccess = vk::AccessFlags::TransferWrite;
+		imgBarrier.newLayout = vk::ImageLayout::TransferDstOptimal;
 
-	mCmdList.ImageBarrier(&mCurrentOutput[0], vk::PipelineStage::ComputeShader, vk::PipelineStage::Transfer, imgBarrier);
-
-
-	vk::ImageCopy imageCopy{};
-	imageCopy.dstLayer = 0;
-	imageCopy.srcLayer = 0;
-	imageCopy.w = mProperties.renderWidth;
-	imageCopy.h = mProperties.renderHeight;
-	imageCopy.srcX = 0;
-	imageCopy.srcY = 0;
-	imageCopy.dstX = 0;
-	imageCopy.dstY = 0;
-	mCmdList.CopyImage(&mLightingPipeline.output, vk::ImageLayout::TransferSrcOptimal, &mCurrentOutput[0], vk::ImageLayout::TransferDstOptimal,&imageCopy );
-
-	imgBarrier.srcAccess = vk::AccessFlags::TransferRead;
-	imgBarrier.oldLayout = vk::ImageLayout::TransferSrcOptimal;
-	imgBarrier.dstAccess = vk::AccessFlags::ShaderWrite;
-	imgBarrier.newLayout = vk::ImageLayout::General;
-
-	mCmdList.ImageBarrier(&mLightingPipeline.output, vk::PipelineStage::Transfer, vk::PipelineStage::ComputeShader, imgBarrier);
+		mCmdList.ImageBarrier(&mCurrentOutput[0], vk::PipelineStage::ComputeShader, vk::PipelineStage::Transfer, imgBarrier);
 
 
-	imgBarrier.srcAccess = vk::AccessFlags::TransferWrite;
-	imgBarrier.oldLayout = vk::ImageLayout::TransferDstOptimal;
-	imgBarrier.dstAccess = vk::AccessFlags::ShaderWrite;
-	imgBarrier.newLayout = vk::ImageLayout::General;
+		vk::ImageCopy imageCopy{};
+		imageCopy.dstLayer = 0;
+		imageCopy.srcLayer = 0;
+		imageCopy.w = mProperties.renderWidth;
+		imageCopy.h = mProperties.renderHeight;
+		imageCopy.srcX = 0;
+		imageCopy.srcY = 0;
+		imageCopy.dstX = 0;
+		imageCopy.dstY = 0;
+		mCmdList.CopyImage(&mLightingPipeline.output, vk::ImageLayout::TransferSrcOptimal, &mCurrentOutput[0], vk::ImageLayout::TransferDstOptimal, &imageCopy);
 
-	mCmdList.ImageBarrier(&mCurrentOutput[0], vk::PipelineStage::Transfer, vk::PipelineStage::ComputeShader, imgBarrier);
+		imgBarrier.srcAccess = vk::AccessFlags::TransferRead;
+		imgBarrier.oldLayout = vk::ImageLayout::TransferSrcOptimal;
+		imgBarrier.dstAccess = vk::AccessFlags::ShaderWrite;
+		imgBarrier.newLayout = vk::ImageLayout::General;
 
+		mCmdList.ImageBarrier(&mLightingPipeline.output, vk::PipelineStage::Transfer, vk::PipelineStage::ComputeShader, imgBarrier);
+
+
+		imgBarrier.srcAccess = vk::AccessFlags::TransferWrite;
+		imgBarrier.oldLayout = vk::ImageLayout::TransferDstOptimal;
+		imgBarrier.dstAccess = vk::AccessFlags::ShaderWrite;
+		imgBarrier.newLayout = vk::ImageLayout::General;
+
+		mCmdList.ImageBarrier(&mCurrentOutput[0], vk::PipelineStage::Transfer, vk::PipelineStage::ComputeShader, imgBarrier);
+	}
 	// Lets start post process effects
 
 	uint32_t targetNum = 1;
@@ -849,6 +952,11 @@ void RenderManagerVk::RenderDirectionalShadowMap(vk::CommandList& cmdList, Casca
 		for (auto& cmd : draws)
 		{
 			MeshVk* mesh = (MeshVk*)cmd.mesh;
+			MaterialVk* mat = (MaterialVk*)cmd.material;
+			
+			// This doesn't count as culled because it was never meant to be drawn in the first place here
+			if (!mat->castShadows)
+				continue;
 
 			mesh->boundingBox.Transform(cmd.transform);
 			if (!frustum.Test(mesh->boundingBox))
@@ -1093,7 +1201,7 @@ void RenderManagerVk::UpdateSettings()
 
 void RenderManagerVk::QueueMesh(Mesh* mesh, Material* material, glm::mat4 transform, uint32_t firstIndex, uint32_t indexCount, uint32_t vertexOffset)
 {
-	if (material->pass == Pass::Deferred)
+	if (material->pass == Pass::DontCare || material->pass == Pass::Deferred)
 		mDeferredDraws.push_back({ mesh, transform, material, firstIndex, indexCount, vertexOffset });
 	else
 		mForwardDraws.push_back({ mesh, transform, material, firstIndex, indexCount, vertexOffset });

@@ -32,6 +32,8 @@ public:
 	{
 		normals.resize(positions.size());
 
+		bool staticMesh = false;
+
 		// Didn't know how to do it
 		// Luckily this was useful
 		// https://computergraphics.stackexchange.com/questions/4031/programmatically-generating-vertex-normals

@@ -152,6 +152,7 @@
     <ClCompile Include="Source\Main.cpp" />
     <ClCompile Include="Source\Model\PMDL.cpp" />
     <ClCompile Include="Source\Renderer\RenderManager.cpp" />
+    <ClCompile Include="Source\Renderer\VkImpl\CACAOImpl.cpp" />
     <ClCompile Include="Source\Renderer\VkImpl\GlobalData.cpp" />
     <ClCompile Include="Source\Renderer\VkImpl\LightManager.cpp" />
     <ClCompile Include="Source\Renderer\VkImpl\LightProbeVk.cpp" />
@@ -181,6 +182,8 @@
     <ClCompile Include="Source\Scene\Component.cpp" />
     <ClCompile Include="Source\Scene\Scene.cpp" />
     <ClCompile Include="Source\Threading\JobSystem.cpp" />
+    <ClCompile Include="Source\Vendor\ffx-cacao\ffx_cacao.cpp" />
+    <ClCompile Include="Source\Vendor\ffx-cacao\ffx_cacao_impl.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\Core\Application.h" />
@@ -207,6 +210,7 @@
     <ClInclude Include="Source\Renderer\RenderManager.h" />
     <ClInclude Include="Source\Renderer\Terrain.h" />
     <ClInclude Include="Source\Renderer\Texture.h" />
+    <ClInclude Include="Source\Renderer\VkImpl\CACAOImpl.h" />
     <ClInclude Include="Source\Renderer\VkImpl\GlobalData.h" />
     <ClInclude Include="Source\Renderer\VkImpl\LightManager.h" />
     <ClInclude Include="Source\Renderer\VkImpl\MaterialVk.h" />
@@ -241,6 +245,9 @@
     <ClInclude Include="Source\Scene\Transform.h" />
     <ClInclude Include="Source\Threading\JobSystem.h" />
     <ClInclude Include="Source\Threading\ThreadSafeQueue.h" />
+    <ClInclude Include="Source\Vendor\ffx-cacao\ffx_cacao.h" />
+    <ClInclude Include="Source\Vendor\ffx-cacao\ffx_cacao_defines.h" />
+    <ClInclude Include="Source\Vendor\ffx-cacao\ffx_cacao_impl.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Resources\Shaders\base.glsl.frag" />
@@ -258,6 +265,7 @@
     <None Include="Resources\Shaders\LightBinning.glsl.comp" />
     <None Include="Resources\Shaders\lighting.glsl.comp" />
     <None Include="Resources\Shaders\PBR.glsl" />
+    <None Include="Resources\Shaders\PostProcess\ApplyAO.glsl.frag" />
     <None Include="Resources\Shaders\shadow.glsl.vert" />
     <None Include="Resources\Shaders\sky.glsl.frag" />
     <None Include="Resources\Shaders\sky.glsl.vert" />

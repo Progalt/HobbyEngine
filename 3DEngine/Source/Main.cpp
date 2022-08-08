@@ -30,9 +30,7 @@ public:
 
 		sphere = ResourceManager::GetInstance().NewModel();
 
-		sphere->LoadFromFile("Resources/Sphere.pmdl", renderManager);
-		sphere->materials[0]->roughness = 0.1f;
-		sphere->materials[0]->metallic = 0.8f;
+		sphere->LoadFromFile("Resources/FlightHelmet/FlightHelmet.pmdl", renderManager);
 
 		proj = glm::perspective(glm::radians(60.0f), (float)window.GetWidth() / (float)window.GetHeight(), 0.01f, 1000.0f);
 		viewPos = { 0.0f, 0.0f, 0.0f };
@@ -49,12 +47,14 @@ public:
 		worldTest->GetTransform().SetEuler({ 180.0f, 0.0f, 0.0f });
 		worldTest->GetTransform().SetScale({ 4.0f, 4.0f, 4.0f });
 
-		for (uint32_t x = 0; x < 4; x++)
-			for (uint32_t y = 0; y < 4; y++)
+		for (uint32_t x = 0; x < 1; x++)
+			for (uint32_t y = 0; y < 1; y++)
 			{
 				Actor* sphereActor = scene.NewActor("Sphere" + std::to_string(x + y));
 				sphereActor->AddComponent<MeshRenderer>()->model = sphere;
 
+				sphereActor->GetTransform().SetEuler({ 180.0f, 0.0f, 0.0f });
+				sphereActor->GetTransform().SetScale( { 6.0f, 6.0f, 6.0f });
 				sphereActor->GetTransform().SetPosition({ (-8.0f  * 3.0f) / 2 + (float)x * 3.0f, (float)y * -3.0f, 0.0f });
 			}
 
@@ -115,16 +115,16 @@ public:
 			PostProcessInput::Colour, PostProcessInput::Velocity, PostProcessInput::History, PostProcessInput::Depth
 		};
 		taaCreateInfo.uniformBufferSize = sizeof(taaData);
-		taaCreateInfo.cacheHistory = false;
+		taaCreateInfo.cacheHistory = true;
 		taaCreateInfo.shaderByteCode = FileSystem::ReadBytes("Resources/Shaders/TAA.comp.spv");
 
 		taaEffect = renderManager->CreatePostProcessEffect(taaCreateInfo);
 
 		renderManager->jitterVertices = true;
 
-		renderManager->AddPostProcessEffect(fogEffect);
+		//renderManager->AddPostProcessEffect(fogEffect);
 		renderManager->AddPostProcessEffect(taaEffect);
-		renderManager->AddPostProcessEffect(fxaaEffect);
+		//renderManager->AddPostProcessEffect(fxaaEffect);
 		//renderManager->AddPostProcessEffect(chromaticAberrationEffect);
 		//renderManager->AddPostProcessEffect(filmGrainEffect);
 	}
@@ -224,7 +224,7 @@ public:
 		if (fogEffect->enabled)
 			ImGui::DragFloat("Fog Density", &fogData.fogDensity, 0.001, 0.0f, 0.5f);
 
-
+		ImGui::Checkbox("CACAO", &renderManager->cacao);
 
 		const char* tonemappingModes[] = { "None", "Filmic", "Unreal", "Uncharted 2", "ACES"};
 		static const char* currentTonemap = "None";

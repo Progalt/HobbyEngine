@@ -98,7 +98,7 @@ void LightProbeVk::GenerateIrradiance(vk::CommandList& cmdList)
 
 	cmdList.BindDescriptors({ &irradianceDescriptor }, &shaders.genIrradiance.pipeline, 0);
 
-	cmdList.Dispatch(resolution / 16, resolution / 16, 6);
+	cmdList.Dispatch(resolution / 32, resolution / 32, 6);
 
 	imgBarrier.srcAccess = vk::AccessFlags::ShaderWrite;
 	imgBarrier.oldLayout = vk::ImageLayout::General;

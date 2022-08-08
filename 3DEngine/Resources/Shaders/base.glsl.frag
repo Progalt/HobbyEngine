@@ -23,7 +23,7 @@ layout(set = 0, binding = 0) uniform MaterialParams
 	float metallic;
 
 	int hasNormal;
-	float padding;
+	int roughnessMetallicPacked;
 
 	vec4 emissive;
 
@@ -57,13 +57,24 @@ void main()
 	outVelocity.rg = vec2(0.0, 0.0);
 
 
+
+	outColour.a = 1.0;
+
 	outNormal.rg = encode(calculateNormal());
-	outNormal.b = texture(in_roughness, vTexCoord).r * in_params.roughness;
-	outNormal.a = texture(in_metallic, vTexCoord).r * in_params.metallic;
+	if (in_params.roughnessMetallicPacked == 0)
+	{
+		outNormal.b = texture(in_roughness, vTexCoord).r * in_params.roughness;
+		outNormal.a = texture(in_metallic, vTexCoord).r * in_params.metallic;
+	}
+	else
+	{
+		outNormal.b = texture(in_roughness, vTexCoord).g * in_params.roughness;
+		outNormal.a = texture(in_roughness, vTexCoord).b * in_params.metallic;
+	}
 
 	vec4 albedo = texture(in_texture, vTexCoord) * in_params.albedo;
 
-	outColour = albedo;
+	outColour.rgb = albedo.rgb;
 
 	outEmissive.rgba = vec4(0.0, 0.0, 0.0, 1.0);
 	outEmissive.rgb = in_params.emissive.rgb;

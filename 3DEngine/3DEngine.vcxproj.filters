@@ -129,6 +129,15 @@
     <ClCompile Include="Source\Renderer\Vulkan\Vendor\VkBootstrap.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Source\Vendor\ffx-cacao\ffx_cacao.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Vendor\ffx-cacao\ffx_cacao_impl.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Renderer\VkImpl\CACAOImpl.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\Renderer\Vulkan\Vendor\vk_mem_alloc.h">
@@ -305,6 +314,18 @@
     <ClInclude Include="Source\Renderer\Vulkan\Vendor\VkBootstrap.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Source\Vendor\ffx-cacao\ffx_cacao.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Vendor\ffx-cacao\ffx_cacao_impl.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Vendor\ffx-cacao\ffx_cacao_defines.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Renderer\VkImpl\CACAOImpl.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="Resources\Shaders\base.glsl.vert" />
@@ -327,6 +348,7 @@
     <None Include="Resources\Shaders\ChromaticAberration.glsl.comp" />
     <None Include="Resources\Shaders\LightBinning.glsl.comp" />
     <None Include="Resources\Shaders\genIrradiance.glsl.comp" />
+    <None Include="Resources\Shaders\PostProcess\ApplyAO.glsl.frag" />
   </ItemGroup>
   <ItemGroup>
     <Text Include="Resources\Shaders\PostProcess\FilmGrain.glsl.comp" />

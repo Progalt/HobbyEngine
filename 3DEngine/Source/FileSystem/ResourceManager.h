@@ -24,6 +24,11 @@ public:
 
 	bool Valid() { return (mPool != 0); }
 
+	bool operator==(Handle<_Ty> handle)
+	{
+		return (handle.mID == mID);
+	}
+
 private:
 
 	friend class ResourceManager;
