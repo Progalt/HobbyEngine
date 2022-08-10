@@ -28,23 +28,26 @@ PostProcessEffectVk::PostProcessEffectVk(RenderManagerVk* renderManager, const P
 	descriptorLayout.Create();
 
 	descriptor = renderManager->mDevice.NewDescriptor(&descriptorLayout);
+	if (createInfo.computeShader)
+	{
+		vk::ShaderBlob blob = renderManager->mDevice.NewShaderBlob();
+		blob.CreateFromSource(vk::ShaderStage::Compute, createInfo.shaderByteCode);
 
-	vk::ShaderBlob blob = renderManager->mDevice.NewShaderBlob();
-	blob.CreateFromSource(vk::ShaderStage::Compute, createInfo.shaderByteCode);
+		vk::ComputePipelineCreateInfo pipelineInfo{};
+		pipelineInfo.computeBlob = &blob;
 
-	vk::ComputePipelineCreateInfo pipelineInfo{};
-	pipelineInfo.computeBlob = &blob;
+		if (createInfo.passGlobalData)
+			pipelineInfo.layout.push_back(renderManager->globalDataManager.GetLayout(vk::ShaderStage::Compute));
 
-	if (createInfo.passGlobalData)
-		pipelineInfo.layout.push_back(renderManager->globalDataManager.GetLayout(vk::ShaderStage::Compute));
+		pipelineInfo.layout.push_back(&descriptorLayout);
 
-	pipelineInfo.layout.push_back(&descriptorLayout);
+		computePipeline = renderManager->mDevice.NewComputePipeline(&pipelineInfo);
 
-	computePipeline = renderManager->mDevice.NewComputePipeline(&pipelineInfo);
+		blob.Destroy();
 
-	blob.Destroy();
 
-	computeShader = true;
+		computeShader = true;
+	}
 
 	if (createInfo.uniformBufferSize != 0)
 	{

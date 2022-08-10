@@ -6,6 +6,8 @@
 
 #include "../Core/Log.h"
 
+#include "../Threading/JobSystem.h"
+
 void ResourceManager::Discard()
 {
 	Log::Info("Resource Manager", "Freed %d texture(s)", mLoadedTextures.size());
@@ -146,4 +148,16 @@ Handle<Texture> ResourceManager::GetErrorTexture()
 
 	return mErrorTexture.tex;
 
+}
+
+Image* ResourceManager::StreamFromDisk(const std::string& path)
+{
+	Image* img = new Image();
+	
+	JobSystem::Execute([img, path]()
+		{
+			img->LoadFromFile(path);
+		});
+
+	return img;
 }

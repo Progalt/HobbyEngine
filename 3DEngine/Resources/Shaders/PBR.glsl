@@ -17,14 +17,18 @@ float Schlick(float u, float f0, float f90)
 
 vec3 Schlick(float u, vec3 f0) 
 {
-    return f0 + (vec3(1.0) - f0) * pow(1.0 - u, 5.0);
+    return max(f0 + (1.0 - f0) * pow(2, (-5.55473 * u - 6.98316) * u), 0.0);
 }
 
 // A is roughness
 float GGX(float NoH, float a) {
-    float a2 = a * a;
-    float f = (NoH * a2 - NoH) * NoH + 1.0;
-    return a2 / (PI * f * f);
+   float r = (a + 1.0);
+	float k = (a * a) / 8.0;
+
+	float numerator = NoH;
+	float denominator = NoH * (1.0 - k) + k;
+
+	return numerator / max(denominator, 0.001);
 }
 
 float SmithGGXCorrelated(float NoV, float NoL, float a) {
@@ -33,6 +37,19 @@ float SmithGGXCorrelated(float NoV, float NoL, float a) {
     float GGXV = NoL * sqrt((-NoV * a2 + NoV) * NoV + a2);
     return 0.5 / (GGXV + GGXL);
 }
+float GeometrySchlickGGX(float cosTheta, float roughness) {
+	float r = (roughness + 1.0);
+	float k = (roughness * roughness) / 8.0;
+
+	float numerator = cosTheta;
+	float denominator = cosTheta * (1.0 - k) + k;
+
+	return numerator / max(denominator, 0.001);
+}
+float GeometrySmith(vec3 normal, vec3 viewDir, vec3 lightDir, float roughness) {
+	return GeometrySchlickGGX(max(dot(normal, viewDir), 0.0), roughness) * GeometrySchlickGGX(max(dot(normal, lightDir), 0.0), roughness);
+}
+
 
 float Diffuse_Lambert() 
 {

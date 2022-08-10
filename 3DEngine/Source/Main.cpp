@@ -8,7 +8,7 @@
 #include <array>
 #include <imgui.h>
 
-
+#include "Maths/Frustum.h"
 
 #include "Resources/Model.h"
 #include "Scene/Scene.h"
@@ -26,13 +26,12 @@ public:
 
 		ResourceManager::GetInstance().SetRenderManager(renderManager);
 		model = ResourceManager::GetInstance().NewModel();
-		model->LoadFromFile("Resources/MMTest.pmdl", renderManager);
+		model->LoadFromFile("Resources/Sponza/Sponza.pmdl", renderManager);
+		
+		standardProj = glm::perspective(glm::radians(80.0f), (float)window.GetWidth() / (float)window.GetHeight(), 0.1f, 1000.0f);
+		proj = ReversedDepthPerspective(glm::radians(80.0f), (float)window.GetWidth() / (float)window.GetHeight(), 0.1f);
+		
 
-		sphere = ResourceManager::GetInstance().NewModel();
-
-		sphere->LoadFromFile("Resources/FlightHelmet/FlightHelmet.pmdl", renderManager);
-
-		proj = glm::perspective(glm::radians(60.0f), (float)window.GetWidth() / (float)window.GetHeight(), 0.01f, 1000.0f);
 		viewPos = { 0.0f, 0.0f, 0.0f };
 
 		renderManager->ImGuiDraw([&]() { ImGuiRender(); });
@@ -45,18 +44,7 @@ public:
 		worldTest->AddComponent<MeshRenderer>()->model = model;
 
 		worldTest->GetTransform().SetEuler({ 180.0f, 0.0f, 0.0f });
-		worldTest->GetTransform().SetScale({ 4.0f, 4.0f, 4.0f });
-
-		for (uint32_t x = 0; x < 1; x++)
-			for (uint32_t y = 0; y < 1; y++)
-			{
-				Actor* sphereActor = scene.NewActor("Sphere" + std::to_string(x + y));
-				sphereActor->AddComponent<MeshRenderer>()->model = sphere;
-
-				sphereActor->GetTransform().SetEuler({ 180.0f, 0.0f, 0.0f });
-				sphereActor->GetTransform().SetScale( { 6.0f, 6.0f, 6.0f });
-				sphereActor->GetTransform().SetPosition({ (-8.0f  * 3.0f) / 2 + (float)x * 3.0f, (float)y * -3.0f, 0.0f });
-			}
+		worldTest->GetTransform().SetScale({ 0.05f, 0.05f, 0.05f });
 
 		PostProcessCreateInfo fogCreateInfo{};
 		fogCreateInfo.computeShader = true;
@@ -115,7 +103,7 @@ public:
 			PostProcessInput::Colour, PostProcessInput::Velocity, PostProcessInput::History, PostProcessInput::Depth
 		};
 		taaCreateInfo.uniformBufferSize = sizeof(taaData);
-		taaCreateInfo.cacheHistory = true;
+		taaCreateInfo.cacheHistory = false;
 		taaCreateInfo.shaderByteCode = FileSystem::ReadBytes("Resources/Shaders/TAA.comp.spv");
 
 		taaEffect = renderManager->CreatePostProcessEffect(taaCreateInfo);
@@ -124,10 +112,11 @@ public:
 
 		//renderManager->AddPostProcessEffect(fogEffect);
 		renderManager->AddPostProcessEffect(taaEffect);
-		//renderManager->AddPostProcessEffect(fxaaEffect);
+		renderManager->AddPostProcessEffect(fxaaEffect);
 		//renderManager->AddPostProcessEffect(chromaticAberrationEffect);
 		//renderManager->AddPostProcessEffect(filmGrainEffect);
 	}
+
 
 	void Update() override
 	{
@@ -139,8 +128,8 @@ public:
 
 		glm::ivec2 mousePos = input.GetMousePosition();
 
-		int32_t offX = mousePos.x - lastX;
-		int32_t offY = mousePos.y - lastY;
+		float offX = floorf((float)mousePos.x - (float)lastX);
+		float offY = floorf((float)mousePos.y - (float)lastY);
 
 		glm::vec3 direction;
 		direction.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
@@ -149,7 +138,6 @@ public:
 
 		glm::vec3 right = glm::normalize(glm::cross(direction, glm::vec3(0.0f, 1.0f, 0.0f)));
 		glm::vec3 up = glm::normalize(glm::cross(right, direction));
-
 
 		if (input.IsButtonPressed(MouseButton::Right))
 		{
@@ -160,9 +148,14 @@ public:
 				pitch = 89.0f;
 			if (pitch < -89.0f)
 				pitch = -89.0f;
+
 		}
 
-		float velocity = 10.0f;
+		lastX = mousePos.x;
+		lastY = mousePos.y;
+
+		float velocity = 15.0f;
+
 
 		if (input.IsKeyPressed(KeyCode::W))
 		{
@@ -184,19 +177,18 @@ public:
 			viewPos += right * velocity * time.delta;
 		}
 
-
 		view = glm::lookAt(viewPos, viewPos + direction, up);
-
-		lastX = mousePos.x;
-		lastY = mousePos.y;
 
 		
 	}
 
+	Transform camTransform;
 
-	glm::mat4 view;
-	glm::mat4 proj;
-	glm::vec3 viewPos;
+
+	 glm::mat4 view;
+	 glm::mat4 proj;
+	 glm::mat4 standardProj;
+	 glm::vec3 viewPos;
 
 	int framerate;
 
@@ -222,9 +214,14 @@ public:
 		
 		
 		if (fogEffect->enabled)
-			ImGui::DragFloat("Fog Density", &fogData.fogDensity, 0.001, 0.0f, 0.5f);
+			ImGui::DragFloat("Fog Density", &fogData.fogDensity, 0.0001f, 0.0f, 0.5f, "%.5f");
 
 		ImGui::Checkbox("CACAO", &renderManager->cacao);
+
+		if (ImGui::Button("Update Cascades"))
+		{
+			renderManager->updateCascade = true;
+		}
 
 		const char* tonemappingModes[] = { "None", "Filmic", "Unreal", "Uncharted 2", "ACES"};
 		static const char* currentTonemap = "None";
@@ -273,19 +270,21 @@ public:
 		info.lightCount = 0;
 		float t = -renderManager->time;
 		info.dirLight.direction = { 0.0f, sin(glm::radians(t)), -cos(glm::radians(t)), 1.0f};
-		info.dirLight.colour = { 1.0f, 1.0f, 1.0f, 1.0f };
-		info.dirLight.colour *= 7.5f;
+		info.dirLight.colour = { 1.0f, 1.0f, 0.95f, 1.0f };
+		info.dirLight.colour *= 10.0f;
 		
 		fogData.sunDir = info.dirLight.direction;
 
 		renderManager->UpdateScene(info);
+
+		fogEffect->UpdateUniformBuffer(&fogData);
 
 		if (firstFrame)
 		{
 
 			filmGrainUniforms.time = ticks;
 			filmGrainUniforms.strength = 0.01f;
-			fogEffect->UpdateUniformBuffer(&fogData);
+			
 			filmGrainEffect->UpdateUniformBuffer(&filmGrainUniforms);
 		}
 
@@ -297,10 +296,11 @@ public:
 		glm::mat4 viewProj = proj * view;
 
 		CameraInfo cameraInfo{};
-		cameraInfo.nearPlane = 0.001f;
+		cameraInfo.nearPlane = 0.1f;
 		cameraInfo.farPlane = 1000.0f;
 		cameraInfo.proj = proj;
 		cameraInfo.view = view;
+		cameraInfo.standardProj = standardProj;
 		cameraInfo.view_pos = viewPos;
 
 		renderManager->Render(cameraInfo);
@@ -360,7 +360,6 @@ public:
 	Scene scene;
 
 	Model* model;
-	Model* sphere;
 
 	int GetFramerate(int newFrame)
 	{

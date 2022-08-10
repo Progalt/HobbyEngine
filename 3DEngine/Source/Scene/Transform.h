@@ -17,6 +17,16 @@ public:
 		mCachedMatrix = glm::mat4(1.0f);
 	}
 
+	void SetRotation(const glm::quat& quat)
+	{
+		mRotation = quat;
+	}
+
+	glm::quat GetRotation()
+	{
+		return mRotation;
+	}
+
 	void SetPosition(const glm::vec3& pos)
 	{
 		mPosition = pos;
@@ -52,6 +62,24 @@ public:
 		return glm::eulerAngles(mRotation);
 	}
 
+	const glm::vec3& GetUp()
+	{
+		glm::mat4 matrix = ComputeMatrix(glm::mat4(1.0f));
+		return glm::vec3(matrix[0][1], matrix[1][1], matrix[2][1]);
+	}
+
+	const glm::vec3& GetRight()
+	{
+		glm::mat4 matrix = ComputeMatrix(glm::mat4(1.0f));
+		return glm::vec3(matrix[0][0], matrix[1][0], matrix[2][0]);
+	}
+
+	const glm::vec3& GetForward()
+	{
+		glm::mat4 matrix = ComputeMatrix(glm::mat4(1.0f));
+		return glm::vec3(matrix[0][2], matrix[1][2], matrix[2][2]);
+	}
+
 	const glm::mat4 ComputeMatrix(const glm::mat4& parent)
 	{
 		if (mUpdate)
@@ -60,7 +88,7 @@ public:
 			glm::mat4 scale = glm::scale(glm::mat4(1.0f), this->mScale);
 			glm::mat4 rotation = glm::toMat4(this->mRotation);
 
-			glm::mat4 transform = translation * scale * rotation;
+			glm::mat4 transform = scale * rotation * translation;
 
 			mCachedMatrix = transform;
 			return parent * transform;

@@ -38,15 +38,12 @@ enum class AntiAliasingMethod
 
 struct RenderSettings
 {
-	// Method to do anti aliasing
-	AntiAliasingMethod AntiAliasing;
-
 	QualitySetting shadowQuality = QualitySetting::Medium;
 };
 
 struct CameraInfo
 {
-	glm::mat4 proj, view;
+	glm::mat4 proj, view, standardProj;
 	glm::vec3 view_pos;
 	float nearPlane, farPlane;
 };
@@ -96,6 +93,8 @@ public:
 	{
 		imguiFunc = imgui;
 	}
+
+	bool updateCascade = true;
 
 	RenderStatistics stats;
 

@@ -65,6 +65,7 @@ public:
 
 	Handle<Texture> GetErrorTexture();
 
+	Image* StreamFromDisk(const std::string& path);
 
 private:
 

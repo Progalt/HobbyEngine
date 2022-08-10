@@ -349,6 +349,7 @@
     <None Include="Resources\Shaders\LightBinning.glsl.comp" />
     <None Include="Resources\Shaders\genIrradiance.glsl.comp" />
     <None Include="Resources\Shaders\PostProcess\ApplyAO.glsl.frag" />
+    <None Include="Resources\Shaders\variance.glsl.frag" />
   </ItemGroup>
   <ItemGroup>
     <Text Include="Resources\Shaders\PostProcess\FilmGrain.glsl.comp" />

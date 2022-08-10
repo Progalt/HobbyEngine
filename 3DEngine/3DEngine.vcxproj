@@ -271,6 +271,7 @@
     <None Include="Resources\Shaders\sky.glsl.vert" />
     <None Include="Resources\Shaders\StructInclude.glsl" />
     <None Include="Resources\Shaders\TAA.glsl.comp" />
+    <None Include="Resources\Shaders\variance.glsl.frag" />
   </ItemGroup>
   <ItemGroup>
     <Text Include="Resources\Shaders\PostProcess\FilmGrain.glsl.comp" />

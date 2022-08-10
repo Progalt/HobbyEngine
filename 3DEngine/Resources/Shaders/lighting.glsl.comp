@@ -69,10 +69,24 @@ const mat4 biasMat = mat4(
 	0.5, 0.5, 0.0, 1.0 
 );
 
-float textureProj(vec4 shadowCoord, vec2 offset, uint cascadeIndex)
+/*float sampleVariance(vec2 coords, float compare)
+{
+	vec2 moments = texture(cascadeAtlas, coords.xy).xy;
+
+	float p = step(compare, moments.x);
+	float variance = max(moments.y - moments.x * moments.x, 0.00002);
+
+	float d = compare - moments.x;
+	float pMax = variance / (variance + d*d);
+
+	return min(max(p, pMax), 1.0);
+}*/	
+
+const float cascadeBlend = 0.8;
+
+float textureProj(vec4 shadowCoord, vec2 offset, uint cascadeIndex, float bias)
 {
 	float shadow = 1.0;
-	float bias = 0.005;
 
 	if ( shadowCoord.z > -1.0 && shadowCoord.z < 1.0 ) {
 
@@ -90,13 +104,18 @@ float textureProj(vec4 shadowCoord, vec2 offset, uint cascadeIndex)
 		}*/
 
 		shadow = texture(cascadeAtlas, vec3(sampleCoord, shadowCoord.z - bias));
+
+		//shadow = sampleVariance(sampleCoord, shadowCoord.z - bias);
 	}
 	return shadow;
 
 }
 
-float filterPCF(vec4 sc, uint cascadeIndex)
+float filterPCF(vec4 sc, uint cascadeIndex, float bias)
 {
+	if (cascadeIndex > 1)
+		return textureProj(sc, vec2(0, 0), cascadeIndex, bias);
+
 	ivec2 texDim = textureSize(cascadeAtlas, 0).xy;
 	texDim.x /= 3;
 	float scale = 1.2;
@@ -105,11 +124,11 @@ float filterPCF(vec4 sc, uint cascadeIndex)
 
 	float shadowFactor = 0.0;
 	int count = 0;
-	int range = 1;
+	int range = (cascadeIndex == 0)? 2 : 1;
 	
 	for (int x = -range; x <= range; x++) {
 		for (int y = -range; y <= range; y++) {
-			shadowFactor += textureProj(sc, vec2(dx*x, dy*y), cascadeIndex);
+			shadowFactor += textureProj(sc, vec2(dx*x, dy*y), cascadeIndex, bias);
 			count++;
 		}
 	}
@@ -118,10 +137,14 @@ float filterPCF(vec4 sc, uint cascadeIndex)
 
 
 
+
+
 vec4 shadowCoord;
 
 vec3 DirectionalLightContribution(vec3 n, DirectionalLight light, vec3 v, vec3 f0, vec3 fragPos)
 {
+	vec3 l = normalize(light.direction.xyz);
+
 	// Shadow
 
 	vec4 viewPos = global.view *  vec4(fragPos, 1.0);
@@ -138,12 +161,14 @@ vec3 DirectionalLightContribution(vec3 n, DirectionalLight light, vec3 v, vec3 f
 
 	shadowCoord = (biasMat * shadowData.matrices[cascadeIndex]) * vec4(fragPos, 1.0);	
 
+	float bias = 0.005;  
+
 	float shadow = 0;
 	if (constants.useIBL==1)
-		//shadow = textureProj(shadowCoord / shadowCoord.w, vec2(0.0), cascadeIndex);
-		shadow = filterPCF(shadowCoord / shadowCoord.w, cascadeIndex);
+		//shadow = textureProj(shadowCoord / shadowCoord.w, vec2(0.0), cascadeIndex, bias);
+		shadow = filterPCF(shadowCoord / shadowCoord.w, cascadeIndex, bias);
 
-	vec3 l = normalize(light.direction.xyz);
+	
 
 	vec3 h = normalize(v + l);
 
@@ -159,8 +184,8 @@ vec3 DirectionalLightContribution(vec3 n, DirectionalLight light, vec3 v, vec3 f
 	//vec3 Fd = light.colour.xyz * Diffuse_Burley(NoV, NoL, LoH, roughness);
 
     float D = GGX(NoH, roughness);
-    vec3  F = SchlickRoughness(LoH, f0, roughness);
-    float V = SmithGGXCorrelated(NoV, NoL, roughness);
+    vec3  F = Schlick(LoH, f0);
+    float V = GeometrySmith(n, v, l, roughness);
 
 	vec3 Spec = F;
 	vec3 Diffuse = vec3(1.0) - F;
@@ -201,7 +226,7 @@ void main()
 	vec4 gColourSampled = texelFetch(gColour, ivec2(gl_GlobalInvocationID.xy), 0);
 	vec4 gNormalSampled = texelFetch(gNormal, ivec2(gl_GlobalInvocationID.xy), 0);
 
-	material.roughness = gNormalSampled.b; 
+	material.roughness = max(gNormalSampled.b, 0.04); 
 	material.metallic = gNormalSampled.a;
 
 	vec2 encodedNormal = gNormalSampled.xy;
@@ -241,7 +266,7 @@ void main()
 	}*/
 
 	// Store the final result to the output image
-	if (depth != 1.0)
+	if (depth != DEPTH_MAX)
 		imageStore(finalOutput, ivec2(gl_GlobalInvocationID.xy), vec4(final, 1.0));
 	else 
 		imageStore(finalOutput, coord, vec4(prev, 1.0));

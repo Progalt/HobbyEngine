@@ -1,6 +1,15 @@
 #pragma once
+#include <glm/glm.hpp>
 
+inline float lerp(float a, float b, float t)
+{
+	return a + (b - a) * t;
+}
 
+inline glm::vec3 lerp(glm::vec3 a, glm::vec3 b, glm::vec3 t)
+{
+	return a + (b - a) * t;
+}
 
 template<typename _Ty>
 class Rect

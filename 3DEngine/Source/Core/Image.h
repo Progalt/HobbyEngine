@@ -6,9 +6,13 @@
 
 #include "../Maths/Rect.h"
 
-	class Image
+#include "../Resources/Resource.h"
+
+	class Image : public Resource
 	{
 	public:
+
+		void Discard() override;
 
 		~Image();
 
@@ -16,17 +20,26 @@
 
 		void LoadFromFile(const std::string& filepath);
 
-		const uint32_t GetWidth() const { return mWidth; }
-		const uint32_t GetHeight() const { return mHeight; }
+		const uint32_t GetWidth(uint32_t mipLevel = 0) const { return mMip[0].width; }
+		const uint32_t GetHeight(uint32_t mipLevel = 0) const { return mMip[0].height; }
 		const uint32_t GetBytesPerPixel() const { return mBytesPerPixel; }
 
-		const uint8_t* GetPixels()const { return mPixels; }
+		const uint8_t* GetPixels(uint32_t mipLevel = 0)const { return mMip[0].pixels; }
 
 
 	private:
 
-		uint32_t mWidth, mHeight, mBytesPerPixel;
-		uint8_t* mPixels;
+		bool mDiscarded = true;
+
+		uint32_t mBytesPerPixel;
+
+		struct Mip
+		{
+			uint32_t width, height;
+			uint8_t* pixels;
+		};
+
+		std::vector<Mip> mMip;
 	};
 
 	enum class CubemapSide

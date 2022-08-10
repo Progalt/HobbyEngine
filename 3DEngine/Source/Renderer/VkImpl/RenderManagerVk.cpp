@@ -107,7 +107,7 @@ RenderManagerVk::RenderManagerVk(Window* window, const RenderManagerCreateInfo& 
 
 
 		mGeometryPass.depthTarget = mDevice.NewTexture();
-		mGeometryPass.depthTarget.CreateRenderTarget(vk::FORMAT_D24_UNORM_S8_UINT, mProperties.renderWidth, mProperties.renderHeight);
+		mGeometryPass.depthTarget.CreateRenderTarget(vk::FORMAT_D32_SFLOAT, mProperties.renderWidth, mProperties.renderHeight);
 
 		mGeometryPass.emissiveTarget = mDevice.NewTexture();
 		mGeometryPass.emissiveTarget.CreateRenderTarget(vk::FORMAT_R8G8B8A8_UNORM, mProperties.renderWidth, mProperties.renderHeight);
@@ -356,7 +356,7 @@ RenderManagerVk::RenderManagerVk(Window* window, const RenderManagerCreateInfo& 
 		pipelineInfo.depthTest = true;
 		pipelineInfo.depthWrite = true;
 		pipelineInfo.compareOp = vk::CompareOp::Less;
-		pipelineInfo.shaders = { &vertexBlob, };
+		pipelineInfo.shaders = { &vertexBlob };
 
 		mShadowData.pipeline = mDevice.NewPipeline(&pipelineInfo);
 
@@ -580,8 +580,8 @@ void RenderManagerVk::Render(CameraInfo& cameraInfo)
 	
 	if (mSceneInfo.hasDirectionalLight)
 	{
-		mShadowData.directionalShadowMap.UpdateCascades(mSceneInfo.dirLight, cameraInfo.nearPlane,
-			cameraInfo.farPlane, cameraInfo.proj, cameraInfo.view);
+			mShadowData.directionalShadowMap.UpdateCascades(mSceneInfo.dirLight, cameraInfo.nearPlane,
+				cameraInfo.farPlane, cameraInfo.standardProj, cameraInfo.view);
 
 		RenderDirectionalShadowMap(mCmdList, &mShadowData.directionalShadowMap);
 	}
@@ -608,7 +608,7 @@ void RenderManagerVk::Render(CameraInfo& cameraInfo)
 			renderInfo.target = &lightProbe->cubemap;
 			renderInfo.level = i;
 
-			RenderScene(renderInfo, mCmdList, false, false);
+			RenderScene(renderInfo, mCmdList, true, false);
 		}
 
 		lightProbe->GenerateIrradiance(mCmdList);
@@ -1024,7 +1024,7 @@ void RenderManagerVk::RenderScene(RenderInfo& renderInfo, vk::CommandList& cmdLi
 	cmdList.BeginRenderpass(&mRenderpasses.geometryPass, false, renderInfo.renderWidth, renderInfo.renderHeight);
 
 
-	cmdList.SetViewport(0, 0, renderInfo.renderWidth, renderInfo.renderHeight);
+	cmdList.SetViewport(0, 0, renderInfo.renderWidth, renderInfo.renderHeight, 1, 0);
 	cmdList.SetScissor(0, 0, renderInfo.renderWidth, renderInfo.renderHeight);
 
 	cmdList.BindPipeline(&mBasePipeline.pipeline);
@@ -1100,8 +1100,9 @@ void RenderManagerVk::RenderScene(RenderInfo& renderInfo, vk::CommandList& cmdLi
 
 	cmdList.EndRenderpass();
 
-	cmdList.EndDebugUtilsLabel();
+	cmdList.SetViewport(0, 0, renderInfo.renderWidth, renderInfo.renderHeight);
 
+	cmdList.EndDebugUtilsLabel();
 
 
 

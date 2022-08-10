@@ -3,6 +3,17 @@
 #include "BoundingBox.h"
 #include <glm/glm.hpp>
 
+
+inline  glm::mat4 ReversedDepthPerspective(float fov, float aspect, float zNear)
+{
+	float f = 1.0f / tan(fov / 2.0f);
+	return glm::mat4(
+		f / aspect, 0.0f, 0.0f, 0.0f,
+		0.0f, f, 0.0f, 0.0f,
+		0.0f, 0.0f, 0.0f, -1.0f,
+		0.0f, 0.0f, zNear, 0.0f);
+}
+
 class Frustum
 {
 public:

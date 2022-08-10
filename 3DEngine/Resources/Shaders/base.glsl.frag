@@ -56,7 +56,10 @@ void main()
 {
 	outVelocity.rg = vec2(0.0, 0.0);
 
+	vec4 albedo = texture(in_texture, vTexCoord) * in_params.albedo;
 
+	if (albedo.a < 0.4)
+		discard;
 
 	outColour.a = 1.0;
 
@@ -72,7 +75,7 @@ void main()
 		outNormal.a = texture(in_roughness, vTexCoord).b * in_params.metallic;
 	}
 
-	vec4 albedo = texture(in_texture, vTexCoord) * in_params.albedo;
+	
 
 	outColour.rgb = albedo.rgb;
 

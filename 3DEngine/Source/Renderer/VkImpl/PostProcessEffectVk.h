@@ -22,6 +22,9 @@ public:
 
 	vk::ComputePipeline computePipeline;
 
+	vk::Renderpass renderpass;
+	vk::Pipeline pipeline;
+
 	vk::DescriptorLayout descriptorLayout;
 	vk::Descriptor descriptor;
 
