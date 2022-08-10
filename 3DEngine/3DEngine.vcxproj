@@ -256,6 +256,7 @@
     <None Include="Resources\Shaders\debug.glsl.frag" />
     <None Include="Resources\Shaders\debug.glsl.vert" />
     <None Include="Resources\Shaders\Defines.glsl" />
+    <None Include="Resources\Shaders\depthCorrector.glsl.frag" />
     <None Include="Resources\Shaders\Fog.glsl.comp" />
     <None Include="Resources\Shaders\fullscreen.glsl.frag" />
     <None Include="Resources\Shaders\fullscreen.glsl.vert" />

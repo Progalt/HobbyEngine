@@ -109,6 +109,9 @@ RenderManagerVk::RenderManagerVk(Window* window, const RenderManagerCreateInfo& 
 		mGeometryPass.depthTarget = mDevice.NewTexture();
 		mGeometryPass.depthTarget.CreateRenderTarget(vk::FORMAT_D32_SFLOAT, mProperties.renderWidth, mProperties.renderHeight);
 
+		mGeometryPass.correctedDepthTarget = mDevice.NewTexture();
+		mGeometryPass.correctedDepthTarget.CreateRenderTarget(vk::FORMAT_D32_SFLOAT, mProperties.renderWidth, mProperties.renderHeight);
+
 		mGeometryPass.emissiveTarget = mDevice.NewTexture();
 		mGeometryPass.emissiveTarget.CreateRenderTarget(vk::FORMAT_R8G8B8A8_UNORM, mProperties.renderWidth, mProperties.renderHeight);
 
@@ -122,6 +125,48 @@ RenderManagerVk::RenderManagerVk(Window* window, const RenderManagerCreateInfo& 
 		rpCreateInfo.extentHeight = mProperties.renderHeight;
 		
 		mRenderpasses.geometryPass = mDevice.NewRenderpass(&rpCreateInfo);
+
+		rpCreateInfo.type = vk::RenderpassType::Offscreen;
+		rpCreateInfo.colourAttachments = {};
+		rpCreateInfo.depthAttachment = &mGeometryPass.correctedDepthTarget;
+		rpCreateInfo.clearColour = { 0.0f, 0.0f, 0.0f, 1.0f };
+		rpCreateInfo.depthClear = 1.0f;
+		rpCreateInfo.extentWidth = mProperties.renderWidth;
+		rpCreateInfo.extentHeight = mProperties.renderHeight;
+
+		mGeometryPass.depthCorrectPass = mDevice.NewRenderpass(&rpCreateInfo);
+
+		vk::ShaderBlob vertexBlob = mDevice.NewShaderBlob();
+		vk::ShaderBlob fragmentBlob = mDevice.NewShaderBlob();
+
+		vertexBlob.CreateFromSource(vk::ShaderStage::Vertex, FileSystem::ReadBytes("Resources/Shaders/fullscreen.vert.spv"));
+		fragmentBlob.CreateFromSource(vk::ShaderStage::Fragment, FileSystem::ReadBytes("Resources/Shaders/depthCorrector.frag.spv"));
+
+		vk::VertexDescription vertexDesc{};
+
+		mGeometryPass.layout = mDevice.NewLayout();
+		mGeometryPass.layout.AddLayoutBinding({ 0, vk::ShaderInputType::ImageSampler, 1, vk::ShaderStage::Fragment });
+
+		mGeometryPass.layout.Create();
+
+		vk::PipelineCreateInfo pipelineInfo{};
+		pipelineInfo.renderpass = &mGeometryPass.depthCorrectPass;
+		pipelineInfo.layout = { &mGeometryPass.layout };
+		pipelineInfo.pushConstantRanges = {
+		};
+		pipelineInfo.topologyType = vk::Topology::TriangleList;
+		pipelineInfo.vertexDesc = nullptr;
+		pipelineInfo.shaders = { &vertexBlob, &fragmentBlob };
+
+
+		mGeometryPass.depthCorrect = mDevice.NewPipeline(&pipelineInfo);
+
+		vertexBlob.Destroy();
+		fragmentBlob.Destroy();
+
+		mGeometryPass.descriptor = mDevice.NewDescriptor(&mGeometryPass.layout);
+		mGeometryPass.descriptor.BindCombinedImageSampler(&mGeometryPass.depthTarget, &mTargetSampler, 0);
+		mGeometryPass.descriptor.Update();
 	}
 
 	mCmdList = mDevice.NewCommandList(vk::CommandListType::Primary);
@@ -391,7 +436,7 @@ RenderManagerVk::RenderManagerVk(Window* window, const RenderManagerCreateInfo& 
 
 		mCacao.Create(&mDevice);
 		
-		mCacao.SetUp(mProperties.renderWidth, mProperties.renderHeight, &mGeometryPass.depthTarget, nullptr, &ssaoOutput);
+		mCacao.SetUp(mProperties.renderWidth, mProperties.renderHeight, &mGeometryPass.correctedDepthTarget, nullptr, &ssaoOutput);
 
 		vk::RenderpassCreateInfo rpInfo{};
 		rpInfo.colourAttachments = { &mCurrentOutput[0] };
@@ -480,6 +525,10 @@ RenderManagerVk::~RenderManagerVk()
 	mGeometryPass.normalTarget.Destroy();
 	mGeometryPass.velocityTarget.Destroy();
 	mGeometryPass.emissiveTarget.Destroy();
+	mGeometryPass.correctedDepthTarget.Destroy();
+	mGeometryPass.depthCorrect.Destroy();
+	mGeometryPass.depthCorrectPass.Destroy();
+	mGeometryPass.layout.Destroy();
 
 	mShadowData.pipeline.Destroy();
 	mShadowData.descriptorLayout.Destroy();
@@ -1100,7 +1149,24 @@ void RenderManagerVk::RenderScene(RenderInfo& renderInfo, vk::CommandList& cmdLi
 
 	cmdList.EndRenderpass();
 
+	cmdList.EndDebugUtilsLabel();
+
+	cmdList.BeginDebugUtilsLabel("Depth Remap Pass");
+
 	cmdList.SetViewport(0, 0, renderInfo.renderWidth, renderInfo.renderHeight);
+
+	// Before anymore rendering we need to unreverse the depth buffer for post processing effects like FidelityFX CACAO
+
+	cmdList.BeginRenderpass(&mGeometryPass.depthCorrectPass, false);
+
+	cmdList.BindPipeline(&mGeometryPass.depthCorrect);
+	cmdList.BindDescriptors({ &mGeometryPass.descriptor }, &mGeometryPass.depthCorrect, 0);
+
+	cmdList.Draw(3, 1, 0, 0);
+
+	stats.drawCalls++;
+
+	cmdList.EndRenderpass();
 
 	cmdList.EndDebugUtilsLabel();
 

@@ -38,7 +38,7 @@ enum class AntiAliasingMethod
 
 struct RenderSettings
 {
-	QualitySetting shadowQuality = QualitySetting::Medium;
+	QualitySetting shadowQuality = QualitySetting::High;
 };
 
 struct CameraInfo

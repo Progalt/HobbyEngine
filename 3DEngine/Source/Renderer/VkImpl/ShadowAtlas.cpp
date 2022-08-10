@@ -85,7 +85,7 @@ void CascadeShadowMap::FinishRendering(vk::CommandList& cmdList)
 void CascadeShadowMap::UpdateCascades(DirectionalLight& dirLight, float nearClip, float farClip, const glm::mat4& proj, const glm::mat4& view)
 {
 
-	const float cascadeSplitLambda = 0.9f;
+	const float cascadeSplitLambda = 0.92f;
 
 	float cascadeSplits[CascadeCount];
 
@@ -163,27 +163,6 @@ void CascadeShadowMap::UpdateCascades(DirectionalLight& dirLight, float nearClip
 		glm::vec3 cascadeExtents = maxExtents - minExtents;
 
 		glm::mat4 lightOrthoMatrix = glm::ortho(minExtents.x, maxExtents.x, minExtents.y, maxExtents.y, -cascadeExtents.z * 4, cascadeExtents.z);
-
-		
-
-		float texelScale = 2.0f / (float)size;
-		float invTexelScale = 1.0f / texelScale;
-
-		glm::mat4 projView = lightOrthoMatrix * lightViewMatrix;
-
-		glm::vec4 projCenter = projView * glm::vec4(frustumCenter, 1.0f);
-
-		float w = projCenter.w;
-
-		float x = floor((projCenter.x / w) * invTexelScale) * texelScale;
-		float y = floor((projCenter.y / w) * invTexelScale) * texelScale;
-		float z = projCenter.z / w;
-
-		glm::vec4 correctedCenter = glm::inverse(projView) * glm::vec4(x, y, z, 1.0f);
-
-		correctedCenter *= 1.0f / correctedCenter.w;
-
-		lightViewMatrix = glm::lookAt(lightDirection, glm::vec3(correctedCenter), glm::vec3(0.0f, 1.0f, 0.0f));
 
 		// Store split distance and matrix in cascade
 		data.splitDepths[i] = (nearClip + splitDist * clipRange) * -1.0f;

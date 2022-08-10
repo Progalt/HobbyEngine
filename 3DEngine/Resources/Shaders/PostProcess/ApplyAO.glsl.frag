@@ -15,7 +15,9 @@ void main()
 {
 	vec4 sampled = texture(in_mainImage, UV);
 	float ao = texture(in_AO, UV).r;
-
+		
 	fragColour = sampled;
-	fragColour.rgb *= ao;
+
+	if (ao != 0)
+		fragColour.rgb *= ao;
 }

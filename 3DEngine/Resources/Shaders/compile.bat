@@ -32,4 +32,7 @@
 
 %VULKAN_SDK%/Bin/glslc.exe PostProcess/ApplyAO.glsl.frag -o PostProcess/ApplyAO.frag.spv
 
+%VULKAN_SDK%/Bin/glslc.exe depthCorrector.glsl.frag -o depthCorrector.frag.spv
+
+
 pause

@@ -203,6 +203,13 @@ public:
 
 		vk::Texture depthTarget;
 
+		vk::Texture correctedDepthTarget;
+
+		vk::Pipeline depthCorrect;
+		vk::DescriptorLayout layout;
+		vk::Descriptor descriptor;
+		vk::Renderpass depthCorrectPass;
+
 	} mGeometryPass;
 
 

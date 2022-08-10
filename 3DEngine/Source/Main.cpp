@@ -108,10 +108,10 @@ public:
 
 		taaEffect = renderManager->CreatePostProcessEffect(taaCreateInfo);
 
-		renderManager->jitterVertices = true;
+		renderManager->jitterVertices = false;
 
-		//renderManager->AddPostProcessEffect(fogEffect);
-		renderManager->AddPostProcessEffect(taaEffect);
+		renderManager->AddPostProcessEffect(fogEffect);
+		//renderManager->AddPostProcessEffect(taaEffect);
 		renderManager->AddPostProcessEffect(fxaaEffect);
 		//renderManager->AddPostProcessEffect(chromaticAberrationEffect);
 		//renderManager->AddPostProcessEffect(filmGrainEffect);
@@ -139,43 +139,52 @@ public:
 		glm::vec3 right = glm::normalize(glm::cross(direction, glm::vec3(0.0f, 1.0f, 0.0f)));
 		glm::vec3 up = glm::normalize(glm::cross(right, direction));
 
+		static float newPitch = pitch;
+		static float newYaw = yaw;
+
 		if (input.IsButtonPressed(MouseButton::Right))
 		{
-			pitch += (float)offY;
-			yaw += (float)offX;
+			newPitch += (float)offY;
+			newYaw += (float)offX;
 
-			if (pitch > 89.0f)
-				pitch = 89.0f;
-			if (pitch < -89.0f)
-				pitch = -89.0f;
+			if (newPitch > 89.0f)
+				newPitch = 89.0f;
+			if (newPitch < -89.0f)
+				newPitch = -89.0f;
 
 		}
+
+		pitch = lerp(pitch, newPitch, 1.0f / 3.0f);
+		yaw = lerp(yaw, newYaw, 1.0f / 3.0f);
 
 		lastX = mousePos.x;
 		lastY = mousePos.y;
 
 		float velocity = 15.0f;
 
+		static glm::vec3 newViewpos = viewPos;
 
 		if (input.IsKeyPressed(KeyCode::W))
 		{
-			viewPos += direction * velocity * time.delta;
+			newViewpos += direction * velocity * time.delta;
 		}
 
 		if (input.IsKeyPressed(KeyCode::S))
 		{
-			viewPos -= direction * velocity * time.delta;
+			newViewpos -= direction * velocity * time.delta;
 		}
 
 		if (input.IsKeyPressed(KeyCode::A))
 		{
-			viewPos -= right * velocity * time.delta;
+			newViewpos -= right * velocity * time.delta;
 		}
 
 		if (input.IsKeyPressed(KeyCode::D))
 		{
-			viewPos += right * velocity * time.delta;
+			newViewpos += right * velocity * time.delta;
 		}
+
+		viewPos = lerp(viewPos, newViewpos, glm::vec3(1.0f / 3.0f));
 
 		view = glm::lookAt(viewPos, viewPos + direction, up);
 
