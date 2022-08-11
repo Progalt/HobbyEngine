@@ -38,12 +38,12 @@ namespace vk
 		bool debugInfo;
 		uint32_t threadCount = 1;
 		uint32_t width, height;
-		
+
 		// Excplicity request an SRGB BackBuffer
 		// Does not gurantee one and also if this is false does not gurantee the selected backbuffer is not SRGB
 		bool requestSRGBBackBuffer;
 
-		bool requestVSync; 
+		bool requestVSync;
 	};
 
 	struct SupportedFeatures
@@ -51,7 +51,12 @@ namespace vk
 		bool multiDrawIndirect = false;
 		bool descriptorBindingPartiallyBound = false;
 		bool runtimeDescriptorArray = false;
-		
+
+	};
+
+	struct DeviceProperties
+	{
+		float maxAnisotropy;
 	};
 
 	struct DeviceInfo
@@ -60,6 +65,7 @@ namespace vk
 		std::string deviceName;
 
 		SupportedFeatures supportedFeatures;
+		DeviceProperties properties;
 	};
 
 	// Simple class to use for single use command buffer internally

@@ -51,7 +51,7 @@ RenderManagerVk::RenderManagerVk(Window* window, const RenderManagerCreateInfo& 
 		settings.minFilter = vk::Filter::Nearest;
 		settings.magFilter = vk::Filter::Nearest;
 		settings.anisotropy = false;
-		settings.maxAnisotropy = 3.0f;
+		settings.maxAnisotropy = mDevice.GetDeviceInfo().properties.maxAnisotropy;
 
 		mTargetSampler = mDevice.NewSampler(&settings);
 	}
@@ -99,7 +99,7 @@ RenderManagerVk::RenderManagerVk(Window* window, const RenderManagerCreateInfo& 
 
 
 		mGeometryPass.normalTarget = mDevice.NewTexture();
-		mGeometryPass.normalTarget.CreateRenderTarget(vk::FORMAT_R16G16B16A16_UNORM, mProperties.renderWidth, mProperties.renderHeight);
+		mGeometryPass.normalTarget.CreateRenderTarget(vk::FORMAT_R8G8B8A8_UNORM, mProperties.renderWidth, mProperties.renderHeight);
 
 
 		mGeometryPass.velocityTarget = mDevice.NewTexture();
@@ -293,8 +293,7 @@ RenderManagerVk::RenderManagerVk(Window* window, const RenderManagerCreateInfo& 
 		mLightingPipeline.layout.Create();
 
 		mLightingPipeline.shadowLayout = mDevice.NewLayout();
-		mLightingPipeline.shadowLayout.AddLayoutBinding({ 0, vk::ShaderInputType::UniformBuffer, 1, vk::ShaderStage::Compute });
-		mLightingPipeline.shadowLayout.AddLayoutBinding({ 1, vk::ShaderInputType::ImageSampler, 1, vk::ShaderStage::Compute });
+		mLightingPipeline.shadowLayout.AddLayoutBinding({ 0, vk::ShaderInputType::ImageSampler, 1, vk::ShaderStage::Compute });
 		mLightingPipeline.shadowLayout.Create();
 
 		mLightingPipeline.envLayout = mDevice.NewLayout();
@@ -308,7 +307,7 @@ RenderManagerVk::RenderManagerVk(Window* window, const RenderManagerCreateInfo& 
 		createInfo.computeBlob = &shaderBlob;
 		createInfo.layout = { &mLightingPipeline.layout, globalDataManager.GetLayout(vk::ShaderStage::Compute), &mLightingPipeline.shadowLayout, &mLightingPipeline.envLayout };
 		createInfo.pushConstantRanges = {
-			{ vk::ShaderStage::Compute, 0, sizeof(int) }
+			{ vk::ShaderStage::Compute, 0, sizeof(int) * 2 }
 		};
 
 		mLightingPipeline.pipeline = mDevice.NewComputePipeline(&createInfo);
@@ -425,7 +424,7 @@ RenderManagerVk::RenderManagerVk(Window* window, const RenderManagerCreateInfo& 
 
 	{
 		probe = NewLightProbe(512);
-		probe->position = { 0.0f, 0.0f, 0.0f };
+		probe->position = { 0.0f, 2.0f, 0.0f };
 
 		mLightProbes.push_back((LightProbeVk*)probe);
 	}
@@ -478,6 +477,52 @@ RenderManagerVk::RenderManagerVk(Window* window, const RenderManagerCreateInfo& 
 		mApplyAOPass.descriptor.BindCombinedImageSampler(&ssaoOutput, &mTargetSampler, 1);
 		mApplyAOPass.descriptor.Update();
 
+
+		vertexBlob.Destroy();
+		fragmentBlob.Destroy();
+	}
+
+	{
+		// Move to per light system
+
+		mShadowResolve.resolvedShadow = mDevice.NewTexture();
+		mShadowResolve.resolvedShadow.CreateRenderTarget(vk::FORMAT_R8_UNORM, mProperties.renderWidth, mProperties.renderHeight);
+
+		vk::RenderpassCreateInfo rpInfo{};
+		rpInfo.colourAttachments = { &mShadowResolve.resolvedShadow };
+		rpInfo.depthAttachment = nullptr;
+		rpInfo.loadAttachments = false;
+		rpInfo.loadDepth = false;
+		rpInfo.extentWidth = mProperties.renderWidth;
+		rpInfo.extentHeight = mProperties.renderHeight;
+		rpInfo.type = vk::RenderpassType::Offscreen;
+		mShadowResolve.renderpass = mDevice.NewRenderpass(&rpInfo);
+
+		mShadowResolve.layout = mDevice.NewLayout();
+		mShadowResolve.layout.AddLayoutBinding({ 0, vk::ShaderInputType::ImageSampler, 1, vk::ShaderStage::Fragment });
+		mShadowResolve.layout.AddLayoutBinding({ 1, vk::ShaderInputType::StorageBuffer, 1, vk::ShaderStage::Fragment });
+		mShadowResolve.layout.AddLayoutBinding({ 2, vk::ShaderInputType::ImageSampler, 1, vk::ShaderStage::Fragment });
+		mShadowResolve.layout.AddLayoutBinding({ 3, vk::ShaderInputType::UniformBuffer, 1, vk::ShaderStage::Fragment });
+		mShadowResolve.layout.Create();
+
+		vk::ShaderBlob vertexBlob = mDevice.NewShaderBlob();
+		vk::ShaderBlob fragmentBlob = mDevice.NewShaderBlob();
+
+		vertexBlob.CreateFromSource(vk::ShaderStage::Vertex, FileSystem::ReadBytes("Resources/Shaders/fullscreen.vert.spv"));
+		fragmentBlob.CreateFromSource(vk::ShaderStage::Fragment, FileSystem::ReadBytes("Resources/Shaders/shadowResolve.frag.spv"));
+
+		vk::PipelineCreateInfo pipelineInfo{};
+		pipelineInfo.renderpass = &mShadowResolve.renderpass;
+		pipelineInfo.layout = { globalDataManager.GetLayout(vk::ShaderStage::Fragment), &mShadowResolve.layout};
+		pipelineInfo.pushConstantRanges = {
+		};
+		pipelineInfo.topologyType = vk::Topology::TriangleList;
+		pipelineInfo.vertexDesc = nullptr;
+		pipelineInfo.shaders = { &vertexBlob, &fragmentBlob };
+
+		mShadowResolve.pipeline = mDevice.NewPipeline(&pipelineInfo);
+
+		mShadowResolve.descriptor = mDevice.NewDescriptor(&mShadowResolve.layout);
 
 		vertexBlob.Destroy();
 		fragmentBlob.Destroy();
@@ -538,6 +583,11 @@ RenderManagerVk::~RenderManagerVk()
 	mLightingPipeline.pipeline.Destroy();
 	mLightingPipeline.shadowLayout.Destroy();
 	mLightingPipeline.envLayout.Destroy();
+
+	mShadowResolve.layout.Destroy();
+	mShadowResolve.pipeline.Destroy();
+	mShadowResolve.resolvedShadow.Destroy();
+	mShadowResolve.renderpass.Destroy();
 
 	mRenderpasses.geometryPass.Destroy();
 	
@@ -657,7 +707,7 @@ void RenderManagerVk::Render(CameraInfo& cameraInfo)
 			renderInfo.target = &lightProbe->cubemap;
 			renderInfo.level = i;
 
-			RenderScene(renderInfo, mCmdList, true, false);
+			RenderScene(renderInfo, mCmdList, true, false, false);
 		}
 
 		lightProbe->GenerateIrradiance(mCmdList);
@@ -690,7 +740,7 @@ void RenderManagerVk::Render(CameraInfo& cameraInfo)
 	renderInfo.level = 0;
 
 	// Render the scene
-	RenderScene(renderInfo, mCmdList, false, true);
+	RenderScene(renderInfo, mCmdList, false, true, true);
 
 	// CACAO ----
 
@@ -1047,7 +1097,7 @@ void RenderManagerVk::RenderDirectionalShadowMap(vk::CommandList& cmdList, Casca
 	cmdList.EndDebugUtilsLabel();
 }
 
-void RenderManagerVk::RenderScene(RenderInfo& renderInfo, vk::CommandList& cmdList, bool renderSkyOnly, bool useIBL)
+void RenderManagerVk::RenderScene(RenderInfo& renderInfo, vk::CommandList& cmdList, bool renderSkyOnly, bool useIBL, bool reverseDepth)
 {
 
 	// Create a frustum for the current view projection
@@ -1072,8 +1122,10 @@ void RenderManagerVk::RenderScene(RenderInfo& renderInfo, vk::CommandList& cmdLi
 
 	cmdList.BeginRenderpass(&mRenderpasses.geometryPass, false, renderInfo.renderWidth, renderInfo.renderHeight);
 
-
-	cmdList.SetViewport(0, 0, renderInfo.renderWidth, renderInfo.renderHeight, 1, 0);
+	if (reverseDepth)
+		cmdList.SetViewport(0, 0, renderInfo.renderWidth, renderInfo.renderHeight, 1, 0);
+	else 
+		cmdList.SetViewport(0, 0, renderInfo.renderWidth, renderInfo.renderHeight);
 	cmdList.SetScissor(0, 0, renderInfo.renderWidth, renderInfo.renderHeight);
 
 	cmdList.BindPipeline(&mBasePipeline.pipeline);
@@ -1151,6 +1203,37 @@ void RenderManagerVk::RenderScene(RenderInfo& renderInfo, vk::CommandList& cmdLi
 
 	cmdList.EndDebugUtilsLabel();
 
+	// Resolve the cascade Shadow maps to a rt
+
+	cmdList.BeginDebugUtilsLabel("Shadow Map Resolve");
+
+	cmdList.BeginRenderpass(&mShadowResolve.renderpass, false, renderInfo.renderWidth, renderInfo.renderHeight);
+
+	cmdList.SetViewport(0, 0, renderInfo.renderWidth, renderInfo.renderHeight);
+
+	if (!mShadowResolve.createdDescriptor)
+	{
+		mShadowResolve.descriptor.BindCombinedImageSampler(&mShadowData.directionalShadowMap.atlas, &mShadowData.sampler, 0);
+		mShadowResolve.descriptor.BindStorageBuffer(&mSceneDataBuffer, 0, sizeof(SceneInfo), 1);
+		mShadowResolve.descriptor.BindCombinedImageSampler(&mGeometryPass.depthTarget, &mTargetSampler, 2);
+		mShadowResolve.descriptor.BindBuffer(&mShadowData.directionalShadowMap.uniformBuffer, 0, sizeof(mShadowData.directionalShadowMap.data), 3);
+		mShadowResolve.descriptor.Update();
+
+		mShadowResolve.createdDescriptor = true;
+	}
+
+	cmdList.BindPipeline(&mShadowResolve.pipeline);
+
+	cmdList.BindDescriptors({ globalDataManager.GetDescriptor(vk::ShaderStage::Fragment), &mShadowResolve.descriptor }, &mShadowResolve.pipeline, 0);
+
+	cmdList.Draw(3, 1, 0, 0);
+
+	cmdList.EndRenderpass();
+
+	cmdList.EndDebugUtilsLabel();
+
+	// ------------------------------------
+
 	cmdList.BeginDebugUtilsLabel("Depth Remap Pass");
 
 	cmdList.SetViewport(0, 0, renderInfo.renderWidth, renderInfo.renderHeight);
@@ -1201,8 +1284,7 @@ void RenderManagerVk::RenderScene(RenderInfo& renderInfo, vk::CommandList& cmdLi
 		if (!mLightingPipeline.createdShadowDescriptor)
 		{
 			mLightingPipeline.shadowDescriptor = mDevice.NewDescriptor(&mLightingPipeline.shadowLayout);
-			mLightingPipeline.shadowDescriptor.BindBuffer(&mShadowData.directionalShadowMap.uniformBuffer, 0, sizeof(CascadeShadowMap::DataBuffer), 0);
-			mLightingPipeline.shadowDescriptor.BindCombinedImageSampler(&mShadowData.directionalShadowMap.atlas, &mShadowData.sampler, 1);
+			mLightingPipeline.shadowDescriptor.BindCombinedImageSampler(&mShadowResolve.resolvedShadow, &mDefaultSampler, 0);
 			mLightingPipeline.shadowDescriptor.Update();
 
 			mLightingPipeline.createdShadowDescriptor = true;
@@ -1215,9 +1297,16 @@ void RenderManagerVk::RenderScene(RenderInfo& renderInfo, vk::CommandList& cmdLi
 
 		cmdList.BindPipeline(&mLightingPipeline.pipeline);
 
-		int ibl = (int)useIBL;
+		struct
+		{
+			int ibl;
+			int reverseDepth;
+		} constants;
 
-		cmdList.PushConstants(&mLightingPipeline.pipeline, vk::ShaderStage::Compute, sizeof(int), 0, &ibl);
+		constants.ibl = (int)useIBL;
+		constants.reverseDepth = (int)reverseDepth;
+
+		cmdList.PushConstants(&mLightingPipeline.pipeline, vk::ShaderStage::Compute, sizeof(int) * 2, 0, &constants);
 
 		cmdList.BindDescriptors({ &mLightingPipeline.descriptor, renderInfo.globalManager.GetDescriptor(vk::ShaderStage::Compute), &mLightingPipeline.shadowDescriptor, &((LightProbeVk*)probe)->lightingDescriptor }, & mLightingPipeline.pipeline, 0);
 		cmdList.Dispatch((int)ceilf((float)mProperties.renderWidth / THREAD_GROUP_SIZE), (int)ceilf((float)mProperties.renderHeight / THREAD_GROUP_SIZE), 1);

@@ -268,6 +268,7 @@
     <None Include="Resources\Shaders\PBR.glsl" />
     <None Include="Resources\Shaders\PostProcess\ApplyAO.glsl.frag" />
     <None Include="Resources\Shaders\shadow.glsl.vert" />
+    <None Include="Resources\Shaders\shadowResolve.glsl.frag" />
     <None Include="Resources\Shaders\sky.glsl.frag" />
     <None Include="Resources\Shaders\sky.glsl.vert" />
     <None Include="Resources\Shaders\StructInclude.glsl" />

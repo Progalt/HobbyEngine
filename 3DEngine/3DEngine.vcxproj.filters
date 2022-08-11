@@ -351,6 +351,7 @@
     <None Include="Resources\Shaders\PostProcess\ApplyAO.glsl.frag" />
     <None Include="Resources\Shaders\variance.glsl.frag" />
     <None Include="Resources\Shaders\depthCorrector.glsl.frag" />
+    <None Include="Resources\Shaders\shadowResolve.glsl.frag" />
   </ItemGroup>
   <ItemGroup>
     <Text Include="Resources\Shaders\PostProcess\FilmGrain.glsl.comp" />

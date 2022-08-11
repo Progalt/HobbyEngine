@@ -68,7 +68,7 @@ void main()
 	vec4 rgba = texelFetch(inputImage, coord, 0);
 
 	float depth = texelFetch(inDepth, coord, 0).r;
-	vec3 fragPos = WorldPosFromDepth(depth, global.invProj, global.invView, uv);
+	vec3 fragPos = WorldPosFromDepth(depth, global.invProj, global.invView, uv, 1);
 
 
 	// Distance between cam pos and world pos

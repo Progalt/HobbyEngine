@@ -38,7 +38,7 @@ public:
 
 		viewPos = glm::vec3(0.0f, 0.0f, 3.0f);
 
-		renderManager->time = 45.0f;
+		renderManager->time = 100.0f;
 
 		Actor* worldTest = scene.NewActor("World Test");
 		worldTest->AddComponent<MeshRenderer>()->model = model;

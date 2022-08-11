@@ -102,9 +102,11 @@ vec3 decode(vec2 enc)
 	return n;
 }
 
-vec3 WorldPosFromDepth(float depth, mat4 invProj, mat4 invView, vec2 TexCoord) {
+vec3 WorldPosFromDepth(float depth, mat4 invProj, mat4 invView, vec2 TexCoord, int reverseDepth) {
     float z = depth;// * 2.0 - 1.0;
-    z = 1.0 - z;
+
+    if (reverseDepth == 1)
+        z = 1.0 - z;
 
     vec4 clipSpacePosition = vec4(TexCoord * 2.0 - 1.0, z, 1.0);
     vec4 viewSpacePosition = invProj * clipSpacePosition;

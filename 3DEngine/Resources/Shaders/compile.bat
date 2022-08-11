@@ -34,5 +34,6 @@
 
 %VULKAN_SDK%/Bin/glslc.exe depthCorrector.glsl.frag -o depthCorrector.frag.spv
 
+%VULKAN_SDK%/Bin/glslc.exe shadowResolve.glsl.frag -o shadowResolve.frag.spv
 
 pause

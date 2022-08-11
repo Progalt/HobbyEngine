@@ -85,7 +85,7 @@ void CascadeShadowMap::FinishRendering(vk::CommandList& cmdList)
 void CascadeShadowMap::UpdateCascades(DirectionalLight& dirLight, float nearClip, float farClip, const glm::mat4& proj, const glm::mat4& view)
 {
 
-	const float cascadeSplitLambda = 0.92f;
+	const float cascadeSplitLambda = 0.925f;
 
 	float cascadeSplits[CascadeCount];
 

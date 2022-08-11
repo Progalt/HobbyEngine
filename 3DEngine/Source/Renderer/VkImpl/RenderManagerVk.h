@@ -50,7 +50,7 @@ public:
 		GlobalDataManager globalManager;
 	};
 
-	void RenderScene( RenderInfo& renderInfo, vk::CommandList& cmdList, bool renderSkyOnly, bool useIBL);
+	void RenderScene( RenderInfo& renderInfo, vk::CommandList& cmdList, bool renderSkyOnly, bool useIBL, bool reverseDepth);
 
 	void UpdateSettings() override;
 
@@ -129,6 +129,20 @@ public:
 		vk::Sampler sampler;
 
 	} mShadowData;
+
+	struct
+	{
+		vk::Renderpass renderpass;
+		vk::Pipeline pipeline;
+
+		vk::DescriptorLayout layout;
+		vk::Descriptor descriptor;
+
+		vk::Texture resolvedShadow;
+
+		bool createdDescriptor;
+
+	} mShadowResolve;
 
 	struct
 	{

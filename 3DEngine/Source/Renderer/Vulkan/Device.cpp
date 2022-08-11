@@ -728,6 +728,11 @@ namespace vk
 		{
 			throw std::runtime_error("Failed to find suitable GPU");
 		}
+
+		VkPhysicalDeviceProperties properties{};
+		vkGetPhysicalDeviceProperties(m_PhysicalDevice, &properties);
+
+		m_DeviceInfo.properties.maxAnisotropy = properties.limits.maxSamplerAnisotropy;
 #endif
 	}
 
