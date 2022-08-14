@@ -1,5 +1,4 @@
 #pragma once
-#define VK_DONT_USE_BOOTSTRAP
 
 #define VK_USE_PLATFORM_WIN32_KHR
 #include <vulkan/vulkan.h>
@@ -28,7 +27,6 @@
 #include <set>
 #include <mutex>
 
-#include "Vendor/VkBootstrap.h"
 
 namespace vk
 {
@@ -151,11 +149,9 @@ namespace vk
 		void SubmitCommandListsAndPresent(std::vector<CommandList> cmdList);
 
 		DeviceInfo GetDeviceInfo() const { return m_DeviceInfo; }
-#ifdef VK_DONT_USE_BOOTSTRAP
+
 		Swapchain* GetSwapchain() { return &m_Swapchain; }
-#else 
-		vkb::Swapchain GetSwapchain() { return m_Swapchain; }
-#endif
+
 
 		void ResizeSwapchain(uint32_t width, uint32_t height);
 
@@ -207,8 +203,6 @@ namespace vk
 		void LoadExtensionFunctions();
 
 		/* Handles */
-
-#ifdef VK_DONT_USE_BOOTSTRAP
 		VkInstance m_Instance;
 		VkPhysicalDevice m_PhysicalDevice;
 
@@ -216,15 +210,7 @@ namespace vk
 
 		Swapchain m_Swapchain;
 
-#else 
 
-		vkb::Instance m_Instance;
-		vkb::PhysicalDevice m_PhysicalDevice;
-		vkb::Device m_Device;
-
-		vkb::Swapchain m_Swapchain;
-
-#endif
 
 		VkSurfaceKHR m_Surface;
 

@@ -1,4 +1,6 @@
 
+Current it does not have a name. I should probably come up with one at some point.
+
 This Engine is a hobby project. I'm using it to learn but also as a showcase.
 Some things could be redone. My vulkan wrapper to help with vulkan is a few projects old and some even remains from when I
 was first learning vulkan, so it could do with a rewrite following the best practices. 

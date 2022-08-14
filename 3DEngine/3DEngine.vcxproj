@@ -175,7 +175,6 @@
     <ClCompile Include="Source\Renderer\Vulkan\Swapchain.cpp" />
     <ClCompile Include="Source\Renderer\Vulkan\Texture.cpp" />
     <ClCompile Include="Source\Renderer\Vulkan\UtilityVK.cpp" />
-    <ClCompile Include="Source\Renderer\Vulkan\Vendor\VkBootstrap.cpp" />
     <ClCompile Include="Source\Renderer\Vulkan\Vendor\vk_mem_alloc.cpp" />
     <ClCompile Include="Source\Resources\Model.cpp" />
     <ClCompile Include="Source\Scene\Actor.cpp" />
@@ -236,7 +235,6 @@
     <ClInclude Include="Source\Renderer\Vulkan\Texture.h" />
     <ClInclude Include="Source\Renderer\Vulkan\TextureUtility.h" />
     <ClInclude Include="Source\Renderer\Vulkan\UtilityVK.h" />
-    <ClInclude Include="Source\Renderer\Vulkan\Vendor\VkBootstrap.h" />
     <ClInclude Include="Source\Renderer\Vulkan\Vendor\vk_mem_alloc.h" />
     <ClInclude Include="Source\Resources\Model.h" />
     <ClInclude Include="Source\Resources\Resource.h" />
