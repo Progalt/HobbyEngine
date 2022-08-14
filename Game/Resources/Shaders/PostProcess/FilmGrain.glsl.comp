@@ -1,0 +1,34 @@
+
+#version 450 
+
+layout(local_size_x = 16, local_size_y = 16) in;
+
+layout(binding = 0, rgba16f) uniform writeonly image2D outputImage;
+
+layout( binding = 1) uniform FogData
+{
+	float time;
+	float strength;
+
+	float padding[2];
+} uniforms;
+
+layout(binding = 2) uniform sampler2D inputImage;
+
+float random( vec2 p )
+{
+	vec2 K1 = vec2(23.14069263277926, 2.665144142690225);
+	return fract( cos( dot(p,K1) ) * 12345.6789 );
+}
+
+void main()
+{
+	ivec2 coord = ivec2(gl_GlobalInvocationID.xy);
+	vec3 colour = texelFetch(inputImage, coord, 0).rgb;
+
+	vec2 uvRandom = vec2(coord) / vec2(imageSize(outputImage));
+	uvRandom.y *= random(vec2(uvRandom.y,uniforms.time));
+	colour.rgb += random(uvRandom)*uniforms.strength;
+
+	imageStore(outputImage, coord, vec4(colour, 1.0));
+}

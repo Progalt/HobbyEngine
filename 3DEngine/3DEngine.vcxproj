@@ -27,26 +27,26 @@
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
+    <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>v143</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
+    <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <PlatformToolset>v143</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
+    <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>v143</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
+    <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <PlatformToolset>v143</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
@@ -143,110 +143,109 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="Source\Core\EventManager.cpp" />
-    <ClCompile Include="Source\Core\Image.cpp" />
-    <ClCompile Include="Source\Core\Input.cpp" />
-    <ClCompile Include="Source\Core\Window.cpp" />
-    <ClCompile Include="Source\FileSystem\FileSystem.cpp" />
-    <ClCompile Include="Source\FileSystem\ResourceManager.cpp" />
-    <ClCompile Include="Source\Main.cpp" />
-    <ClCompile Include="Source\Model\PMDL.cpp" />
-    <ClCompile Include="Source\Renderer\RenderManager.cpp" />
-    <ClCompile Include="Source\Renderer\VkImpl\CACAOImpl.cpp" />
-    <ClCompile Include="Source\Renderer\VkImpl\GlobalData.cpp" />
-    <ClCompile Include="Source\Renderer\VkImpl\LightManager.cpp" />
-    <ClCompile Include="Source\Renderer\VkImpl\LightProbeVk.cpp" />
-    <ClCompile Include="Source\Renderer\VkImpl\MeshVk.cpp" />
-    <ClCompile Include="Source\Renderer\VkImpl\PostProcessEffectVk.cpp" />
-    <ClCompile Include="Source\Renderer\VkImpl\RenderManagerVk.cpp" />
-    <ClCompile Include="Source\Renderer\VkImpl\ShadowAtlas.cpp" />
-    <ClCompile Include="Source\Renderer\VkImpl\TextureVk.cpp" />
-    <ClCompile Include="Source\Renderer\Vulkan\Buffer.cpp" />
-    <ClCompile Include="Source\Renderer\Vulkan\CommandList.cpp" />
-    <ClCompile Include="Source\Renderer\Vulkan\ComputePipeline.cpp" />
-    <ClCompile Include="Source\Renderer\Vulkan\Descriptor.cpp" />
-    <ClCompile Include="Source\Renderer\Vulkan\DescriptorAllocator.cpp" />
-    <ClCompile Include="Source\Renderer\Vulkan\DescriptorLayout.cpp" />
-    <ClCompile Include="Source\Renderer\Vulkan\Device.cpp" />
-    <ClCompile Include="Source\Renderer\Vulkan\ImguiImpl.cpp" />
-    <ClCompile Include="Source\Renderer\Vulkan\Pipeline.cpp" />
-    <ClCompile Include="Source\Renderer\Vulkan\Renderpass.cpp" />
-    <ClCompile Include="Source\Renderer\Vulkan\Sampler.cpp" />
-    <ClCompile Include="Source\Renderer\Vulkan\Swapchain.cpp" />
-    <ClCompile Include="Source\Renderer\Vulkan\Texture.cpp" />
-    <ClCompile Include="Source\Renderer\Vulkan\UtilityVK.cpp" />
-    <ClCompile Include="Source\Renderer\Vulkan\Vendor\vk_mem_alloc.cpp" />
-    <ClCompile Include="Source\Resources\Model.cpp" />
-    <ClCompile Include="Source\Scene\Actor.cpp" />
-    <ClCompile Include="Source\Scene\Component.cpp" />
-    <ClCompile Include="Source\Scene\Scene.cpp" />
-    <ClCompile Include="Source\Threading\JobSystem.cpp" />
-    <ClCompile Include="Source\Vendor\ffx-cacao\ffx_cacao.cpp" />
-    <ClCompile Include="Source\Vendor\ffx-cacao\ffx_cacao_impl.cpp" />
+    <ClCompile Include="Runtime\Core\EventManager.cpp" />
+    <ClCompile Include="Runtime\Core\Image.cpp" />
+    <ClCompile Include="Runtime\Core\Input.cpp" />
+    <ClCompile Include="Runtime\Core\Window.cpp" />
+    <ClCompile Include="Runtime\FileSystem\FileSystem.cpp" />
+    <ClCompile Include="Runtime\FileSystem\ResourceManager.cpp" />
+    <ClCompile Include="Runtime\Model\PMDL.cpp" />
+    <ClCompile Include="Runtime\Renderer\RenderManager.cpp" />
+    <ClCompile Include="Runtime\Renderer\VkImpl\CACAOImpl.cpp" />
+    <ClCompile Include="Runtime\Renderer\VkImpl\GlobalData.cpp" />
+    <ClCompile Include="Runtime\Renderer\VkImpl\LightManager.cpp" />
+    <ClCompile Include="Runtime\Renderer\VkImpl\LightProbeVk.cpp" />
+    <ClCompile Include="Runtime\Renderer\VkImpl\MeshVk.cpp" />
+    <ClCompile Include="Runtime\Renderer\VkImpl\PostProcessEffectVk.cpp" />
+    <ClCompile Include="Runtime\Renderer\VkImpl\RenderManagerVk.cpp" />
+    <ClCompile Include="Runtime\Renderer\VkImpl\ShadowAtlas.cpp" />
+    <ClCompile Include="Runtime\Renderer\VkImpl\TextureVk.cpp" />
+    <ClCompile Include="Runtime\Renderer\Vulkan\Buffer.cpp" />
+    <ClCompile Include="Runtime\Renderer\Vulkan\CommandList.cpp" />
+    <ClCompile Include="Runtime\Renderer\Vulkan\ComputePipeline.cpp" />
+    <ClCompile Include="Runtime\Renderer\Vulkan\Descriptor.cpp" />
+    <ClCompile Include="Runtime\Renderer\Vulkan\DescriptorAllocator.cpp" />
+    <ClCompile Include="Runtime\Renderer\Vulkan\DescriptorLayout.cpp" />
+    <ClCompile Include="Runtime\Renderer\Vulkan\Device.cpp" />
+    <ClCompile Include="Runtime\Renderer\Vulkan\ImguiImpl.cpp" />
+    <ClCompile Include="Runtime\Renderer\Vulkan\Pipeline.cpp" />
+    <ClCompile Include="Runtime\Renderer\Vulkan\Renderpass.cpp" />
+    <ClCompile Include="Runtime\Renderer\Vulkan\Sampler.cpp" />
+    <ClCompile Include="Runtime\Renderer\Vulkan\Swapchain.cpp" />
+    <ClCompile Include="Runtime\Renderer\Vulkan\Texture.cpp" />
+    <ClCompile Include="Runtime\Renderer\Vulkan\UtilityVK.cpp" />
+    <ClCompile Include="Runtime\Renderer\Vulkan\Vendor\vk_mem_alloc.cpp" />
+    <ClCompile Include="Runtime\Resources\Model.cpp" />
+    <ClCompile Include="Runtime\Scene\Actor.cpp" />
+    <ClCompile Include="Runtime\Scene\Component.cpp" />
+    <ClCompile Include="Runtime\Scene\Scene.cpp" />
+    <ClCompile Include="Runtime\Threading\JobSystem.cpp" />
+    <ClCompile Include="Runtime\Vendor\ffx-cacao\ffx_cacao.cpp" />
+    <ClCompile Include="Runtime\Vendor\ffx-cacao\ffx_cacao_impl.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Source\Core\Application.h" />
-    <ClInclude Include="Source\Core\EventManager.h" />
-    <ClInclude Include="Source\Core\GlobalState.h" />
-    <ClInclude Include="Source\Core\Image.h" />
-    <ClInclude Include="Source\Core\Input.h" />
-    <ClInclude Include="Source\Core\KeyCodes.h" />
-    <ClInclude Include="Source\Core\Log.h" />
-    <ClInclude Include="Source\Core\Platform.h" />
-    <ClInclude Include="Source\Core\Singleton.h" />
-    <ClInclude Include="Source\Core\Window.h" />
-    <ClInclude Include="Source\FileSystem\FileSystem.h" />
-    <ClInclude Include="Source\FileSystem\ResourceManager.h" />
-    <ClInclude Include="Source\Maths\BoundingBox.h" />
-    <ClInclude Include="Source\Maths\Frustum.h" />
-    <ClInclude Include="Source\Maths\Rect.h" />
-    <ClInclude Include="Source\Model\PMDL.h" />
-    <ClInclude Include="Source\Renderer\GraphicsStructs.h" />
-    <ClInclude Include="Source\Renderer\Material.h" />
-    <ClInclude Include="Source\Renderer\Mesh.h" />
-    <ClInclude Include="Source\Renderer\PostProcessEffect.h" />
-    <ClInclude Include="Source\Renderer\LightProbe.h" />
-    <ClInclude Include="Source\Renderer\RenderManager.h" />
-    <ClInclude Include="Source\Renderer\Terrain.h" />
-    <ClInclude Include="Source\Renderer\Texture.h" />
-    <ClInclude Include="Source\Renderer\VkImpl\CACAOImpl.h" />
-    <ClInclude Include="Source\Renderer\VkImpl\GlobalData.h" />
-    <ClInclude Include="Source\Renderer\VkImpl\LightManager.h" />
-    <ClInclude Include="Source\Renderer\VkImpl\MaterialVk.h" />
-    <ClInclude Include="Source\Renderer\VkImpl\MeshVk.h" />
-    <ClInclude Include="Source\Renderer\VkImpl\PostProcessEffectVk.h" />
-    <ClInclude Include="Source\Renderer\VkImpl\LightProbeVk.h" />
-    <ClInclude Include="Source\Renderer\VkImpl\RenderManagerVk.h" />
-    <ClInclude Include="Source\Renderer\VkImpl\ShadowAtlas.h" />
-    <ClInclude Include="Source\Renderer\VkImpl\TextureVk.h" />
-    <ClInclude Include="Source\Renderer\Vulkan\Buffer.h" />
-    <ClInclude Include="Source\Renderer\Vulkan\CommandList.h" />
-    <ClInclude Include="Source\Renderer\Vulkan\ComputePipeline.h" />
-    <ClInclude Include="Source\Renderer\Vulkan\Descriptor.h" />
-    <ClInclude Include="Source\Renderer\Vulkan\DescriptorAllocator.h" />
-    <ClInclude Include="Source\Renderer\Vulkan\DescriptorLayout.h" />
-    <ClInclude Include="Source\Renderer\Vulkan\Device.h" />
-    <ClInclude Include="Source\Renderer\Vulkan\Format.h" />
-    <ClInclude Include="Source\Renderer\Vulkan\ImguiImpl.h" />
-    <ClInclude Include="Source\Renderer\Vulkan\Pipeline.h" />
-    <ClInclude Include="Source\Renderer\Vulkan\Renderpass.h" />
-    <ClInclude Include="Source\Renderer\Vulkan\Sampler.h" />
-    <ClInclude Include="Source\Renderer\Vulkan\Swapchain.h" />
-    <ClInclude Include="Source\Renderer\Vulkan\Texture.h" />
-    <ClInclude Include="Source\Renderer\Vulkan\TextureUtility.h" />
-    <ClInclude Include="Source\Renderer\Vulkan\UtilityVK.h" />
-    <ClInclude Include="Source\Renderer\Vulkan\Vendor\vk_mem_alloc.h" />
-    <ClInclude Include="Source\Resources\Model.h" />
-    <ClInclude Include="Source\Resources\Resource.h" />
-    <ClInclude Include="Source\Scene\Actor.h" />
-    <ClInclude Include="Source\Scene\Component.h" />
-    <ClInclude Include="Source\Scene\Scene.h" />
-    <ClInclude Include="Source\Scene\Transform.h" />
-    <ClInclude Include="Source\Threading\JobSystem.h" />
-    <ClInclude Include="Source\Threading\ThreadSafeQueue.h" />
-    <ClInclude Include="Source\Vendor\ffx-cacao\ffx_cacao.h" />
-    <ClInclude Include="Source\Vendor\ffx-cacao\ffx_cacao_defines.h" />
-    <ClInclude Include="Source\Vendor\ffx-cacao\ffx_cacao_impl.h" />
+    <ClInclude Include="Runtime\Core\Application.h" />
+    <ClInclude Include="Runtime\Core\EventManager.h" />
+    <ClInclude Include="Runtime\Core\GlobalState.h" />
+    <ClInclude Include="Runtime\Core\Image.h" />
+    <ClInclude Include="Runtime\Core\Input.h" />
+    <ClInclude Include="Runtime\Core\KeyCodes.h" />
+    <ClInclude Include="Runtime\Core\Log.h" />
+    <ClInclude Include="Runtime\Core\Platform.h" />
+    <ClInclude Include="Runtime\Core\Singleton.h" />
+    <ClInclude Include="Runtime\Core\Window.h" />
+    <ClInclude Include="Runtime\FileSystem\FileSystem.h" />
+    <ClInclude Include="Runtime\FileSystem\ResourceManager.h" />
+    <ClInclude Include="Runtime\Maths\BoundingBox.h" />
+    <ClInclude Include="Runtime\Maths\Frustum.h" />
+    <ClInclude Include="Runtime\Maths\Rect.h" />
+    <ClInclude Include="Runtime\Model\PMDL.h" />
+    <ClInclude Include="Runtime\Renderer\GraphicsStructs.h" />
+    <ClInclude Include="Runtime\Renderer\Material.h" />
+    <ClInclude Include="Runtime\Renderer\Mesh.h" />
+    <ClInclude Include="Runtime\Renderer\PostProcessEffect.h" />
+    <ClInclude Include="Runtime\Renderer\LightProbe.h" />
+    <ClInclude Include="Runtime\Renderer\RenderManager.h" />
+    <ClInclude Include="Runtime\Renderer\Terrain.h" />
+    <ClInclude Include="Runtime\Renderer\Texture.h" />
+    <ClInclude Include="Runtime\Renderer\VkImpl\CACAOImpl.h" />
+    <ClInclude Include="Runtime\Renderer\VkImpl\GlobalData.h" />
+    <ClInclude Include="Runtime\Renderer\VkImpl\LightManager.h" />
+    <ClInclude Include="Runtime\Renderer\VkImpl\MaterialVk.h" />
+    <ClInclude Include="Runtime\Renderer\VkImpl\MeshVk.h" />
+    <ClInclude Include="Runtime\Renderer\VkImpl\PostProcessEffectVk.h" />
+    <ClInclude Include="Runtime\Renderer\VkImpl\LightProbeVk.h" />
+    <ClInclude Include="Runtime\Renderer\VkImpl\RenderManagerVk.h" />
+    <ClInclude Include="Runtime\Renderer\VkImpl\ShadowAtlas.h" />
+    <ClInclude Include="Runtime\Renderer\VkImpl\TextureVk.h" />
+    <ClInclude Include="Runtime\Renderer\Vulkan\Buffer.h" />
+    <ClInclude Include="Runtime\Renderer\Vulkan\CommandList.h" />
+    <ClInclude Include="Runtime\Renderer\Vulkan\ComputePipeline.h" />
+    <ClInclude Include="Runtime\Renderer\Vulkan\Descriptor.h" />
+    <ClInclude Include="Runtime\Renderer\Vulkan\DescriptorAllocator.h" />
+    <ClInclude Include="Runtime\Renderer\Vulkan\DescriptorLayout.h" />
+    <ClInclude Include="Runtime\Renderer\Vulkan\Device.h" />
+    <ClInclude Include="Runtime\Renderer\Vulkan\Format.h" />
+    <ClInclude Include="Runtime\Renderer\Vulkan\ImguiImpl.h" />
+    <ClInclude Include="Runtime\Renderer\Vulkan\Pipeline.h" />
+    <ClInclude Include="Runtime\Renderer\Vulkan\Renderpass.h" />
+    <ClInclude Include="Runtime\Renderer\Vulkan\Sampler.h" />
+    <ClInclude Include="Runtime\Renderer\Vulkan\Swapchain.h" />
+    <ClInclude Include="Runtime\Renderer\Vulkan\Texture.h" />
+    <ClInclude Include="Runtime\Renderer\Vulkan\TextureUtility.h" />
+    <ClInclude Include="Runtime\Renderer\Vulkan\UtilityVK.h" />
+    <ClInclude Include="Runtime\Renderer\Vulkan\Vendor\vk_mem_alloc.h" />
+    <ClInclude Include="Runtime\Resources\Model.h" />
+    <ClInclude Include="Runtime\Resources\Resource.h" />
+    <ClInclude Include="Runtime\Scene\Actor.h" />
+    <ClInclude Include="Runtime\Scene\Component.h" />
+    <ClInclude Include="Runtime\Scene\Scene.h" />
+    <ClInclude Include="Runtime\Scene\Transform.h" />
+    <ClInclude Include="Runtime\Threading\JobSystem.h" />
+    <ClInclude Include="Runtime\Threading\ThreadSafeQueue.h" />
+    <ClInclude Include="Runtime\Vendor\ffx-cacao\ffx_cacao.h" />
+    <ClInclude Include="Runtime\Vendor\ffx-cacao\ffx_cacao_defines.h" />
+    <ClInclude Include="Runtime\Vendor\ffx-cacao\ffx_cacao_impl.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Resources\Shaders\base.glsl.frag" />

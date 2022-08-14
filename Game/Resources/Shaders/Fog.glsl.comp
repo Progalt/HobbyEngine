@@ -1,0 +1,84 @@
+
+#version 450
+
+#include "Defines.glsl"
+
+layout(local_size_x = THREAD_GROUP_SIZE, local_size_y = THREAD_GROUP_SIZE) in;
+
+layout(set = 0, binding = 0) uniform GlobalData
+{
+	mat4 jitteredVP;
+	mat4 VP;
+
+	mat4 prevVP;
+	vec4 viewPos;
+	mat4 invProj;
+	mat4 invView;
+	mat4 view;
+	mat4 proj;
+} global;
+
+layout(set = 1, binding = 0, rgba8) uniform image2D outputImage;
+
+
+layout(set = 1, binding = 1) uniform FogData
+{
+	vec4 sunDir;
+	float fogDensity;
+	float padding[3];
+} fogData;
+
+layout(set = 1, binding = 2) uniform sampler2D inputImage;
+
+layout(set = 1, binding = 3) uniform sampler2D inDepth;
+
+
+
+vec3 atmosphereFogColour = vec3(0.5,0.6,0.7);
+vec3 sunFogColour = vec3(1.0,0.9,0.7);
+
+
+float maxFogHeight = 3.0;
+
+vec3 applyFog( in vec3  rgb,      // original color of the pixel
+               in float distance, // camera to point distance
+               in vec3  rayOri,   // camera position
+               in vec3  rayDir )  // camera to point vector
+{
+
+    float fogAmount = 1.0 - exp( -distance*fogData.fogDensity );
+    float sunAmount = max( dot( rayDir, -normalize(fogData.sunDir.xyz) ), 0.0 );
+    vec3  fogColor  = mix( atmosphereFogColour, 
+                           sunFogColour,
+                           pow(sunAmount,8.0) );
+
+	return mix( rgb, fogColor, fogAmount );
+}
+
+void main()
+{
+	ivec2 coord = ivec2(gl_GlobalInvocationID.xy);
+	ivec2 imgSize = ivec2(imageSize(outputImage));
+
+	if (coord.x > imgSize.x || coord.y > imgSize.y)
+		return;
+
+	vec2 uv = vec2(coord) / vec2(imageSize(outputImage));
+
+	vec4 rgba = texelFetch(inputImage, coord, 0);
+
+	float depth = texelFetch(inDepth, coord, 0).r;
+	vec3 fragPos = WorldPosFromDepth(depth, global.invProj, global.invView, uv, 1);
+
+
+	// Distance between cam pos and world pos
+	float dist = distance(global.viewPos.xyz, fragPos);
+
+	vec3 rayDir = normalize(global.viewPos.xyz - fragPos);
+
+	if (depth != 1.0)
+		rgba.xyz = applyFog(rgba.xyz, dist, global.viewPos.xyz, rayDir);
+
+	imageStore(outputImage, coord, rgba);
+
+}

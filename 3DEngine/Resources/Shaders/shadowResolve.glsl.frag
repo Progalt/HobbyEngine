@@ -44,6 +44,7 @@ layout(set = 1, binding = 3) uniform ShadowData
 	vec4 splitDepths;
 } shadowData;
 
+layout(set = 1, binding = 4) uniform sampler2D gNormal;
 
 
 float textureProj(vec4 shadowCoord, vec2 offset, uint cascadeIndex, float bias)
@@ -122,13 +123,20 @@ void main()
 		}
 	}
 
+	vec3 normal = decode(texture(gNormal, UV).rg);
+	float NoL = dot(normal, vec3(sceneData.dirLight.direction));
+
 	//cascadeIndex = 0;
 	mat4 m = shadowData.matrices[cascadeIndex];
 
 	shadowCoord = (biasMat * m) * vec4(fragPos, 1.0);	
 
-	//float bias = max(0.05 * 1.0 - NoL, 0.003);  
-	float bias = 0.003;// / (cascadeIndex + 1);  
+	float biasMax = 0.03;
+	float biasMin = 0.005;
+	float bias = max(biasMax * 1.0 - NoL, biasMin);
+	//float bias = 0.003 / (cascadeIndex + 1) + 0.0005 * cascadeIndex;  
+
+	//bias /= cascadeIndex + 1;
 
 	float shadow = 1;
 	//if (constants.useIBL == 1)
