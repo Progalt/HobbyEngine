@@ -85,13 +85,8 @@ void LightProbeVk::Create(vk::Device* device, uint32_t baseRes, vk::DescriptorLa
 
 void LightProbeVk::GenerateIrradiance(vk::CommandList& cmdList)
 {
-	vk::ImageBarrierInfo imgBarrier{};
-	imgBarrier.srcAccess = vk::AccessFlags::ShaderRead;
-	imgBarrier.oldLayout = vk::ImageLayout::ShaderReadOnlyOptimal;
-	imgBarrier.dstAccess = vk::AccessFlags::ShaderWrite;
-	imgBarrier.newLayout = vk::ImageLayout::General;
 
-	cmdList.ImageBarrier(&irradiance, vk::PipelineStage::ComputeShader, vk::PipelineStage::ComputeShader, imgBarrier);
+	irradiance.Transition(vk::ImageLayout::ShaderReadOnlyOptimal, vk::ImageLayout::General, cmdList);
 
 	// This is really slow at the moment
 	cmdList.BindPipeline(&shaders.genIrradiance.pipeline);
@@ -100,12 +95,7 @@ void LightProbeVk::GenerateIrradiance(vk::CommandList& cmdList)
 
 	cmdList.Dispatch(resolution / 32, resolution / 32, 6);
 
-	imgBarrier.srcAccess = vk::AccessFlags::ShaderWrite;
-	imgBarrier.oldLayout = vk::ImageLayout::General;
-	imgBarrier.dstAccess = vk::AccessFlags::ShaderRead;
-	imgBarrier.newLayout = vk::ImageLayout::ShaderReadOnlyOptimal;
-
-	cmdList.ImageBarrier(&irradiance, vk::PipelineStage::ComputeShader, vk::PipelineStage::ComputeShader, imgBarrier);
+	irradiance.Transition(vk::ImageLayout::General, vk::ImageLayout::ShaderReadOnlyOptimal, cmdList);
 }
 
 void LightProbeVk::UpdateData()

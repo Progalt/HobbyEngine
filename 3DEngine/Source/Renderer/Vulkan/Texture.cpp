@@ -3,6 +3,7 @@
 #include "Device.h"
 
 #include "UtilityVK.h"
+#include "TextureUtility.h"
 
 
 namespace vk
@@ -91,7 +92,10 @@ namespace vk
 		{
 			depthImage = true;
 		}
-
+		if (depthImage)
+			mIsDepth = true;
+		else
+			mIsColour = true;
 
 		VkImageViewCreateInfo viewInfo{};
 		viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
@@ -153,10 +157,20 @@ namespace vk
 		if (levels != 1)
 			type = VK_IMAGE_TYPE_3D;
 
-		createImage(m_Allocator, width, height, 1, (VkFormat)format, VK_IMAGE_TYPE_2D, VK_IMAGE_TILING_OPTIMAL,
-			usageFlags, VMA_MEMORY_USAGE_GPU_ONLY, m_Image, m_Allocation, 1, 1, 0);
+
+		VkImageCreateFlags flags = 0;
+		if (levels != 1)
+			flags = VK_IMAGE_CREATE_2D_ARRAY_COMPATIBLE_BIT;
+
+		createImage(m_Allocator, width, height, 1, (VkFormat)format, type, VK_IMAGE_TILING_OPTIMAL,
+			usageFlags, VMA_MEMORY_USAGE_GPU_ONLY, m_Image, m_Allocation, 1, levels, flags);
 
 		m_CurrentLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+
+		if (depthImage)
+			mIsDepth = true;
+		else
+			mIsColour = true;
 
 		VkImageViewType viewType = VK_IMAGE_VIEW_TYPE_2D;
 
@@ -179,6 +193,7 @@ namespace vk
 		m_Width = width;
 		m_Height = height;
 		m_MipLevels = 1;
+		m_Layers = levels;
 
 		if (vkCreateImageView(m_Device->m_Device, &viewInfo, nullptr, &m_ImageView) != VK_SUCCESS)
 		{
@@ -223,6 +238,11 @@ namespace vk
 		createImage(m_Allocator, res, res, 1, (VkFormat)format, VK_IMAGE_TYPE_2D, VK_IMAGE_TILING_OPTIMAL,
 			usageFlags, VMA_MEMORY_USAGE_GPU_ONLY, m_Image, m_Allocation, 1, 6, VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT);
 
+		if (depthImage)
+			mIsDepth = true;
+		else
+			mIsColour = true;
+
 		VkImageViewCreateInfo viewInfo{};
 		viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
 		viewInfo.image = m_Image;
@@ -239,6 +259,7 @@ namespace vk
 		m_Width = res;
 		m_Height = res;
 		m_MipLevels = 1;
+		m_Layers = 6;
 
 		if (vkCreateImageView(m_Device->m_Device, &viewInfo, nullptr, &m_ImageView) != VK_SUCCESS)
 		{
@@ -253,6 +274,20 @@ namespace vk
 
 			m_Device->ExecuteTransfer(cmd);
 		}
+	}
+
+	void Texture::Transition(ImageLayout newLayout, CommandList& cmdList)
+	{
+		SetLayout(cmdList.GetCommandBuffer(), this, 0, m_MipLevels, 1, m_CurrentLayout, (VkImageLayout)newLayout);
+
+		m_CurrentLayout = (VkImageLayout)newLayout;
+	}
+
+	void Texture::Transition(ImageLayout oldLayout, ImageLayout newLayout, CommandList& cmdList)
+	{
+		SetLayout(cmdList.GetCommandBuffer(), this, 0, m_MipLevels, m_Layers, (VkImageLayout)oldLayout, (VkImageLayout)newLayout);
+
+		m_CurrentLayout = (VkImageLayout)newLayout;
 	}
 
 	void Texture::Destroy()

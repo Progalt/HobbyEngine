@@ -29,7 +29,7 @@ void main()
 	const float HALF_PI = PI * 0.5;
 
 	float sampleDelta = 0.025;
-    float nrSamples = 0.0; 
+    float sampleCount = 0.0; 
     for(float phi = 0.0; phi < TWO_PI; phi += sampleDelta)
     {
         for(float theta = 0.0; theta < HALF_PI; theta += sampleDelta)
@@ -40,10 +40,11 @@ void main()
             ivec3 sampleCoord = texCoordToCube(sampleVec, vec2(imageSize(cubeMap).xy));
 
             irradiance += imageLoad(cubeMap, sampleCoord).rgb * cos(theta) * sin(theta);
-            nrSamples++;
+            sampleCount++;
         }
     }
-    irradiance = PI * irradiance * (1.0 / float(nrSamples));
+    irradiance = PI * irradiance / float(sampleCount);
+    irradiance *= 2;
 
     imageStore(irradianceMap, irradianceCoord, vec4(irradiance, 1.0));
 }

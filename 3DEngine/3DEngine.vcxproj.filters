@@ -326,6 +326,9 @@
     <ClInclude Include="Source\Renderer\VkImpl\CACAOImpl.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Source\Renderer\Vulkan\TextureUtility.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="Resources\Shaders\base.glsl.vert" />

@@ -156,13 +156,30 @@ void CascadeShadowMap::UpdateCascades(DirectionalLight& dirLight, float nearClip
 		glm::vec3 maxExtents = glm::vec3(radius, radius, radius);
 		glm::vec3 minExtents = -maxExtents;
 
-		glm::vec3 lightDirection = frustumCenter - glm::normalize(glm::vec3(-dirLight.direction)) * -minExtents.z;
+		glm::vec3 lightDirection = frustumCenter - glm::normalize(glm::vec3(-dirLight.direction));// *-minExtents.z;
 		glm::mat4 lightViewMatrix = glm::mat4(1.0f);
 		lightViewMatrix = glm::lookAt(lightDirection, frustumCenter, glm::vec3(0.0f, 1.0f, 0.0f));
 
 		glm::vec3 cascadeExtents = maxExtents - minExtents;
 
 		glm::mat4 lightOrthoMatrix = glm::ortho(minExtents.x, maxExtents.x, minExtents.y, maxExtents.y, -cascadeExtents.z * 4, cascadeExtents.z);
+
+		glm::vec4 texSize = glm::vec4(float(size) * 3.0f, float(size), 0.0f, 1.0f);
+
+		glm::mat4 shadowMatrix = lightOrthoMatrix * lightViewMatrix;
+		glm::vec4 shadowOrigin = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
+		shadowOrigin = shadowMatrix * shadowOrigin;
+		float storedW = shadowOrigin.w;
+		shadowOrigin = shadowOrigin * texSize / 2.0f;
+
+		glm::vec4 roundedOrigin = glm::round(shadowOrigin);
+		glm::vec4 roundOffset = roundedOrigin - shadowOrigin;
+		roundOffset = roundOffset * 2.0f / texSize;
+		roundOffset.z = 0.0f;
+		roundOffset.w = 0.0f;
+
+		glm::mat4 shadowProj = lightOrthoMatrix;
+		lightViewMatrix[3] += roundOffset;
 
 		// Store split distance and matrix in cascade
 		data.splitDepths[i] = (nearClip + splitDist * clipRange) * -1.0f;

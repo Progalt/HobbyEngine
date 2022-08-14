@@ -134,9 +134,11 @@ namespace vk
 
 		void ImageBarrier(Texture* texture, PipelineStage srcStage, PipelineStage dstStage, ImageBarrierInfo barrierInfo);
 
+		void ImageBarrier(std::vector<Texture*> texture, PipelineStage srcStage, PipelineStage dstStage, std::vector<ImageBarrierInfo> barrierInfo);
+
 		void DrawIndexedIndirect(Buffer* buffer, uint32_t offset, uint32_t drawCount, uint32_t stride);
 
-		void CopyImage(Texture* src, ImageLayout srcLayout, Texture* dst, ImageLayout dstLayout, ImageCopy* region);
+		void CopyImage(Texture* src, ImageLayout srcLayout, Texture* dst, ImageLayout dstLayout, ImageCopy* region, bool depth = false);
 
 		void ClearColourImage(Texture* src, ImageLayout layout, glm::vec4 colour);
 

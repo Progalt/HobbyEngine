@@ -53,6 +53,10 @@ namespace vk
 
 		void CreateCubeMapTarget(Format format, uint32_t res, vk::ImageLayout transitionTo = vk::ImageLayout::Undefined);
 
+		void Transition(ImageLayout newLayout, CommandList& cmdList);
+
+		void Transition(ImageLayout oldLayout, ImageLayout newLayout, CommandList& cmdList);
+
 		void Destroy();
 
 		uint32_t GetWidth() const { return m_Width; }
@@ -71,6 +75,9 @@ namespace vk
 		VkImage GetImage() { return m_Image; }
 		VkImageView GetImageView() { return m_ImageView; }
 
+		const bool IsColourFormat() const { return mIsColour; }
+		const bool IsDepthFormat() const { return mIsDepth; }
+		const bool IsStencilFormat() const { return mIsStencil; }
 
 	private:
 
@@ -98,6 +105,10 @@ namespace vk
 		uint32_t m_Width = 0, m_Height;
 
 		uint32_t m_MipLevels = 0;
+		uint32_t m_Layers = 1;
+
+		bool mIsColour = false, mIsDepth = false, mIsStencil;
+
 
 		VkImageSubresourceRange m_ResourceRange;
 

@@ -28,8 +28,8 @@ public:
 		model = ResourceManager::GetInstance().NewModel();
 		model->LoadFromFile("Resources/Sponza/Sponza.pmdl", renderManager);
 		
-		standardProj = glm::perspective(glm::radians(80.0f), (float)window.GetWidth() / (float)window.GetHeight(), 0.1f, 1000.0f);
-		proj = ReversedDepthPerspective(glm::radians(80.0f), (float)window.GetWidth() / (float)window.GetHeight(), 0.1f);
+		standardProj = glm::perspective(glm::radians(90.0f), (float)window.GetWidth() / (float)window.GetHeight(), 0.1f, 1000.0f);
+		proj = ReversedDepthPerspective(glm::radians(90.0f), (float)window.GetWidth() / (float)window.GetHeight(), 0.1f);
 		
 
 		viewPos = { 0.0f, 0.0f, 0.0f };

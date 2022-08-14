@@ -75,8 +75,6 @@ float textureProj(vec4 shadowCoord, vec2 offset, uint cascadeIndex, float bias)
 
 float filterPCF(vec4 sc, uint cascadeIndex, float bias)
 {
-	if (cascadeIndex > 1)
-		return textureProj(sc, vec2(0), cascadeIndex, bias);
 
 	ivec2 texDim = textureSize(cascadeAtlas, 0).xy;
 	texDim.x /= 3;
@@ -86,7 +84,7 @@ float filterPCF(vec4 sc, uint cascadeIndex, float bias)
 
 	float shadowFactor = 0.0;
 	int count = 0;
-	int range = (cascadeIndex == 0)? 2 : 1;
+	int range = 1;
 	
 	for (int x = -range; x <= range; x++) {
 		for (int y = -range; y <= range; y++) {
@@ -103,6 +101,8 @@ const mat4 biasMat = mat4(
 	0.0, 0.0, 1.0, 0.0,
 	0.5, 0.5, 0.0, 1.0 
 );
+
+
 
 void main()
 {
@@ -123,16 +123,17 @@ void main()
 	}
 
 	//cascadeIndex = 0;
+	mat4 m = shadowData.matrices[cascadeIndex];
 
-	shadowCoord = (biasMat * shadowData.matrices[cascadeIndex]) * vec4(fragPos, 1.0);	
+	shadowCoord = (biasMat * m) * vec4(fragPos, 1.0);	
 
 	//float bias = max(0.05 * 1.0 - NoL, 0.003);  
-	float bias = 0.003 / (cascadeIndex + 1);  
+	float bias = 0.003;// / (cascadeIndex + 1);  
 
 	float shadow = 1;
 	//if (constants.useIBL == 1)
-		shadow = textureProj(shadowCoord / shadowCoord.w, vec2(0.0), cascadeIndex, bias);
-		//shadow = filterPCF(shadowCoord / shadowCoord.w, cascadeIndex, bias);
+		//shadow = textureProj(shadowCoord / shadowCoord.w, vec2(0.0), cascadeIndex, bias);
+		shadow = filterPCF(shadowCoord / shadowCoord.w, cascadeIndex, bias);
 
 
 	resolvedShadow = vec4(shadow, 0, 0, 1);

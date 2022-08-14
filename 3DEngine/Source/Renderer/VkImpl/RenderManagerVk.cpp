@@ -672,8 +672,6 @@ void RenderManagerVk::Render(CameraInfo& cameraInfo)
 
 	mCmdList.Begin();
 
-	vk::ImageBarrierInfo imgBarrier{};
-
 	// First lets render some shadows
 
 	
@@ -753,12 +751,7 @@ void RenderManagerVk::Render(CameraInfo& cameraInfo)
 
 		stats.dispatchCalls += 19;
 
-		imgBarrier.srcAccess = vk::AccessFlags::ShaderWrite;
-		imgBarrier.oldLayout = vk::ImageLayout::General;
-		imgBarrier.dstAccess = vk::AccessFlags::ShaderRead;
-		imgBarrier.newLayout = vk::ImageLayout::ShaderReadOnlyOptimal;
-
-		mCmdList.ImageBarrier(&mLightingPipeline.output, vk::PipelineStage::ComputeShader, vk::PipelineStage::FragmentShader, imgBarrier);
+		mLightingPipeline.output.Transition(vk::ImageLayout::General, vk::ImageLayout::ShaderReadOnlyOptimal, mCmdList);
 
 		mCmdList.BeginRenderpass(&mApplyAOPass.renderpass, false);
 
@@ -772,12 +765,7 @@ void RenderManagerVk::Render(CameraInfo& cameraInfo)
 
 		mCmdList.EndRenderpass();
 
-		imgBarrier.srcAccess = vk::AccessFlags::ShaderRead;
-		imgBarrier.oldLayout = vk::ImageLayout::ShaderReadOnlyOptimal;
-		imgBarrier.dstAccess = vk::AccessFlags::ShaderWrite;
-		imgBarrier.newLayout = vk::ImageLayout::General;
-
-		mCmdList.ImageBarrier(&mLightingPipeline.output, vk::PipelineStage::FragmentShader, vk::PipelineStage::ComputeShader, imgBarrier);
+		mLightingPipeline.output.Transition(vk::ImageLayout::ShaderReadOnlyOptimal, vk::ImageLayout::General, mCmdList);
 
 		mCmdList.EndDebugUtilsLabel();
 
@@ -785,23 +773,9 @@ void RenderManagerVk::Render(CameraInfo& cameraInfo)
 	else
 	{
 
-		vk::ImageBarrierInfo imgBarrier{};
+		mLightingPipeline.output.Transition(vk::ImageLayout::General, vk::ImageLayout::TransferSrcOptimal, mCmdList);
 
-		imgBarrier.srcAccess = vk::AccessFlags::ShaderWrite;
-		imgBarrier.oldLayout = vk::ImageLayout::General;
-		imgBarrier.dstAccess = vk::AccessFlags::TransferRead;
-		imgBarrier.newLayout = vk::ImageLayout::TransferSrcOptimal;
-
-		mCmdList.ImageBarrier(&mLightingPipeline.output, vk::PipelineStage::ComputeShader, vk::PipelineStage::Transfer, imgBarrier);
-
-
-		imgBarrier.srcAccess = vk::AccessFlags::ShaderWrite;
-		imgBarrier.oldLayout = vk::ImageLayout::General;
-		imgBarrier.dstAccess = vk::AccessFlags::TransferWrite;
-		imgBarrier.newLayout = vk::ImageLayout::TransferDstOptimal;
-
-		mCmdList.ImageBarrier(&mCurrentOutput[0], vk::PipelineStage::ComputeShader, vk::PipelineStage::Transfer, imgBarrier);
-
+		mCurrentOutput[0].Transition(vk::ImageLayout::General, vk::ImageLayout::TransferDstOptimal, mCmdList);
 
 		vk::ImageCopy imageCopy{};
 		imageCopy.dstLayer = 0;
@@ -814,20 +788,9 @@ void RenderManagerVk::Render(CameraInfo& cameraInfo)
 		imageCopy.dstY = 0;
 		mCmdList.CopyImage(&mLightingPipeline.output, vk::ImageLayout::TransferSrcOptimal, &mCurrentOutput[0], vk::ImageLayout::TransferDstOptimal, &imageCopy);
 
-		imgBarrier.srcAccess = vk::AccessFlags::TransferRead;
-		imgBarrier.oldLayout = vk::ImageLayout::TransferSrcOptimal;
-		imgBarrier.dstAccess = vk::AccessFlags::ShaderWrite;
-		imgBarrier.newLayout = vk::ImageLayout::General;
+		mLightingPipeline.output.Transition(vk::ImageLayout::TransferSrcOptimal, vk::ImageLayout::General, mCmdList);
 
-		mCmdList.ImageBarrier(&mLightingPipeline.output, vk::PipelineStage::Transfer, vk::PipelineStage::ComputeShader, imgBarrier);
-
-
-		imgBarrier.srcAccess = vk::AccessFlags::TransferWrite;
-		imgBarrier.oldLayout = vk::ImageLayout::TransferDstOptimal;
-		imgBarrier.dstAccess = vk::AccessFlags::ShaderWrite;
-		imgBarrier.newLayout = vk::ImageLayout::General;
-
-		mCmdList.ImageBarrier(&mCurrentOutput[0], vk::PipelineStage::Transfer, vk::PipelineStage::ComputeShader, imgBarrier);
+		mCurrentOutput[0].Transition(vk::ImageLayout::TransferDstOptimal, vk::ImageLayout::General, mCmdList);
 	}
 	// Lets start post process effects
 
@@ -858,12 +821,7 @@ void RenderManagerVk::Render(CameraInfo& cameraInfo)
 				effect->GenerateDescriptor(&mCurrentOutput[targetNum], &mCurrentOutput[prevTarget]);
 			}
 
-			imgBarrier.srcAccess = vk::AccessFlags::ShaderWrite;
-			imgBarrier.oldLayout = vk::ImageLayout::General;
-			imgBarrier.dstAccess = vk::AccessFlags::ShaderRead;
-			imgBarrier.newLayout = vk::ImageLayout::ShaderReadOnlyOptimal;
-
-			mCmdList.ImageBarrier(&mCurrentOutput[prevTarget], vk::PipelineStage::ComputeShader, vk::PipelineStage::FragmentShader, imgBarrier);
+			mCurrentOutput[prevTarget].Transition(vk::ImageLayout::General, vk::ImageLayout::ShaderReadOnlyOptimal, mCmdList);
 
 			if (effect->createInfo.passGlobalData)
 				mCmdList.BindDescriptors({ globalDataManager.GetDescriptor(vk::ShaderStage::Compute), &effect->descriptor }, &effect->computePipeline, 0);
@@ -876,23 +834,12 @@ void RenderManagerVk::Render(CameraInfo& cameraInfo)
 
 			// TODO: This could probably be improved
 
-			imgBarrier.srcAccess = vk::AccessFlags::ShaderRead;
-			imgBarrier.oldLayout = vk::ImageLayout::ShaderReadOnlyOptimal;
-			imgBarrier.dstAccess = vk::AccessFlags::ShaderWrite;
-			imgBarrier.newLayout = vk::ImageLayout::General;
-
-			mCmdList.ImageBarrier(&mCurrentOutput[prevTarget], vk::PipelineStage::FragmentShader, vk::PipelineStage::FragmentShader, imgBarrier);
+			mCurrentOutput[prevTarget].Transition(vk::ImageLayout::ShaderReadOnlyOptimal, vk::ImageLayout::General, mCmdList);
 
 			if (effect->createInfo.cacheHistory)
 			{
 				// Copy the current output to the history
-
-				imgBarrier.srcAccess = vk::AccessFlags::ShaderRead;
-				imgBarrier.oldLayout = vk::ImageLayout::ShaderReadOnlyOptimal;
-				imgBarrier.dstAccess = vk::AccessFlags::ShaderWrite;
-				imgBarrier.newLayout = vk::ImageLayout::General;
-
-				mCmdList.ImageBarrier(&mHistory, vk::PipelineStage::ComputeShader, vk::PipelineStage::ComputeShader, imgBarrier);
+				mHistory.Transition(vk::ImageLayout::ShaderReadOnlyOptimal, vk::ImageLayout::General, mCmdList);
 
 				vk::ImageCopy copy{};
 
@@ -905,12 +852,7 @@ void RenderManagerVk::Render(CameraInfo& cameraInfo)
 
 				mCmdList.CopyImage(&mCurrentOutput[targetNum], vk::ImageLayout::General, &mHistory, vk::ImageLayout::General, &copy);
 
-				imgBarrier.srcAccess = vk::AccessFlags::ShaderWrite;
-				imgBarrier.oldLayout = vk::ImageLayout::General;
-				imgBarrier.dstAccess = vk::AccessFlags::ShaderRead;
-				imgBarrier.newLayout = vk::ImageLayout::ShaderReadOnlyOptimal;
-
-				mCmdList.ImageBarrier(&mHistory, vk::PipelineStage::ComputeShader, vk::PipelineStage::ComputeShader, imgBarrier);
+				mHistory.Transition(vk::ImageLayout::General, vk::ImageLayout::ShaderReadOnlyOptimal, mCmdList);
 			}
 
 		}
@@ -922,12 +864,7 @@ void RenderManagerVk::Render(CameraInfo& cameraInfo)
 
 	updatePostProcessStack = false;
 
-	imgBarrier.srcAccess = vk::AccessFlags::ShaderWrite;
-	imgBarrier.oldLayout = vk::ImageLayout::General;
-	imgBarrier.dstAccess = vk::AccessFlags::ShaderRead;
-	imgBarrier.newLayout = vk::ImageLayout::ShaderReadOnlyOptimal;
-
-	mCmdList.ImageBarrier(&mCurrentOutput[prevTarget], vk::PipelineStage::ComputeShader, vk::PipelineStage::FragmentShader, imgBarrier);
+	mCurrentOutput[prevTarget].Transition(vk::ImageLayout::General, vk::ImageLayout::ShaderReadOnlyOptimal, mCmdList);
 
 	mCmdList.EndDebugUtilsLabel();
 
@@ -982,14 +919,7 @@ void RenderManagerVk::Render(CameraInfo& cameraInfo)
 
 	mCmdList.EndDebugUtilsLabel();
 
-
-	imgBarrier.srcAccess = vk::AccessFlags::ShaderRead;
-	imgBarrier.oldLayout = vk::ImageLayout::ShaderReadOnlyOptimal;
-	imgBarrier.dstAccess = vk::AccessFlags::ShaderWrite;
-	imgBarrier.newLayout = vk::ImageLayout::General;
-
-	mCmdList.ImageBarrier(&mCurrentOutput[prevTarget], vk::PipelineStage::FragmentShader, vk::PipelineStage::FragmentShader, imgBarrier);
-
+	mCurrentOutput[prevTarget].Transition(vk::ImageLayout::ShaderReadOnlyOptimal, vk::ImageLayout::General, mCmdList);
 	
 	mCmdList.End();
 

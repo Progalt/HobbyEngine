@@ -119,6 +119,23 @@ vec3 WorldPosFromDepth(float depth, mat4 invProj, mat4 invView, vec2 TexCoord, i
     return worldSpacePosition.xyz;
 }
 
+vec3 ReconstructNormal(sampler2D depth, mat4 invProj, mat4 invView, vec2 UV, int reversedDepth)
+{
+	vec2 uv0 = UV;
+	vec2 uv1 = uv0 + vec2(1, 0) / textureSize(depth, 0);
+	vec2 uv2 = uv0 + vec2(0, 1) / textureSize(depth, 0);
+
+	float depth0 = texture(depth, uv0).r;
+	float depth1 = texture(depth, uv0).r;
+	float depth2 = texture(depth, uv0).r;
+
+	vec3 p0 = WorldPosFromDepth(depth0, invProj, invView, UV, reversedDepth);
+	vec3 p1 = WorldPosFromDepth(depth1, invProj, invView, UV, reversedDepth);
+	vec3 p2 = WorldPosFromDepth(depth2, invProj, invView, UV, reversedDepth);
+
+	return normalize(cross(p2 - p0, p1 - p0));
+}
+
 // Tonemapping
 
 vec3 filmic(vec3 x) {

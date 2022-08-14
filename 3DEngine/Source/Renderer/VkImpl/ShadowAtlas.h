@@ -40,6 +40,7 @@ public:
 	QualitySetting currentQuality = QualitySetting::Undefined;
 
 	vk::Texture atlas;
+	vk::Texture rt;
 
 	vk::Renderpass renderpass;
 
@@ -48,4 +49,6 @@ public:
 	vk::Descriptor descriptor;
 
 private:
+
+	uint32_t currentRenderCascade = 0;
 };

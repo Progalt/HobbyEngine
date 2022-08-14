@@ -235,12 +235,33 @@ namespace vk
 		vkCmdPipelineBarrier(m_Cmd[getIndex()], (VkPipelineStageFlags)srcStage, (VkPipelineStageFlags)dstStage, VK_DEPENDENCY_BY_REGION_BIT, 0, nullptr, 0, nullptr, 1, &imgMemBarrier);
 	}
 
+	void CommandList::ImageBarrier(std::vector<Texture*> texture, PipelineStage srcStage, PipelineStage dstStage, std::vector<ImageBarrierInfo> barrierInfo)
+	{
+		std::vector<VkImageMemoryBarrier> barriers;
+		VkImageMemoryBarrier imgMemBarrier{};
+
+		for (uint32_t i = 0; i < texture.size(); i++)
+		{
+			imgMemBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+			imgMemBarrier.srcAccessMask = (VkAccessFlags)barrierInfo[i].srcAccess;
+			imgMemBarrier.dstAccessMask = (VkAccessFlags)barrierInfo[i].dstAccess;
+			imgMemBarrier.image = texture[i]->m_Image;
+			imgMemBarrier.subresourceRange = texture[i]->m_ResourceRange;
+			imgMemBarrier.oldLayout = (VkImageLayout)barrierInfo[i].oldLayout;
+			imgMemBarrier.newLayout = (VkImageLayout)barrierInfo[i].newLayout;
+
+			barriers.push_back(imgMemBarrier);
+		}
+
+		vkCmdPipelineBarrier(m_Cmd[getIndex()], (VkPipelineStageFlags)srcStage, (VkPipelineStageFlags)dstStage, VK_DEPENDENCY_BY_REGION_BIT, 0, nullptr, 0, nullptr, barriers.size(), barriers.data());
+	}
+
 	void CommandList::DrawIndexedIndirect(Buffer* buffer, uint32_t offset, uint32_t drawCount, uint32_t stride)
 	{
 		vkCmdDrawIndexedIndirect(m_Cmd[getIndex()], buffer->m_Buffer, offset, drawCount, stride);
 	}
 
-	void CommandList::CopyImage(Texture* src, ImageLayout srcLayout, Texture* dst, ImageLayout dstLayout, ImageCopy* region)
+	void CommandList::CopyImage(Texture* src, ImageLayout srcLayout, Texture* dst, ImageLayout dstLayout, ImageCopy* region, bool depth)
 	{
 		VkImageCopy copy;
 		copy.srcOffset = { region->srcX, region->srcY };
@@ -249,7 +270,7 @@ namespace vk
 		copy.srcSubresource.mipLevel = 0;
 		copy.srcSubresource.layerCount = 1;
 		copy.srcSubresource.baseArrayLayer = region->srcLayer;
-		copy.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+		copy.srcSubresource.aspectMask = (depth) ? VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT;
 		copy.dstSubresource.mipLevel = 0;
 		copy.dstSubresource.layerCount = 1;
 		copy.dstSubresource.baseArrayLayer = region->dstLayer;

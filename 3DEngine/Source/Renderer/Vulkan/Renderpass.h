@@ -47,6 +47,7 @@ namespace vk
 		bool loadDepth = false;
 		bool storeDepth = true;
 		ImageLayout depthInitialLayout = ImageLayout::Undefined;
+		ImageLayout depthFinalLayout = ImageLayout::ShaderReadOnlyOptimal;
 		
 		uint32_t extentWidth = 0;
 		uint32_t extentHeight = 0;

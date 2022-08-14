@@ -234,6 +234,7 @@
     <ClInclude Include="Source\Renderer\Vulkan\Sampler.h" />
     <ClInclude Include="Source\Renderer\Vulkan\Swapchain.h" />
     <ClInclude Include="Source\Renderer\Vulkan\Texture.h" />
+    <ClInclude Include="Source\Renderer\Vulkan\TextureUtility.h" />
     <ClInclude Include="Source\Renderer\Vulkan\UtilityVK.h" />
     <ClInclude Include="Source\Renderer\Vulkan\Vendor\VkBootstrap.h" />
     <ClInclude Include="Source\Renderer\Vulkan\Vendor\vk_mem_alloc.h" />

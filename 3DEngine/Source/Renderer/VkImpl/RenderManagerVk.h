@@ -91,6 +91,7 @@ public:
 	vk::Device mDevice;
 
 	vk::CommandList mCmdList;
+	vk::CommandList mShadowList;
 
 	vk::Sampler mDefaultSampler;
 	vk::Sampler mTargetSampler;

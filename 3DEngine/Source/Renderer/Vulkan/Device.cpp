@@ -433,7 +433,7 @@ namespace vk
 
 			if (createInfo->depthAttachment != nullptr)
 			{
-				descs.push_back({ (VkFormat)createInfo->depthAttachment->format, true, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, createInfo->loadDepth, createInfo->storeDepth, (VkImageLayout)createInfo->depthInitialLayout });
+				descs.push_back({ (VkFormat)createInfo->depthAttachment->format, true, (VkImageLayout)createInfo->depthFinalLayout, createInfo->loadDepth, createInfo->storeDepth, (VkImageLayout)createInfo->depthInitialLayout });
 
 				attachments.push_back(createInfo->depthAttachment->m_ImageView);
 			}
