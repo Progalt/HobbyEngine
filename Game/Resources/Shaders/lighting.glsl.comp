@@ -82,7 +82,9 @@ vec3 DirectionalLightContribution(vec3 n, DirectionalLight light, vec3 v, vec3 f
     float NoH = clamp(dot(n, h), 0.0, 1.0);
     float LoH = clamp(dot(l, h), 0.0, 1.0);
 
-	float shadow = texture(resolvedShadow, uv).r;
+	float shadow = 1;
+	if (constants.useIBL == 1)
+		shadow = texture(resolvedShadow, uv).r;
 
 
 	vec3 radiance = light.colour.xyz;
@@ -142,8 +144,11 @@ void main()
 
 	vec3 irradiance = vec3(0.15);
 
+	vec3 sampleNormal = normal;
+	sampleNormal.y = -sampleNormal.y;
+
 	if (constants.useIBL == 1)
-		irradiance = texture(irradianceCube, normal).rgb;
+		irradiance = texture(irradianceCube, sampleNormal).rgb;
 
 	// Normal is encoded in 2 channels so it needs to be decoded back into xyz
 	material.albedo = gColourSampled.xyz;

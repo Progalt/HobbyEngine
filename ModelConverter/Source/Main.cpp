@@ -5,6 +5,7 @@
 #include <assimp/Importer.hpp>
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
+#include <assimp/GltfMaterial.h>
 #include <vector>
 
 constexpr float LOD_INDEX_TARGET[3] =
@@ -31,7 +32,8 @@ public:
 	void LoadFromFile(const std::string& filepath)
 	{
 		Assimp::Importer importer;
-		const aiScene* scene = importer.ReadFile(filepath, aiProcess_Triangulate | aiProcess_FlipUVs | aiProcess_GenSmoothNormals | aiProcess_CalcTangentSpace);
+		const aiScene* scene = importer.ReadFile(filepath, aiProcess_Triangulate | aiProcess_FlipUVs | aiProcess_GenSmoothNormals | aiProcess_CalcTangentSpace 
+			| aiProcess_JoinIdenticalVertices | aiProcess_ImproveCacheLocality | aiProcess_FindDegenerates | aiProcess_OptimizeMeshes | aiProcess_FindInvalidData);
 
 		if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode)
 		{
@@ -149,6 +151,22 @@ public:
 		mat.albedo = { color.r, color.g, color.b, 1.0f };
 		mat.roughness = roughness;
 		mat.metallic = metallic;
+
+		int alphaMode = 0;
+		float alphaCutoff = 0.0f;
+		material->Get(AI_MATKEY_GLTF_ALPHAMODE, alphaMode);
+		material->Get(AI_MATKEY_GLTF_ALPHACUTOFF, alphaCutoff);
+
+		mat.alphaCutoff = alphaCutoff;
+
+		switch (alphaMode)
+		{
+		case 0:
+			mat.alphaMode = pmdl::BLEND_MODE_OPAQUE;
+			break;
+		}
+
+		printf("\t Alpha Mode: %d Alpha Cutoff: %.3f\n", alphaMode, alphaCutoff);
 		
 		printf("\t Albedo Colour: %.3f, %.3f, %.3f\n", color.r, color.g, color.b);
 		printf("\t Roughness: %.3f\n", roughness);

@@ -46,6 +46,26 @@ layout(set = 1, binding = 3) uniform ShadowData
 
 layout(set = 1, binding = 4) uniform sampler2D gNormal;
 
+float GetBias(float NdotL, float biasMul, float baseBias)
+{
+	float factor = 0.01;
+
+	float saturated_ndotl =  clamp(NdotL, 0, 1);
+
+	float slopeFactor = 1.0 - saturated_ndotl;
+
+	float finalBias = factor * slopeFactor * baseBias * biasMul;
+
+	return finalBias;
+}
+
+vec3 NormalBiasOffset(vec3 n, float NdotL, float normalBias)
+{
+	vec3 texelSize = vec3(1.0 / textureSize(cascadeAtlas, 0), 0.0);
+
+	return n * (1.0 - clamp(NdotL, 0, 1)) * normalBias * texelSize * 10.0;
+}
+
 
 float textureProj(vec4 shadowCoord, vec2 offset, uint cascadeIndex, float bias)
 {
@@ -85,7 +105,7 @@ float filterPCF(vec4 sc, uint cascadeIndex, float bias)
 
 	float shadowFactor = 0.0;
 	int count = 0;
-	int range = 1;
+	int range = 2;
 	
 	for (int x = -range; x <= range; x++) {
 		for (int y = -range; y <= range; y++) {
@@ -96,53 +116,76 @@ float filterPCF(vec4 sc, uint cascadeIndex, float bias)
 	return shadowFactor / count;
 }
 
-const mat4 biasMat = mat4( 
-	0.5, 0.0, 0.0, 0.0,
-	0.0, 0.5, 0.0, 0.0,
-	0.0, 0.0, 1.0, 0.0,
-	0.5, 0.5, 0.0, 1.0 
-);
 
-
+const float  blendThreshold = 0.7;
 
 void main()
 {
 	float sampledDepth = texture(gDepth, UV).r;
-	vec3 fragPos = WorldPosFromDepth(sampledDepth, global.invProj, global.invView, UV, 1);
 
+	vec3 normal = decode(texture(gNormal, UV).rg);
+	float NoL = dot(normal, vec3(-sceneData.dirLight.direction));
+
+	vec3 fragPos = WorldPosFromDepth(sampledDepth, global.invProj, global.invView, UV, 1) + NormalBiasOffset(normal, NoL, 10.0);
+
+	// Transform the world position into a view position
 	vec4 viewPos = global.view *  vec4(fragPos, 1.0);
 
 	vec4 shadowCoord;
 	uint cascadeIndex = 0;
 
 	// Get cascade index
-	//uint cascadeIndex = 0;
-	for(uint i = 0; i < CASCADE_COUNT - 1; ++i) {
+	for(uint i = 0; i < CASCADE_COUNT - 1; i++) {
 		if(viewPos.z < shadowData.splitDepths[i]) {	
 			cascadeIndex = i + 1;
 		}
 	}
 
-	vec3 normal = decode(texture(gNormal, UV).rg);
-	float NoL = dot(normal, vec3(sceneData.dirLight.direction));
+	vec3 posNdc = WorldToNDC(fragPos,  shadowData.matrices[cascadeIndex]);
+	vec2 posUv = NDCToUV(posNdc.xy);
 
 	//cascadeIndex = 0;
 	mat4 m = shadowData.matrices[cascadeIndex];
 
-	shadowCoord = (biasMat * m) * vec4(fragPos, 1.0);	
 
-	float biasMax = 0.03;
-	float biasMin = 0.005;
-	float bias = max(biasMax * 1.0 - NoL, biasMin);
-	//float bias = 0.003 / (cascadeIndex + 1) + 0.0005 * cascadeIndex;  
+	shadowCoord = vec4(posUv, posNdc.z, 1.0);
 
-	//bias /= cascadeIndex + 1;
-
+	float biasbase = 0.065;
+	float mul = float(cascadeIndex + 1);
+	float bias = GetBias(NoL, mul, biasbase);
+	
 	float shadow = 1;
-	//if (constants.useIBL == 1)
-		//shadow = textureProj(shadowCoord / shadowCoord.w, vec2(0.0), cascadeIndex, bias);
-		shadow = filterPCF(shadowCoord / shadowCoord.w, cascadeIndex, bias);
+	
+	//shadow = textureProj(shadowCoord, vec2(0.0), cascadeIndex, bias);
+	shadow = filterPCF(shadowCoord / shadowCoord.w, cascadeIndex, bias);
 
+	float fade = clamp((1.0 - viewPos.z / shadowData.splitDepths[cascadeIndex]) / 0.5, 0, 1);
+
+	if (fade < 1.0 && cascadeIndex < CASCADE_COUNT - 1)
+	{
+		cascadeIndex++;
+
+		vec3 posNdc = WorldToNDC(fragPos,  shadowData.matrices[cascadeIndex]);
+		vec2 posUv = NDCToUV(posNdc.xy);
+
+		//cascadeIndex = 0;
+		mat4 m = shadowData.matrices[cascadeIndex];
+
+
+		shadowCoord = vec4(posUv, posNdc.z, 1.0);
+
+		float biasbase = 0.065;
+		float mul = float(cascadeIndex + 1);
+		float bias = GetBias(NoL, mul, biasbase);
+	
+		float secondShadow = 1;
+	
+		//shadow = textureProj(shadowCoord, vec2(0.0), cascadeIndex, bias);
+		secondShadow = filterPCF(shadowCoord / shadowCoord.w, cascadeIndex, bias);
+
+		shadow = mix(secondShadow, shadow, fade);
+
+	}
 
 	resolvedShadow = vec4(shadow, 0, 0, 1);
 }

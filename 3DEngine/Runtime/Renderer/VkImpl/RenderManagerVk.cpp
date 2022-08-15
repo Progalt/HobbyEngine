@@ -706,7 +706,7 @@ void RenderManagerVk::Render(CameraInfo& cameraInfo)
 			renderInfo.target = &lightProbe->cubemap;
 			renderInfo.level = i;
 
-			RenderScene(renderInfo, mCmdList, true, false, false);
+			RenderScene(renderInfo, mCmdList, false, false, false);
 		}
 
 		lightProbe->GenerateIrradiance(mCmdList);
@@ -1156,7 +1156,7 @@ void RenderManagerVk::RenderScene(RenderInfo& renderInfo, vk::CommandList& cmdLi
 
 	cmdList.BindPipeline(&mShadowResolve.pipeline);
 
-	cmdList.BindDescriptors({ globalDataManager.GetDescriptor(vk::ShaderStage::Fragment), &mShadowResolve.descriptor }, &mShadowResolve.pipeline, 0);
+	cmdList.BindDescriptors({ renderInfo.globalManager.GetDescriptor(vk::ShaderStage::Fragment), &mShadowResolve.descriptor }, &mShadowResolve.pipeline, 0);
 
 	cmdList.Draw(3, 1, 0, 0);
 

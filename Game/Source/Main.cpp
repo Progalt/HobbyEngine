@@ -26,7 +26,7 @@ public:
 
 		ResourceManager::GetInstance().SetRenderManager(renderManager);
 		model = ResourceManager::GetInstance().NewModel();
-		model->LoadFromFile("Resources/Sponza/Sponza.pmdl", renderManager);
+		model->LoadFromFile("Resources/Sponza/Sponza.pmdl", renderManager, true);
 		
 		standardProj = glm::perspective(glm::radians(90.0f), (float)window.GetWidth() / (float)window.GetHeight(), 0.1f, 1000.0f);
 		proj = ReversedDepthPerspective(glm::radians(90.0f), (float)window.GetWidth() / (float)window.GetHeight(), 0.1f);
@@ -45,6 +45,8 @@ public:
 
 		worldTest->GetTransform().SetEuler({ 180.0f, 0.0f, 0.0f });
 		worldTest->GetTransform().SetScale({ 0.05f, 0.05f, 0.05f });
+
+		//worldTest->GetTransform().SetScale({ 10.0f, 10.0f, 10.0f });
 
 		PostProcessCreateInfo fogCreateInfo{};
 		fogCreateInfo.computeShader = true;

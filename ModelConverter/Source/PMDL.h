@@ -104,6 +104,12 @@ namespace pmdl
 		uint32_t firstIndex, indexCount, materialIndex, firstVertex, firstLOD, LODCount;
 	};
 
+	enum BlendMode
+	{
+		BLEND_MODE_OPAQUE, 
+		BLEND_MODE_MASK,
+		BLEND_MODE_BLEND
+	};
 
 	struct Material1
 	{
@@ -120,6 +126,9 @@ namespace pmdl
 
 		float roughness;
 		float metallic;
+
+		BlendMode alphaMode = BLEND_MODE_OPAQUE;
+		float alphaCutoff = 1.0f;
 	};
 
 

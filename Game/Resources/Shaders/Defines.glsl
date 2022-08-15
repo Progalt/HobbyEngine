@@ -119,6 +119,17 @@ vec3 WorldPosFromDepth(float depth, mat4 invProj, mat4 invView, vec2 TexCoord, i
     return worldSpacePosition.xyz;
 }
 
+vec3 WorldToNDC(vec3 v, mat4 projView)
+{
+    vec4 ndc = projView * vec4(v, 1.0);
+    return ndc.xyz / ndc.w;
+}
+
+vec2 NDCToUV(vec2 x)
+{
+    return x.xy * 0.5 + 0.5;  
+}
+
 vec3 ReconstructNormal(sampler2D depth, mat4 invProj, mat4 invView, vec2 UV, int reversedDepth)
 {
 	vec2 uv0 = UV;

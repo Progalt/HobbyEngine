@@ -44,7 +44,6 @@ void main()
         }
     }
     irradiance = PI * irradiance / float(sampleCount);
-    irradiance *= 2;
 
     imageStore(irradianceMap, irradianceCoord, vec4(irradiance, 1.0));
 }
