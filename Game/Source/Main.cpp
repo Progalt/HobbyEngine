@@ -13,6 +13,7 @@
 #include "Resources/Model.h"
 #include "Scene/Scene.h"
 
+
 class App : public Application
 {
 public:
@@ -28,9 +29,9 @@ public:
 		model = ResourceManager::GetInstance().NewModel();
 		model->LoadFromFile("Resources/Sponza/Sponza.pmdl", renderManager, true);
 		
-		standardProj = glm::perspective(glm::radians(90.0f), (float)window.GetWidth() / (float)window.GetHeight(), 0.1f, 1000.0f);
-		proj = ReversedDepthPerspective(glm::radians(90.0f), (float)window.GetWidth() / (float)window.GetHeight(), 0.1f);
-		
+		sphere = ResourceManager::GetInstance().NewModel();
+		sphere->LoadFromFile("Resources/Sphere.pmdl", renderManager, true);
+		sphere->materials[0]->emissiveColour = { 1.0f, 0.0f, 0.0f, 1.0f };
 
 		viewPos = { 0.0f, 0.0f, 0.0f };
 
@@ -42,9 +43,16 @@ public:
 
 		Actor* worldTest = scene.NewActor("World Test");
 		worldTest->AddComponent<MeshRenderer>()->model = model;
-
 		worldTest->GetTransform().SetEuler({ 180.0f, 0.0f, 0.0f });
 		worldTest->GetTransform().SetScale({ 0.05f, 0.05f, 0.05f });
+
+		Actor* SphereActor = scene.NewActor("Sphere");
+		SphereActor->AddComponent<MeshRenderer>()->model = sphere;
+		SphereActor->GetTransform().SetPosition({ 0.0f, -3.0f, 0.0f });
+
+		mainCam = scene.NewActor("Main Camera");
+		mainCam->AddComponent<PerspectiveCamera>()->ConstructProjection();
+
 
 		//worldTest->GetTransform().SetScale({ 10.0f, 10.0f, 10.0f });
 
@@ -68,7 +76,7 @@ public:
 			PostProcessInput::Colour
 		};
 		fxaaCreateInfo.uniformBufferSize = 0;
-		fxaaCreateInfo.cacheHistory = true;
+		fxaaCreateInfo.cacheHistory = false;
 		fxaaCreateInfo.shaderByteCode = FileSystem::ReadBytes("Resources/Shaders/FXAA.comp.spv");
 
 		fxaaEffect = renderManager->CreatePostProcessEffect(fxaaCreateInfo);
@@ -105,7 +113,7 @@ public:
 			PostProcessInput::Colour, PostProcessInput::Velocity, PostProcessInput::History, PostProcessInput::Depth
 		};
 		taaCreateInfo.uniformBufferSize = sizeof(taaData);
-		taaCreateInfo.cacheHistory = false;
+		taaCreateInfo.cacheHistory = true;
 		taaCreateInfo.shaderByteCode = FileSystem::ReadBytes("Resources/Shaders/TAA.comp.spv");
 
 		taaEffect = renderManager->CreatePostProcessEffect(taaCreateInfo);
@@ -113,8 +121,8 @@ public:
 		renderManager->jitterVertices = false;
 
 		renderManager->AddPostProcessEffect(fogEffect);
-		//renderManager->AddPostProcessEffect(taaEffect);
 		renderManager->AddPostProcessEffect(fxaaEffect);
+		//renderManager->AddPostProcessEffect(taaEffect);
 		//renderManager->AddPostProcessEffect(chromaticAberrationEffect);
 		//renderManager->AddPostProcessEffect(filmGrainEffect);
 	}
@@ -133,20 +141,13 @@ public:
 		float offX = floorf((float)mousePos.x - (float)lastX);
 		float offY = floorf((float)mousePos.y - (float)lastY);
 
-		glm::vec3 direction;
-		direction.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
-		direction.y = sin(glm::radians(pitch));
-		direction.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
-
-		glm::vec3 right = glm::normalize(glm::cross(direction, glm::vec3(0.0f, 1.0f, 0.0f)));
-		glm::vec3 up = glm::normalize(glm::cross(right, direction));
 
 		static float newPitch = pitch;
 		static float newYaw = yaw;
 
 		if (input.IsButtonPressed(MouseButton::Right))
 		{
-			newPitch += (float)offY;
+			newPitch -= (float)offY;
 			newYaw += (float)offX;
 
 			if (newPitch > 89.0f)
@@ -159,12 +160,25 @@ public:
 		pitch = lerp(pitch, newPitch, 1.0f / 3.0f);
 		yaw = lerp(yaw, newYaw, 1.0f / 3.0f);
 
+
+		glm::quat rot = mainCam->GetTransform().GetRotation();
+		glm::quat xRot = glm::angleAxis(glm::radians(yaw), glm::vec3( 0.0f, 1.0f, 0.0f ));
+		glm::quat yRot = glm::angleAxis(glm::radians(pitch), glm::vec3(1.0f, 0.0f, 0.0f));
+
+		mainCam->GetTransform().SetRotation(yRot * xRot);
+
 		lastX = mousePos.x;
 		lastY = mousePos.y;
+
+		glm::vec3 direction = mainCam->GetTransform().GetForward();
+		glm::vec3 right = -mainCam->GetTransform().GetRight();
 
 		float velocity = 15.0f;
 
 		static glm::vec3 newViewpos = viewPos;
+
+		if (input.IsKeyPressed(KeyCode::Q))
+			velocity *= 2.0f;
 
 		if (input.IsKeyPressed(KeyCode::W))
 		{
@@ -187,18 +201,14 @@ public:
 		}
 
 		viewPos = lerp(viewPos, newViewpos, glm::vec3(1.0f / 3.0f));
-
-		view = glm::lookAt(viewPos, viewPos + direction, up);
+		mainCam->GetTransform().SetPosition(viewPos);
 
 		
 	}
 
-	Transform camTransform;
 
+	Actor* mainCam;
 
-	 glm::mat4 view;
-	 glm::mat4 proj;
-	 glm::mat4 standardProj;
 	 glm::vec3 viewPos;
 
 	int framerate;
@@ -216,6 +226,16 @@ public:
 		ImGui::Text("Dispatch Calls: %d", renderManager->stats.dispatchCalls);
 		ImGui::Text("Culled Meshes: %d", renderManager->stats.culledMeshes);
 
+		if (renderManager->stats.renderedTriangles > 1000000)
+		{
+			double triNum = (double)renderManager->stats.renderedTriangles / 1000000.0;
+			ImGui::Text("Rendered Triangles: %.2f Million", triNum);
+		}
+		else
+		{
+			ImGui::Text("Rendered Triangles: %d", renderManager->stats.renderedTriangles);
+		}
+
 
 		ImGui::Separator();
 
@@ -229,9 +249,37 @@ public:
 
 		ImGui::Checkbox("CACAO", &renderManager->cacao);
 
-		if (ImGui::Button("Update Cascades"))
+		const char* shadowQualityModes[] = { "Ultra Low", "Low", "Medium", "High"};
+		static const char* currentShadow = "Medium";
+
+		ImGui::Text("Shadow Quality");
+		if (ImGui::BeginCombo("##combo_shadow", currentShadow))
 		{
-			renderManager->updateCascade = true;
+			for (int n = 0; n < IM_ARRAYSIZE(shadowQualityModes); n++)
+			{
+				bool is_selected = (currentShadow == shadowQualityModes[n]);
+				if (ImGui::Selectable(shadowQualityModes[n], is_selected))
+				{
+					currentShadow = shadowQualityModes[n];
+
+					if (currentShadow == "High")
+						renderManager->currentSettings.shadowQuality = QualitySetting::High;
+					else if (currentShadow == "Medium")
+						renderManager->currentSettings.shadowQuality = QualitySetting::Medium;
+					else if (currentShadow == "Low")
+						renderManager->currentSettings.shadowQuality = QualitySetting::Low;
+					else if (currentShadow == "Ultra Low")
+						renderManager->currentSettings.shadowQuality = QualitySetting::UltraLow;
+
+					renderManager->shouldUpdateSettings = true;
+				}
+				if (is_selected)
+				{
+					ImGui::SetItemDefaultFocus();
+				}
+			}
+
+			ImGui::EndCombo();
 		}
 
 		const char* tonemappingModes[] = { "None", "Filmic", "Unreal", "Uncharted 2", "ACES"};
@@ -282,7 +330,7 @@ public:
 		float t = -renderManager->time;
 		info.dirLight.direction = { 0.0f, sin(glm::radians(t)), -cos(glm::radians(t)), 1.0f};
 		info.dirLight.colour = { 1.0f, 1.0f, 0.95f, 1.0f };
-		info.dirLight.colour *= 10.0f;
+		info.dirLight.colour *= 5.0f;
 		
 		fogData.sunDir = info.dirLight.direction;
 
@@ -290,34 +338,40 @@ public:
 
 		fogEffect->UpdateUniformBuffer(&fogData);
 
-		if (firstFrame)
-		{
 
-			filmGrainUniforms.time = ticks;
-			filmGrainUniforms.strength = 0.01f;
+
+		filmGrainUniforms.time = ticks;
+		filmGrainUniforms.strength = 0.01f;
 			
-			filmGrainEffect->UpdateUniformBuffer(&filmGrainUniforms);
-		}
+		filmGrainEffect->UpdateUniformBuffer(&filmGrainUniforms);
+		
 
-		//taaData.firstFrame = (firstFrame) ? 1 : 0;
-		//taaEffect->UpdateUniformBuffer(&taaData);
+		taaData.firstFrame = (firstFrame) ? 1 : 0;
+		taaEffect->UpdateUniformBuffer(&taaData);
 
 		scene.Render(renderManager);
 
-		glm::mat4 viewProj = proj * view;
+		Actor* mainCamera = scene.FindActor("Main Camera");
+
+		PerspectiveCamera* camera = mainCamera->GetComponent<PerspectiveCamera>();
 
 		CameraInfo cameraInfo{};
-		cameraInfo.nearPlane = 0.1f;
-		cameraInfo.farPlane = 1000.0f;
-		cameraInfo.proj = proj;
-		cameraInfo.view = view;
-		cameraInfo.standardProj = standardProj;
-		cameraInfo.view_pos = viewPos;
+		cameraInfo.nearPlane = camera->settings.nearPlane;
+		cameraInfo.farPlane = camera->settings.farPlane;
+		cameraInfo.proj = camera->projection_reversedDepth;
+		cameraInfo.prevViewProj = prevViewProj;
+		cameraInfo.view = mainCamera->GetTransform().ComputeMatrix(glm::mat4(1.0f));
+		cameraInfo.standardProj = camera->projection;
+		cameraInfo.view_pos = -mainCamera->GetTransform().GetPosition();
 
 		renderManager->Render(cameraInfo);
 
 		firstFrame = false;
+
+		prevViewProj = cameraInfo.proj * cameraInfo.view;
 	}
+
+	glm::mat4 prevViewProj;
 
 	void Destroy() override
 	{
@@ -371,6 +425,7 @@ public:
 	Scene scene;
 
 	Model* model;
+	Model* sphere;
 
 	int GetFramerate(int newFrame)
 	{
@@ -406,6 +461,8 @@ public:
 
 int main(int argc, char* argv[])
 {
+	//_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
+
 	Application::StartInfo startInfo{};
 	startInfo.width = 1280;
 	startInfo.height = startInfo.width / 16 * 9;;
@@ -414,7 +471,7 @@ int main(int argc, char* argv[])
 	App app;
 	app.Run(startInfo);
 
-
+	//_CrtDumpMemoryLeaks();
 
 	return 0;
 }

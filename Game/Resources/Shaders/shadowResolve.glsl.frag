@@ -126,7 +126,7 @@ void main()
 	vec3 normal = decode(texture(gNormal, UV).rg);
 	float NoL = dot(normal, vec3(-sceneData.dirLight.direction));
 
-	vec3 fragPos = WorldPosFromDepth(sampledDepth, global.invProj, global.invView, UV, 1) + NormalBiasOffset(normal, NoL, 10.0);
+	vec3 fragPos = WorldPosFromDepth(sampledDepth, global.invProj, global.invView, UV, 1) + NormalBiasOffset(normal, NoL, 20.0);
 
 	// Transform the world position into a view position
 	vec4 viewPos = global.view *  vec4(fragPos, 1.0);
@@ -151,15 +151,16 @@ void main()
 	shadowCoord = vec4(posUv, posNdc.z, 1.0);
 
 	float biasbase = 0.065;
-	float mul = float(cascadeIndex + 1);
+	float mul = 1.0 / float(cascadeIndex + 1);
 	float bias = GetBias(NoL, mul, biasbase);
 	
 	float shadow = 1;
 	
-	//shadow = textureProj(shadowCoord, vec2(0.0), cascadeIndex, bias);
+	shadow = textureProj(shadowCoord, vec2(0.0), cascadeIndex, bias);
 	shadow = filterPCF(shadowCoord / shadowCoord.w, cascadeIndex, bias);
 
 	float fade = clamp((1.0 - viewPos.z / shadowData.splitDepths[cascadeIndex]) / 0.5, 0, 1);
+	fade = 1.0 - fade;
 
 	if (fade < 1.0 && cascadeIndex < CASCADE_COUNT - 1)
 	{
@@ -175,15 +176,15 @@ void main()
 		shadowCoord = vec4(posUv, posNdc.z, 1.0);
 
 		float biasbase = 0.065;
-		float mul = float(cascadeIndex + 1);
+		float mul = 1.0 / float(cascadeIndex + 1);
 		float bias = GetBias(NoL, mul, biasbase);
 	
 		float secondShadow = 1;
 	
-		//shadow = textureProj(shadowCoord, vec2(0.0), cascadeIndex, bias);
+		secondShadow = textureProj(shadowCoord, vec2(0.0), cascadeIndex, bias);
 		secondShadow = filterPCF(shadowCoord / shadowCoord.w, cascadeIndex, bias);
 
-		shadow = mix(secondShadow, shadow, fade);
+		shadow = mix(shadow, secondShadow, fade);
 
 	}
 

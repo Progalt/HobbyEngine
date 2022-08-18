@@ -23,7 +23,11 @@ enum class PostProcessInput
 	Emissive,
 
 	// Last frame
-	History
+	History,
+
+	Bloom, 
+
+	AmbientOcclusion
 };
 
 struct PostProcessCreateInfo

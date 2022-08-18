@@ -36,6 +36,8 @@ public:
 		}
 	}
 
+	uint32_t width, height;
+
 private:
 	uint32_t SDLRefs = 0;
 };

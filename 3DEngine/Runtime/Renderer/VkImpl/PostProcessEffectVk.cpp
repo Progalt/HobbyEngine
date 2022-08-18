@@ -109,6 +109,12 @@ void PostProcessEffectVk::GenerateDescriptor(vk::Texture* target, vk::Texture* c
 		case PostProcessInput::History:
 			descriptor.BindCombinedImageSampler(&rm->mHistory, &rm->mTargetSampler, currentOffset);
 			break;
+		case PostProcessInput::Bloom:
+			descriptor.BindCombinedImageSampler(&rm->mBloom.bloomOutput, &rm->mTargetSampler, currentOffset);
+			break;
+		case PostProcessInput::AmbientOcclusion:
+			descriptor.BindCombinedImageSampler(&rm->ssaoOutput, &rm->mTargetSampler, currentOffset);
+			break;
 		}
 
 

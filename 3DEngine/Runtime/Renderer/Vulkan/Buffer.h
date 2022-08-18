@@ -38,6 +38,14 @@ namespace vk
 
 		bool Valid() {  if (m_Device == nullptr) { return false; } return true; }
 
+		bool operator==(Buffer& b)
+		{
+			if (m_Buffer = b.m_Buffer)
+				return true;
+
+			return false;
+		}
+
 	private:
 
 		size_t mSize = 0;

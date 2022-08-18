@@ -32,8 +32,11 @@ layout(push_constant) uniform PushConstants
 void main()
 {
 	gl_Position = vec4(data[gl_VertexIndex], 0.0, 1.0);
+
     vPos = transpose(mat3(global.view)) * (global.invProj * -gl_Position).xyz;
 
     vSun = vec3(0.0, sin(constants.time * 0.01), cos(constants.time * 0.01));
 	vTime = constants.time;
+
+
 }

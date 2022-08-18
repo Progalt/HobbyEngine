@@ -4,6 +4,7 @@
 
 #include "Input.h"
 #include "../Threading/JobSystem.h"
+#include "GlobalState.h"
 
 class Application
 {
@@ -27,6 +28,9 @@ public:
 			//JobSystem::Init();
 
 			window.Create(info.title, info.width, info.height, WindowContext::Vulkan);
+
+			GlobalState::GetInstance().width = info.width;
+			GlobalState::GetInstance().height = info.height;
 
 			EventManager::GetInstance().Init();
 

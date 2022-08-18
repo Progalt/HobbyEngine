@@ -16,7 +16,7 @@ struct RenderStatistics
 	uint32_t drawCalls;
 	uint32_t dispatchCalls;
 	uint32_t culledMeshes;
-
+	uint32_t renderedTriangles;
 };
 
 enum class AntiAliasingMethod
@@ -43,7 +43,7 @@ struct RenderSettings
 
 struct CameraInfo
 {
-	glm::mat4 proj, view, standardProj;
+	glm::mat4 proj, view, standardProj, prevViewProj;
 	glm::vec3 view_pos;
 	float nearPlane, farPlane;
 };
@@ -101,6 +101,8 @@ public:
 	AntiAliasingMethod aaMethod;
 
 	RenderSettings currentSettings;
+
+	bool shouldUpdateSettings = false;
 
 	int tonemappingMode = 0;
 

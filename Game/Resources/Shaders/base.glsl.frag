@@ -82,8 +82,8 @@ void main()
 	outEmissive.rgba = vec4(0.0, 0.0, 0.0, 1.0);
 	outEmissive.rgb = in_params.emissive.rgb;
 
-	vec2 newPos = (vNewPos.xy / vNewPos.w);
-	vec2 prePos = (vOldPos.xy / vOldPos.w);
+	vec3 newPos = vNewPos.xyz / vNewPos.w;
+	vec3 prePos = vOldPos.xyz / vOldPos.w;
 
-	outVelocity = vec4(newPos - prePos, 0, 1);
+	outVelocity = vec4(newPos.xy - prePos.xy, 0, 1) * 0.5;
 }

@@ -26,7 +26,9 @@ void main()
 	if (coord.x > imgSize.x || coord.y > imgSize.y)
 		return;
 
-	const vec2 uv = (vec2(gl_GlobalInvocationID.xy) + vec2(0.5)) / vec2(imageSize(finalOutput));
+		const vec2 uv = (vec2(gl_GlobalInvocationID.xy) + vec2(0.5)) / vec2(imageSize(finalOutput));
+
+	
 	vec3 neighborhoodMin = vec3(100000);
 	vec3 neighborhoodMax = vec3(-100000);
 	vec3 current;
@@ -55,7 +57,7 @@ void main()
 			}
 		}
 	}
-
+	
 	const vec2 velocity = texelFetch(in_velocity, bestPixel, 0).xy;
 
 	const vec2 prevUV = uv + velocity;
@@ -73,7 +75,7 @@ void main()
 	vec3 resolved = mix(history.rgb, current.rgb, blendfactor);
 
 	imageStore(finalOutput, ivec2(gl_GlobalInvocationID.xy), vec4(resolved, 1.0));
-
+	
 	/*vec2 velocity = texture(in_velocity, uv).rg;
 
 	vec2 texelSize = vec2(1.0) / vec2(textureSize(in_hdr, 0).xy);

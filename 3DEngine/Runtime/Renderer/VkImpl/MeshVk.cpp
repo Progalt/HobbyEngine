@@ -30,6 +30,8 @@ void MeshVk::GenerateMesh()
 		glm::vec3 tangent = { 0.0f, 0.0f, 0.0f };
 	};
 
+	triangleCount = indices.size() / 3;
+
 	// Pack into a vertex structure
 	// Purely because I need to implement de interleaved later
 	std::vector<Vertex> vertices(positions.size());

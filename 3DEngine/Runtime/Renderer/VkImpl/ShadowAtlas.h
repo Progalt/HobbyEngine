@@ -3,9 +3,10 @@
 #include "../Vulkan/Device.h"
 #include "../GraphicsStructs.h"
 
-constexpr uint32_t CascadeSize_Low = 512;
-constexpr uint32_t CascadeSize_Medium = 1024;
-constexpr uint32_t CascadeSize_High = 2048;
+constexpr uint32_t CascadeSize_UltraLow = 512;
+constexpr uint32_t CascadeSize_Low = 1024;
+constexpr uint32_t CascadeSize_Medium = 2048;
+constexpr uint32_t CascadeSize_High = 4096;
 constexpr uint32_t CascadeCount = 3;
 
 class CascadeShadowMap
@@ -13,6 +14,8 @@ class CascadeShadowMap
 public:
 
 	void Create(vk::Device* device, QualitySetting quality);
+
+	void Recreate(vk::Device* device, QualitySetting quality);
 
 	void SetupForRendering(vk::CommandList& cmdList, uint32_t cascadeIndex);
 
@@ -28,6 +31,8 @@ public:
 	bool createdDescriptor = false;
 
 	bool begunRenderpass = false;
+
+	bool stabiliseCascades = false;
 
 	struct DataBuffer
 	{
@@ -49,6 +54,8 @@ public:
 	vk::Descriptor descriptor;
 
 private:
+	
+	glm::mat4 cachedView = glm::mat4(1.0f);
 
 	uint32_t currentRenderCascade = 0;
 };

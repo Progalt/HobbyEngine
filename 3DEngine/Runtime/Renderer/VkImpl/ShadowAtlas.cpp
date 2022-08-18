@@ -3,18 +3,17 @@
 #include <glm/gtc/matrix_transform.hpp>
 
 #include "../../Core/Log.h"
+#include <thread>
+#include <chrono>
 
 void CascadeShadowMap::Create(vk::Device* device, QualitySetting quality)
 {
-	if (currentQuality != QualitySetting::Undefined)
-	{
-		atlas.Destroy();
-	}
-
-	currentQuality = quality;
 
 	switch (quality)
 	{
+	case QualitySetting::UltraLow:
+		size = CascadeSize_UltraLow;
+		break;
 	case QualitySetting::Low:
 		size = CascadeSize_Low;
 		break;
@@ -25,7 +24,6 @@ void CascadeShadowMap::Create(vk::Device* device, QualitySetting quality)
 		size = CascadeSize_High;
 		break;
 	}
-	
 	atlas = device->NewTexture();
 	atlas.CreateRenderTarget(vk::FORMAT_D32_SFLOAT, size * CascadeCount, size, false, vk::ImageLayout::Undefined);
 
@@ -42,8 +40,49 @@ void CascadeShadowMap::Create(vk::Device* device, QualitySetting quality)
 
 	uniformBuffer = device->NewBuffer();
 	uniformBuffer.Create(vk::BufferType::Dynamic, vk::BufferUsage::Uniform, sizeof(data), nullptr);
-
+	
 	Log::Info("Renderer", "Created Cascade Shadow Atlas");
+
+	currentQuality = quality;
+}
+
+void CascadeShadowMap::Recreate(vk::Device* device, QualitySetting quality)
+{
+	atlas.Destroy();
+	renderpass.Destroy();
+
+
+	switch (quality)
+	{
+	case QualitySetting::UltraLow:
+		size = CascadeSize_UltraLow;
+		break;
+	case QualitySetting::Low:
+		size = CascadeSize_Low;
+		break;
+	case QualitySetting::Medium:
+		size = CascadeSize_Medium;
+		break;
+	case QualitySetting::High:
+		size = CascadeSize_High;
+		break;
+	}
+
+	atlas.CreateRenderTarget(vk::FORMAT_D32_SFLOAT, size * CascadeCount, size, false, vk::ImageLayout::Undefined);
+
+	vk::RenderpassCreateInfo createInfo{};
+	createInfo.type = vk::RenderpassType::Offscreen;
+	createInfo.depthAttachment = { &atlas };
+	createInfo.loadDepth = false;
+	createInfo.extentWidth = size * CascadeCount;
+	createInfo.extentHeight = size;
+	createInfo.depthClear = 1.0f;
+
+	renderpass = device->NewRenderpass(&createInfo);
+
+	currentQuality = quality;
+
+	Log::Info("Renderer", "Recreated Cascade Shadow Atlas");
 }
 
 void CascadeShadowMap::CreateDescriptor(vk::DescriptorLayout* layout, vk::Device* device)
@@ -85,9 +124,10 @@ void CascadeShadowMap::FinishRendering(vk::CommandList& cmdList)
 void CascadeShadowMap::UpdateCascades(DirectionalLight& dirLight, float nearClip, float farClip, const glm::mat4& proj, const glm::mat4& view)
 {
 
+
 	const float cascadeSplitLambda = 0.92f;
 
-	float cascadeSplits[CascadeCount];
+	float cascadeSplits[CascadeCount + 1];
 	
 
 	float clipRange = farClip - nearClip;
@@ -159,6 +199,30 @@ void CascadeShadowMap::UpdateCascades(DirectionalLight& dirLight, float nearClip
 		glm::vec3 lightDir = glm::normalize(-dirLight.direction);
 		glm::mat4 lightViewMatrix = glm::lookAt(frustumCenter - lightDir * -minExtents.z, frustumCenter, glm::vec3(0.0f, 1.0f, 0.0f));
 		glm::mat4 lightOrthoMatrix = glm::ortho(minExtents.x, maxExtents.x, minExtents.y, maxExtents.y, -radius * 6.0f, radius * 6.0f);
+
+		glm::vec4 texSize = glm::vec4((float)size / 3, size, 1.0f, 1.0f);
+
+		if (stabiliseCascades)
+		{
+			glm::mat4 shadowMatrix = lightOrthoMatrix * lightViewMatrix;
+			glm::vec4 shadowOrigin = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
+			shadowOrigin = shadowMatrix * shadowOrigin;
+			float storedW = shadowOrigin.w;
+			shadowOrigin = shadowOrigin * texSize / 2.0f;
+
+			glm::vec4 roundedOrigin = glm::floor(shadowOrigin);
+			glm::vec4 roundOffset = roundedOrigin - shadowOrigin;
+
+
+			roundOffset = roundOffset * 2.0f / texSize;
+			roundOffset.z = 0.0f;
+			roundOffset.w = 0.0f;
+
+			glm::mat4 shadowProj = lightOrthoMatrix;
+			shadowProj[3] += roundOffset;
+			lightOrthoMatrix = shadowProj;
+
+		}
 
 		// Store split distance and matrix in cascade
 		data.splitDepths[i] = (nearClip + splitDist * clipRange) * -1.0f;

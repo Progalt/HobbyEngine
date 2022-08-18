@@ -75,7 +75,7 @@ public:
 
 	void RenderDrawCmd(DrawCmd& cmd);
 
-	glm::mat4 mCachedVP = glm::mat4(1.0f);
+	void GuassianBlur(vk::Texture* tex, vk::Descriptor descriptors[2], vk::CommandList& cmdList);
 
 	// Post process
 
@@ -111,11 +111,56 @@ public:
 
 	struct
 	{
+		vk::Buffer boundVertexBuffer;
+		vk::Buffer boundIndexBuffer;
+	} mState;
+
+	struct
+	{
+		int bloomMips = 5;
+		vk::Texture brightTexture[5];
+		vk::Texture bloomOutput;
+
+		vk::ComputePipeline brightPipeline;
+
+		vk::DescriptorLayout layout;
+		vk::Descriptor descriptor[5];
+
+		vk::ComputePipeline upPipeline;
+
+		vk::Descriptor updescriptor[5];
+
+	
+
+	} mBloom;
+
+	PostProcessEffect* mApplyBloom;
+
+	struct
+	{
+
+		vk::Texture pingpong;
+
+		vk::ComputePipeline pipeline;
+		vk::DescriptorLayout layout;
+
+		struct PushConstants
+		{
+			float scale;
+			float strength;
+			int direction;
+		} pushConstants;
+
+	} mGuassianBlur;
+
+	struct
+	{
 
 		vk::Renderpass renderpass;
 		vk::Pipeline pipeline;
 		vk::DescriptorLayout layout;
 		vk::Descriptor descriptor;
+
 
 	} mApplyAOPass;
 

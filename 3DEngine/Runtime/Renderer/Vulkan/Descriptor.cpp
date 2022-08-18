@@ -141,52 +141,18 @@ namespace vk
 
 	void Descriptor::UpdateDescriptors()
 	{
-		if (m_UpdateAll)
+
+		for (auto& set : m_Sets)
 		{
-			for (auto& set : m_Sets)
-			{
-				std::vector<VkWriteDescriptorSet> writes;
-				writes.resize(set.writes.size());
-
-				int i = 0;
-				for (auto& w : set.writes)
-				{
-
-					writes[i].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-					writes[i].dstSet = set.set;
-					writes[i].dstBinding = w.binding;
-					writes[i].dstArrayElement = w.arrayBinding;
-					writes[i].descriptorType = w.type;
-					writes[i].descriptorCount = 1;
-					switch (w.type)
-					{
-					case VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER:	writes[i].pImageInfo = &w.imageInfo; break;
-					case VK_DESCRIPTOR_TYPE_STORAGE_IMAGE:	writes[i].pImageInfo = &w.imageInfo; break;
-					case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER:	writes[i].pBufferInfo = &w.bufferInfo; break;
-					case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER: writes[i].pBufferInfo = &w.bufferInfo;
-					}
-
-					i++;
-				}
-
-
-				vkUpdateDescriptorSets(m_Device, writes.size(), writes.data(), 0, nullptr);
-			}
-
-			m_UpdateAll = false;
-		}
-		else
-		{
-
 			std::vector<VkWriteDescriptorSet> writes;
-			writes.resize(m_Sets[m_GraphicsDevice->m_CurrentFrame].writes.size());
+			writes.resize(set.writes.size());
 
 			int i = 0;
-			for (auto& w : m_Sets[m_GraphicsDevice->m_CurrentFrame].writes)
+			for (auto& w : set.writes)
 			{
 
 				writes[i].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-				writes[i].dstSet = m_Sets[m_GraphicsDevice->m_CurrentFrame].set;
+				writes[i].dstSet = set.set;
 				writes[i].dstBinding = w.binding;
 				writes[i].dstArrayElement = w.arrayBinding;
 				writes[i].descriptorType = w.type;

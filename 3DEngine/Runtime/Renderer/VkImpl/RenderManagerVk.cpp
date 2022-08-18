@@ -48,8 +48,8 @@ RenderManagerVk::RenderManagerVk(Window* window, const RenderManagerCreateInfo& 
 
 		settings.modeU = vk::WrapMode::ClampToEdge;
 		settings.modeV = vk::WrapMode::ClampToEdge;
-		settings.minFilter = vk::Filter::Nearest;
-		settings.magFilter = vk::Filter::Nearest;
+		settings.minFilter = vk::Filter::Linear;
+		settings.magFilter = vk::Filter::Linear;
 		settings.anisotropy = false;
 		settings.maxAnisotropy = mDevice.GetDeviceInfo().properties.maxAnisotropy;
 
@@ -103,7 +103,7 @@ RenderManagerVk::RenderManagerVk(Window* window, const RenderManagerCreateInfo& 
 
 
 		mGeometryPass.velocityTarget = mDevice.NewTexture();
-		mGeometryPass.velocityTarget.CreateRenderTarget(vk::FORMAT_R16G16_SFLOAT, mProperties.renderWidth, mProperties.renderHeight);
+		mGeometryPass.velocityTarget.CreateRenderTarget(vk::FORMAT_R32G32_SFLOAT, mProperties.renderWidth, mProperties.renderHeight);
 
 
 		mGeometryPass.depthTarget = mDevice.NewTexture();
@@ -362,9 +362,9 @@ RenderManagerVk::RenderManagerVk(Window* window, const RenderManagerCreateInfo& 
 		};
 		pipelineInfo.topologyType = vk::Topology::TriangleList;
 		pipelineInfo.vertexDesc = nullptr;
-		pipelineInfo.depthTest = true;
+		pipelineInfo.depthTest = false;
 		pipelineInfo.depthWrite = false;
-		pipelineInfo.compareOp = vk::CompareOp::Less;
+		pipelineInfo.compareOp = vk::CompareOp::LessOrEqual;
 		pipelineInfo.shaders = { &vertexBlob, &fragmentBlob };
 
 		mSkyPass.pipeline = mDevice.NewPipeline(&pipelineInfo);
@@ -423,7 +423,7 @@ RenderManagerVk::RenderManagerVk(Window* window, const RenderManagerCreateInfo& 
 	}
 
 	{
-		probe = NewLightProbe(512);
+		probe = NewLightProbe(256);
 		probe->position = { 0.0f, 2.0f, 0.0f };
 
 		mLightProbes.push_back((LightProbeVk*)probe);
@@ -477,9 +477,9 @@ RenderManagerVk::RenderManagerVk(Window* window, const RenderManagerCreateInfo& 
 		mApplyAOPass.descriptor.BindCombinedImageSampler(&ssaoOutput, &mTargetSampler, 1);
 		mApplyAOPass.descriptor.Update();
 
-
 		vertexBlob.Destroy();
 		fragmentBlob.Destroy();
+
 	}
 
 	{
@@ -529,6 +529,106 @@ RenderManagerVk::RenderManagerVk(Window* window, const RenderManagerCreateInfo& 
 		fragmentBlob.Destroy();
 	}
 
+	// Guassian blur
+	{
+		vk::ShaderBlob computeBlob = mDevice.NewShaderBlob();
+		computeBlob.CreateFromSource(vk::ShaderStage::Compute, FileSystem::ReadBytes("Resources/Shaders/Guassian.comp.spv"));
+
+		mGuassianBlur.layout = mDevice.NewLayout();
+		mGuassianBlur.layout.AddLayoutBinding({ 0, vk::ShaderInputType::ImageSampler, 1, vk::ShaderStage::Compute });
+		mGuassianBlur.layout.AddLayoutBinding({ 1, vk::ShaderInputType::StorageImage, 1, vk::ShaderStage::Compute });
+		mGuassianBlur.layout.Create();
+
+		vk::ComputePipelineCreateInfo pipelineInfo{};
+		pipelineInfo.computeBlob = &computeBlob;
+		pipelineInfo.layout = { &mGuassianBlur.layout };
+		pipelineInfo.pushConstantRanges = { { vk::ShaderStage::Compute, 0, sizeof(mGuassianBlur.pushConstants)} };
+
+		mGuassianBlur.pipeline = mDevice.NewComputePipeline(&pipelineInfo);
+
+		mGuassianBlur.pingpong = mDevice.NewTexture();
+		mGuassianBlur.pingpong.CreateRenderTarget(vk::FORMAT_R16G16B16A16_SFLOAT, mProperties.renderWidth, mProperties.renderHeight, true, vk::ImageLayout::General);
+
+		computeBlob.Destroy();
+	}
+
+	// Bloom
+	{
+		// Create the mip levels
+		for (int i = 0; i < mBloom.bloomMips; i++)
+		{
+			mBloom.brightTexture[i] = mDevice.NewTexture();
+			mBloom.brightTexture[i].CreateRenderTarget(vk::FORMAT_R16G16B16A16_SFLOAT, mProperties.renderWidth / (i + 2), mProperties.renderHeight / (i + 2), true, vk::ImageLayout::General);
+		}
+		mBloom.bloomOutput = mDevice.NewTexture();
+		mBloom.bloomOutput.CreateRenderTarget(vk::FORMAT_R16G16B16A16_SFLOAT, mProperties.renderWidth, mProperties.renderHeight, true, vk::ImageLayout::General);
+
+		mBloom.layout = mDevice.NewLayout();
+		mBloom.layout.AddLayoutBinding({ 0, vk::ShaderInputType::ImageSampler, 1, vk::ShaderStage::Compute });
+		mBloom.layout.AddLayoutBinding({ 1, vk::ShaderInputType::StorageImage, 1, vk::ShaderStage::Compute });
+		mBloom.layout.Create();
+
+		vk::ShaderBlob computeBlob = mDevice.NewShaderBlob();
+
+		computeBlob.CreateFromSource(vk::ShaderStage::Fragment, FileSystem::ReadBytes("Resources/Shaders/BloomDownsample.comp.spv"));
+
+		vk::ComputePipelineCreateInfo pipelineInfo{};
+		pipelineInfo.computeBlob = &computeBlob;
+		pipelineInfo.layout = { &mBloom.layout };
+		pipelineInfo.pushConstantRanges = {};
+
+		mBloom.brightPipeline = mDevice.NewComputePipeline(&pipelineInfo);
+
+		for (int i = 0; i < mBloom.bloomMips; i++)
+		{
+			mBloom.descriptor[i] = mDevice.NewDescriptor(&mBloom.layout);
+			if (i == 0)
+				mBloom.descriptor[i].BindCombinedImageSampler(&mLightingPipeline.output, &mTargetSampler, 0);
+			else
+				mBloom.descriptor[i].BindCombinedImageSampler(&mBloom.brightTexture[i - 1], &mTargetSampler, 0);
+			mBloom.descriptor[i].BindStorageImage(&mBloom.brightTexture[i], 1);
+			mBloom.descriptor[i].Update();
+		}
+
+		computeBlob.Destroy();
+
+		computeBlob.CreateFromSource(vk::ShaderStage::Fragment, FileSystem::ReadBytes("Resources/Shaders/BloomUpsample.comp.spv"));
+
+		pipelineInfo.computeBlob = &computeBlob;
+		pipelineInfo.layout = { &mBloom.layout };
+		pipelineInfo.pushConstantRanges = {};
+
+		mBloom.upPipeline = mDevice.NewComputePipeline(&pipelineInfo);
+
+		computeBlob.Destroy();
+
+		for (unsigned i = mBloom.bloomMips; i-- > 0;)
+		{
+			mBloom.updescriptor[i] = mDevice.NewDescriptor(&mBloom.layout);
+			mBloom.updescriptor[i].BindCombinedImageSampler(&mBloom.brightTexture[i], &mTargetSampler, 0);
+			if (i != 0)
+				mBloom.updescriptor[i].BindStorageImage(&mBloom.brightTexture[i - 1], 1);
+			else
+			{
+				mBloom.updescriptor[i].BindStorageImage(&mBloom.bloomOutput, 1);
+			}
+			mBloom.updescriptor[i].Update();
+		}
+	}
+
+	PostProcessCreateInfo bloomApplyInfo{};
+	bloomApplyInfo.computeShader = true;
+	bloomApplyInfo.passGlobalData = false;
+	bloomApplyInfo.inputs =
+	{
+		PostProcessInput::Colour, PostProcessInput::Bloom
+	};
+	bloomApplyInfo.uniformBufferSize = 0;
+	bloomApplyInfo.shaderByteCode = FileSystem::ReadBytes("Resources/Shaders/ApplyBloom.comp.spv");
+
+	mApplyBloom = CreatePostProcessEffect(bloomApplyInfo);
+	AddPostProcessEffect(mApplyBloom);
+
 	vk::Imgui::Init(&mDevice, window, &mRenderpasses.swapchain);
 
 }
@@ -539,12 +639,26 @@ RenderManagerVk::~RenderManagerVk()
 
 	probe->Destroy();
 
+	mApplyBloom->Destroy();
+
 	ssaoOutput.Destroy();
 	mCacao.Destroy();
 
 	mApplyAOPass.layout.Destroy();
 	mApplyAOPass.pipeline.Destroy();
 	mApplyAOPass.renderpass.Destroy();
+
+	mBloom.layout.Destroy();
+	mBloom.brightPipeline.Destroy();
+	mBloom.upPipeline.Destroy();
+	mBloom.bloomOutput.Destroy();
+
+	for(int i = 0; i < mBloom.bloomMips; i++)
+		mBloom.brightTexture[i].Destroy();
+
+	mGuassianBlur.layout.Destroy();
+	mGuassianBlur.pingpong.Destroy();
+	mGuassianBlur.pipeline.Destroy();
 
 	mSceneDataBuffer.Destroy();
 
@@ -614,12 +728,21 @@ void RenderManagerVk::WaitForIdle()
 void RenderManagerVk::Render(CameraInfo& cameraInfo)
 {
 
+	if (shouldUpdateSettings)
+	{
+		UpdateSettings();
+		mDevice.WaitIdle();
+
+		return;
+	}
+
 	// This is a mega function that handles drawing the whole scene
 	// It doesn't care about the main engine apart from that everything submitted is submitted in the correct format
 
 	stats.drawCalls = 0;
 	stats.dispatchCalls = 0;
 	stats.culledMeshes = 0;
+	stats.renderedTriangles = 0;
 
 	static bool firstFrame = true;
 	static uint64_t frameCount = 0;
@@ -660,7 +783,7 @@ void RenderManagerVk::Render(CameraInfo& cameraInfo)
 		mGlobalDataStruct.jitteredVP = cameraInfo.proj * cameraInfo.view;
 
 	mGlobalDataStruct.VP = cameraInfo.proj * cameraInfo.view;
-	mGlobalDataStruct.prevVP = mCachedVP;
+	mGlobalDataStruct.prevVP = cameraInfo.prevViewProj;
 	mGlobalDataStruct.viewPos = glm::vec4(cameraInfo.view_pos, 1.0f);
 	mGlobalDataStruct.inverseProj = glm::inverse(cameraInfo.proj);
 	mGlobalDataStruct.inverseView = glm::inverse(cameraInfo.view);
@@ -741,6 +864,87 @@ void RenderManagerVk::Render(CameraInfo& cameraInfo)
 	// Render the scene
 	RenderScene(renderInfo, mCmdList, false, true, true);
 
+	mLightingPipeline.output.Transition(vk::ImageLayout::General, vk::ImageLayout::ShaderReadOnlyOptimal, mCmdList);
+
+	// Bloom Bright pass ---
+
+	mCmdList.BeginDebugUtilsLabel("Bloom ");
+
+	mCmdList.BindPipeline(&mBloom.brightPipeline);
+
+	// Downsample
+	for (int i = 0; i < mBloom.bloomMips; i++)
+	{
+		mBloom.brightTexture[i].Transition(vk::ImageLayout::General, mCmdList);
+
+		mCmdList.BindDescriptors({ &mBloom.descriptor[i] }, &mBloom.brightPipeline, 0);
+
+		int xthreads = 0;
+		int ythreads = 0;
+
+		if (i == 0)
+		{
+			xthreads = (int)ceilf((float)mLightingPipeline.output.GetWidth() / THREAD_GROUP_SIZE);
+			ythreads = (int)ceilf((float)mLightingPipeline.output.GetHeight() / THREAD_GROUP_SIZE);
+		}
+		else
+		{
+			xthreads = (int)ceilf((float)mBloom.brightTexture[i - 1].GetWidth() / THREAD_GROUP_SIZE);
+			ythreads = (int)ceilf((float)mBloom.brightTexture[i - 1].GetHeight() / THREAD_GROUP_SIZE);
+		}
+
+		mCmdList.Dispatch(xthreads, ythreads, 1);
+
+		stats.dispatchCalls++;
+
+		mBloom.brightTexture[i].Transition(vk::ImageLayout::ShaderReadOnlyOptimal, mCmdList);
+	}
+
+	// Upsample
+
+	mCmdList.BindPipeline(&mBloom.upPipeline);
+
+	
+	for (unsigned i = mBloom.bloomMips; i-- > 0;)
+	{
+		vk::Texture* read = &mBloom.brightTexture[i];
+		vk::Texture* write;// = &mBloom.brightTexture[i - 1];
+
+		if (i == 0)
+			write = &mBloom.bloomOutput;
+		else 
+			write = &mBloom.brightTexture[i - 1];
+
+		read->Transition(vk::ImageLayout::ShaderReadOnlyOptimal, mCmdList);
+		write->Transition(vk::ImageLayout::General, mCmdList);
+
+		mCmdList.BindDescriptors({ &mBloom.updescriptor[i] }, &mBloom.upPipeline, 0);
+
+		int xthreads = 0;
+		int ythreads = 0;
+
+		if (i != 0)
+		{
+			xthreads = (int)ceilf((float)write->GetWidth() / THREAD_GROUP_SIZE);
+			ythreads = (int)ceilf((float)write->GetHeight() / THREAD_GROUP_SIZE);
+		}
+		else
+		{
+			xthreads = (int)ceilf((float)mBloom.bloomOutput.GetWidth() / THREAD_GROUP_SIZE);
+			ythreads = (int)ceilf((float)mBloom.bloomOutput.GetHeight() / THREAD_GROUP_SIZE);
+		}
+		
+
+		mCmdList.Dispatch(xthreads, ythreads, 1);
+
+		stats.dispatchCalls++;
+
+	}
+
+	mBloom.bloomOutput.Transition(vk::ImageLayout::ShaderReadOnlyOptimal, mCmdList);
+
+	mCmdList.EndDebugUtilsLabel();
+
 	// CACAO ----
 
 	if (cacao)
@@ -751,8 +955,6 @@ void RenderManagerVk::Render(CameraInfo& cameraInfo)
 		mCacao.Execute(&mCmdList, renderInfo.data.proj, renderInfo.data.view);
 
 		stats.dispatchCalls += 19;
-
-		mLightingPipeline.output.Transition(vk::ImageLayout::General, vk::ImageLayout::ShaderReadOnlyOptimal, mCmdList);
 
 		mCmdList.BeginRenderpass(&mApplyAOPass.renderpass, false);
 
@@ -774,7 +976,7 @@ void RenderManagerVk::Render(CameraInfo& cameraInfo)
 	else
 	{
 
-		mLightingPipeline.output.Transition(vk::ImageLayout::General, vk::ImageLayout::TransferSrcOptimal, mCmdList);
+		mLightingPipeline.output.Transition(vk::ImageLayout::ShaderReadOnlyOptimal, vk::ImageLayout::TransferSrcOptimal, mCmdList);
 
 		mCurrentOutput[0].Transition(vk::ImageLayout::General, vk::ImageLayout::TransferDstOptimal, mCmdList);
 
@@ -926,14 +1128,12 @@ void RenderManagerVk::Render(CameraInfo& cameraInfo)
 
 	mDevice.SubmitCommandListsAndPresent({ mCmdList });
 
-	// Cached VP for next frame
-
-	mCachedVP = cameraInfo.proj * cameraInfo.view;
 
 	firstFrame = false;
 	frameCount++;
 
 	mDeferredDraws.clear();
+
 
 }
 
@@ -1019,6 +1219,7 @@ void RenderManagerVk::RenderDirectionalShadowMap(vk::CommandList& cmdList, Casca
 			cmdList.DrawIndexed((cmd.indexCount == 0) ? cmd.mesh->indices.size() : cmd.indexCount, 1, cmd.firstIndex, cmd.vertexOffset, 0);
 
 			stats.drawCalls++;
+			stats.renderedTriangles += cmd.indexCount / 3;
 		}
 
 	
@@ -1122,9 +1323,11 @@ void RenderManagerVk::RenderScene(RenderInfo& renderInfo, vk::CommandList& cmdLi
 		cmdList.BindVertexBuffer(&mesh->vertexBuffer, 0);
 		cmdList.BindIndexBuffer(&mesh->indexBuffer);
 
+
 		cmdList.DrawIndexed((cmd.indexCount == 0) ? cmd.mesh->indices.size() : cmd.indexCount, 1, cmd.firstIndex, cmd.vertexOffset, 0);
 
 		stats.drawCalls++;
+		stats.renderedTriangles += cmd.indexCount / 3;
 
 		draws.pop_front();
 	}
@@ -1144,6 +1347,8 @@ void RenderManagerVk::RenderScene(RenderInfo& renderInfo, vk::CommandList& cmdLi
 
 	if (!mShadowResolve.createdDescriptor)
 	{
+		//mShadowResolve.descriptor = mDevice.NewDescriptor(&mShadowResolve.layout);
+		mShadowResolve.descriptor.Clear();
 		mShadowResolve.descriptor.BindCombinedImageSampler(&mShadowData.directionalShadowMap.atlas, &mShadowData.sampler, 0);
 		mShadowResolve.descriptor.BindStorageBuffer(&mSceneDataBuffer, 0, sizeof(SceneInfo), 1);
 		mShadowResolve.descriptor.BindCombinedImageSampler(&mGeometryPass.depthTarget, &mTargetSampler, 2);
@@ -1156,7 +1361,7 @@ void RenderManagerVk::RenderScene(RenderInfo& renderInfo, vk::CommandList& cmdLi
 
 	cmdList.BindPipeline(&mShadowResolve.pipeline);
 
-	cmdList.BindDescriptors({ renderInfo.globalManager.GetDescriptor(vk::ShaderStage::Fragment), &mShadowResolve.descriptor }, &mShadowResolve.pipeline, 0);
+	cmdList.BindDescriptors({ globalDataManager.GetDescriptor(vk::ShaderStage::Fragment), &mShadowResolve.descriptor }, &mShadowResolve.pipeline, 0);
 
 	cmdList.Draw(3, 1, 0, 0);
 
@@ -1264,6 +1469,78 @@ void RenderManagerVk::RenderScene(RenderInfo& renderInfo, vk::CommandList& cmdLi
 		copy.h = renderInfo.renderHeight;
 		cmdList.CopyImage(&mLightingPipeline.output, vk::ImageLayout::General, renderInfo.target, vk::ImageLayout::General, &copy);
 	}
+
+}
+
+void RenderManagerVk::GuassianBlur(vk::Texture* tex, vk::Descriptor descriptors[2], vk::CommandList& cmdList)
+{
+	// Assumed tex is ShaderReadOnlyOptimal
+
+	//static bool createdDescriptors = false;
+	//static vk::Descriptor descriptors[2];
+
+	//if (!createdDescriptors)
+	//{
+	//	descriptors[0] = mDevice.NewDescriptor(&mGuassianBlur.layout);
+	//	descriptors[1] = mDevice.NewDescriptor(&mGuassianBlur.layout);
+
+	//	createdDescriptors = true;
+	//}
+
+	//// Update the descriptors
+
+	//descriptors[0].Clear();
+	//descriptors[0].BindCombinedImageSampler(tex, &mTargetSampler, 0);
+	//descriptors[0].BindStorageImage(&mGuassianBlur.pingpong, 1);
+	//descriptors[0].Update();
+
+	//descriptors[1].Clear();
+	//descriptors[1].BindCombinedImageSampler(&mGuassianBlur.pingpong, &mTargetSampler, 0);
+	//descriptors[1].BindStorageImage(tex, 1);
+	//descriptors[1].Update();
+
+	int descriptorIndex = 0;
+	const int blurAmount = 10;
+	bool horizontal = true;
+
+	// Setup for blurring
+
+	cmdList.BindPipeline(&mGuassianBlur.pipeline);
+
+	mGuassianBlur.pushConstants.scale = 4.0f;
+	mGuassianBlur.pushConstants.strength = 1.5f;
+
+	for (int i = 0; i < blurAmount; i++)
+	{
+		mGuassianBlur.pushConstants.direction = horizontal;
+
+		cmdList.PushConstants(&mGuassianBlur.pipeline, vk::ShaderStage::Compute, sizeof(mGuassianBlur.pushConstants), 0, &mGuassianBlur.pushConstants);
+		
+		cmdList.BindDescriptors({ &descriptors[descriptorIndex] }, &mGuassianBlur.pipeline, 0);
+
+		cmdList.Dispatch((int)ceilf((float)mProperties.renderWidth / THREAD_GROUP_SIZE), (int)ceilf((float)mProperties.renderHeight / THREAD_GROUP_SIZE), 1);
+
+		stats.dispatchCalls++;
+
+		horizontal = !horizontal;
+
+		if (descriptorIndex == 0)
+		{
+			tex->Transition(vk::ImageLayout::ShaderReadOnlyOptimal, vk::ImageLayout::General, cmdList);
+			mGuassianBlur.pingpong.Transition(vk::ImageLayout::General, vk::ImageLayout::ShaderReadOnlyOptimal, cmdList);
+		}
+		else
+		{
+			tex->Transition(vk::ImageLayout::General, vk::ImageLayout::ShaderReadOnlyOptimal, cmdList);
+			mGuassianBlur.pingpong.Transition(vk::ImageLayout::ShaderReadOnlyOptimal, vk::ImageLayout::General, cmdList);
+		}
+
+		descriptorIndex = (descriptorIndex == 0) ? 1 : 0;
+
+	}
+
+	tex->Transition(vk::ImageLayout::ShaderReadOnlyOptimal, cmdList);
+
 }
 
 void RenderManagerVk::UpdateScene(SceneInfo sceneInfo)
@@ -1280,11 +1557,21 @@ void RenderManagerVk::UpdateScene(SceneInfo sceneInfo)
 
 void RenderManagerVk::UpdateSettings()
 {
-	if (mShadowData.directionalShadowMap.currentQuality != currentSettings.shadowQuality)
-	{
-		mLightingPipeline.createdShadowDescriptor = false;
-		mShadowData.directionalShadowMap.Create(&mDevice, currentSettings.shadowQuality);
-	}
+	mDevice.WaitIdle();
+
+	printf("%d\n", (int)currentSettings.shadowQuality);
+
+	mShadowData.directionalShadowMap.Recreate(&mDevice, currentSettings.shadowQuality);
+
+	mShadowResolve.descriptor.Clear();
+	mShadowResolve.descriptor.BindCombinedImageSampler(&mShadowData.directionalShadowMap.atlas, &mShadowData.sampler, 0);
+	mShadowResolve.descriptor.BindStorageBuffer(&mSceneDataBuffer, 0, sizeof(SceneInfo), 1);
+	mShadowResolve.descriptor.BindCombinedImageSampler(&mGeometryPass.depthTarget, &mTargetSampler, 2);
+	mShadowResolve.descriptor.BindBuffer(&mShadowData.directionalShadowMap.uniformBuffer, 0, sizeof(mShadowData.directionalShadowMap.data), 3);
+	mShadowResolve.descriptor.BindCombinedImageSampler(&mGeometryPass.normalTarget, &mTargetSampler, 4);
+	mShadowResolve.descriptor.Update();
+
+	shouldUpdateSettings = false;
 }
 
 void RenderManagerVk::QueueMesh(Mesh* mesh, Material* material, glm::mat4 transform, uint32_t firstIndex, uint32_t indexCount, uint32_t vertexOffset)

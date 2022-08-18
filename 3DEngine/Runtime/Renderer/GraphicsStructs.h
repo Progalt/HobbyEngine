@@ -7,6 +7,7 @@
 enum class QualitySetting
 {
 	Undefined, 
+	UltraLow,
 	Low, 
 	Medium,
 	High

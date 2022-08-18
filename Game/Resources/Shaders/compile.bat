@@ -36,4 +36,16 @@
 
 %VULKAN_SDK%/Bin/glslc.exe shadowResolve.glsl.frag -o shadowResolve.frag.spv
 
+%VULKAN_SDK%/Bin/dxc.exe -spirv -T ps_6_0 -E main HLSL/IsolateBrightSpots.ps.hlsl -Fo IsolateBrightSpots.frag.spv
+
+%VULKAN_SDK%/Bin/dxc.exe -spirv -T cs_6_0 -E main HLSL/Guassian.cs.hlsl -Fo Guassian.comp.spv
+
+%VULKAN_SDK%/Bin/dxc.exe -spirv -T cs_6_0 -E main HLSL/ApplyBloom.cs.hlsl -Fo ApplyBloom.comp.spv
+
+%VULKAN_SDK%/Bin/dxc.exe -spirv -T ps_6_0 -E main HLSL/ApplyAOBloom.ps.hlsl -Fo ApplyAOBloom.frag.spv
+
+%VULKAN_SDK%/Bin/dxc.exe -spirv -T cs_6_0 -E main HLSL/BloomDownsample.cs.hlsl -Fo BloomDownsample.comp.spv
+
+%VULKAN_SDK%/Bin/dxc.exe -spirv -T cs_6_0 -E main HLSL/BloomUpsample.cs.hlsl -Fo BloomUpsample.comp.spv
+
 pause

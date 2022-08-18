@@ -46,4 +46,7 @@
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
+  <ItemGroup>
+    <Text Include="Resources\Shaders\HLSL\ApplyAOBloom.ps.hlsl" />
+  </ItemGroup>
 </Project>

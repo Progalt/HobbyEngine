@@ -24,6 +24,8 @@ public:
 
 	std::vector<IndexType> indices;
 
+	uint32_t triangleCount = 0;
+
 	virtual void GenerateMesh() = 0;
 
 	virtual void Destroy() = 0;

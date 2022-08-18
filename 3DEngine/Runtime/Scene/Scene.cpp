@@ -52,3 +52,12 @@ void Scene::Render(RenderManager* renderManager)
 		renderable->GetComponent<MeshRenderer>()->model->Queue(renderManager, matrix);
 	}
 }
+
+Actor* Scene::FindActor(const std::string& name)
+{
+	for (auto& actor : mActors)
+		if (actor->GetName() == name)
+			return actor;
+
+	return nullptr;
+}
