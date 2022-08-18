@@ -21,7 +21,7 @@ public:
 
 	void Destroy();
 
-	void UpdateLightBuffer(std::vector<PointLight> lights);
+	void UpdateLightBuffer(std::vector<GPUPointLight> lights);
 
 
 	vk::Buffer lightList;

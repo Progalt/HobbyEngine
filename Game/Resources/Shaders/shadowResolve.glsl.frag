@@ -150,7 +150,7 @@ void main()
 
 	shadowCoord = vec4(posUv, posNdc.z, 1.0);
 
-	float biasbase = 0.065;
+	float biasbase = 0.07;
 	float mul = 1.0 / float(cascadeIndex + 1);
 	float bias = GetBias(NoL, mul, biasbase);
 	
@@ -175,7 +175,6 @@ void main()
 
 		shadowCoord = vec4(posUv, posNdc.z, 1.0);
 
-		float biasbase = 0.065;
 		float mul = 1.0 / float(cascadeIndex + 1);
 		float bias = GetBias(NoL, mul, biasbase);
 	

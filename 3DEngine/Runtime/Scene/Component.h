@@ -41,6 +41,17 @@ public:
 private:
 };
 
+class PointLight : public Component
+{
+public:
+
+	float radius;
+	float intensity;
+	glm::vec3 colour;
+
+private:
+};
+
 
 class PerspectiveCamera : public Component
 {

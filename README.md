@@ -44,6 +44,7 @@ as HLSL can be compiled to spir-v for vulkan.
 - CPU Frustum Culling
 - Light Probes - Only Diffuse Irradiance at the moment. 
 - SSAO - Using FidelityFX CACAO
+- Bloom - Uses a Downsampling and Upsampling blur instead of threshold and guassian blur
 
 ### WIP Features: 
 - Screen Space Reflections

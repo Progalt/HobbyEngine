@@ -49,6 +49,9 @@ public:
 		Actor* SphereActor = scene.NewActor("Sphere");
 		SphereActor->AddComponent<MeshRenderer>()->model = sphere;
 		SphereActor->GetTransform().SetPosition({ 0.0f, -3.0f, 0.0f });
+		SphereActor->AddComponent<PointLight>()->colour = { 1.0f, 0.0f, 0.0f };
+		SphereActor->GetComponent<PointLight>()->radius = 25.0f;
+		SphereActor->GetComponent<PointLight>()->intensity = 150.0f;
 
 		mainCam = scene.NewActor("Main Camera");
 		mainCam->AddComponent<PerspectiveCamera>()->ConstructProjection();
@@ -331,6 +334,17 @@ public:
 		info.dirLight.direction = { 0.0f, sin(glm::radians(t)), -cos(glm::radians(t)), 1.0f};
 		info.dirLight.colour = { 1.0f, 1.0f, 0.95f, 1.0f };
 		info.dirLight.colour *= 5.0f;
+
+		std::vector<Actor*> pointLightView = scene.View<PointLight>();
+
+		info.lightCount = pointLightView.size();
+
+		for (uint32_t i = 0; i < info.lightCount; i++)
+		{
+			PointLight* l = pointLightView[i]->GetComponent<PointLight>();
+			info.pointLights[i].position = glm::vec4(pointLightView[i]->GetTransform().GetPosition(), l->radius);
+			info.pointLights[i].colour = glm::vec4(l->colour, l->intensity);
+		}
 		
 		fogData.sunDir = info.dirLight.direction;
 

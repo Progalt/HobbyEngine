@@ -117,7 +117,7 @@ public:
 
 	bool hasDirLight = false;
 	DirectionalLight directionalLight;
-	std::vector<PointLight> pointLights;
+	std::vector<GPUPointLight> pointLights;
 
 protected:
 

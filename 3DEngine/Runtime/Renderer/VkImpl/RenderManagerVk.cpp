@@ -1559,8 +1559,6 @@ void RenderManagerVk::UpdateSettings()
 {
 	mDevice.WaitIdle();
 
-	printf("%d\n", (int)currentSettings.shadowQuality);
-
 	mShadowData.directionalShadowMap.Recreate(&mDevice, currentSettings.shadowQuality);
 
 	mShadowResolve.descriptor.Clear();

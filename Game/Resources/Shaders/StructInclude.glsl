@@ -7,9 +7,7 @@ struct SceneInfo
 
 struct PointLight
 {
-	vec3 position;
-	float radius;
-
+	vec4 position;
 	vec4 colour;
 };
 

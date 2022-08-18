@@ -320,6 +320,9 @@
     <ClInclude Include="Runtime\Renderer\Vulkan\TextureUtility.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Runtime\Renderer\VkImpl\VolumetricFog.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="Resources\Shaders\base.glsl.vert" />

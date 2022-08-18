@@ -25,11 +25,9 @@ struct GlobalData
 	glm::mat4 proj;
 };
 
-struct PointLight
+struct GPUPointLight
 {
-	glm::vec3 position;
-	float radius;
-
+	glm::vec4 position;
 	glm::vec4 colour;
 };
 
@@ -48,6 +46,6 @@ struct SceneInfo
 	float padding[2];
 
 	DirectionalLight dirLight;
-	PointLight pointLights[MAX_POINT_LIGHT_COUNT];
+	GPUPointLight pointLights[MAX_POINT_LIGHT_COUNT];
 };
 

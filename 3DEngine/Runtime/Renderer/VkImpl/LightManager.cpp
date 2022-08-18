@@ -13,8 +13,8 @@ void LightManager::Destroy()
 
 }
 
-void LightManager::UpdateLightBuffer(std::vector<PointLight> lights)
+void LightManager::UpdateLightBuffer(std::vector<GPUPointLight> lights)
 {
 
-	lightList.SetData(sizeof(PointLight) * lights.size(), lights.data());
+	lightList.SetData(sizeof(GPUPointLight) * lights.size(), lights.data());
 }

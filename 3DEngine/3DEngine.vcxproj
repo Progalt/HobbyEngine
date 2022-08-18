@@ -218,6 +218,7 @@
     <ClInclude Include="Runtime\Renderer\VkImpl\RenderManagerVk.h" />
     <ClInclude Include="Runtime\Renderer\VkImpl\ShadowAtlas.h" />
     <ClInclude Include="Runtime\Renderer\VkImpl\TextureVk.h" />
+    <ClInclude Include="Runtime\Renderer\VkImpl\VolumetricFog.h" />
     <ClInclude Include="Runtime\Renderer\Vulkan\Buffer.h" />
     <ClInclude Include="Runtime\Renderer\Vulkan\CommandList.h" />
     <ClInclude Include="Runtime\Renderer\Vulkan\ComputePipeline.h" />

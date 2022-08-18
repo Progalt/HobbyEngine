@@ -117,18 +117,18 @@ public:
 
 	struct
 	{
-		int bloomMips = 5;
-		vk::Texture brightTexture[5];
+		int bloomMips = 6;
+		vk::Texture brightTexture[6];
 		vk::Texture bloomOutput;
 
 		vk::ComputePipeline brightPipeline;
 
 		vk::DescriptorLayout layout;
-		vk::Descriptor descriptor[5];
+		vk::Descriptor descriptor[6];
 
 		vk::ComputePipeline upPipeline;
 
-		vk::Descriptor updescriptor[5];
+		vk::Descriptor updescriptor[6];
 
 	
 

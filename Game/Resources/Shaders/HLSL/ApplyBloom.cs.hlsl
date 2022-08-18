@@ -7,7 +7,7 @@ SamplerState colourBufferSampler : register(s1);
 Texture2D bloomBuffer : register(t2);
 SamplerState bloomSampler : register(s2);
 
-static const float bloomStrength = 0.1f;
+static const float bloomStrength = 0.07f;
 
 
 
