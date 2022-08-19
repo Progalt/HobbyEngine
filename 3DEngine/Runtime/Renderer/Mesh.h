@@ -9,9 +9,16 @@
 
 #include "../Maths/BoundingBox.h"
 
+
 class Mesh
 {
 public:
+
+	struct DrawCall
+	{
+		uint32_t firstIndex, indexCount, firstVertex;
+		BoundingBox boundingBox;
+	};
 
 	//Material* material;
 
@@ -24,7 +31,11 @@ public:
 
 	std::vector<IndexType> indices;
 
+	std::vector<DrawCall> drawCalls;
+
 	uint32_t triangleCount = 0;
+
+	virtual void AddDrawCall(const DrawCall& call) = 0;
 
 	virtual void GenerateMesh() = 0;
 

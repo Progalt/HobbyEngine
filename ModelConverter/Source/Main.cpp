@@ -33,7 +33,8 @@ public:
 	{
 		Assimp::Importer importer;
 		const aiScene* scene = importer.ReadFile(filepath, aiProcess_Triangulate | aiProcess_FlipUVs | aiProcess_GenSmoothNormals | aiProcess_CalcTangentSpace 
-			| aiProcess_JoinIdenticalVertices | aiProcess_ImproveCacheLocality | aiProcess_FindDegenerates | aiProcess_OptimizeMeshes | aiProcess_FindInvalidData);
+			| aiProcess_JoinIdenticalVertices | aiProcess_ImproveCacheLocality | aiProcess_FindDegenerates | aiProcess_OptimizeMeshes | aiProcess_FindInvalidData | 
+			aiProcess_GenBoundingBoxes);
 
 		if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode)
 		{
@@ -184,6 +185,8 @@ public:
 
 		uint32_t vertexOffset = vertices.size();
 
+	
+
 		for (unsigned int i = 0; i < mesh->mNumVertices; i++)
 		{
 			pmdl::Vertex vertex;
@@ -226,8 +229,14 @@ public:
 
 		indexCount = indices.size() - firstIndex;
 
+		pmdl::BoundingBox bb;
+		bb.min = { mesh->mAABB.mMin.x, mesh->mAABB.mMin.y, mesh->mAABB.mMin.z };
+		bb.max = { mesh->mAABB.mMax.x, mesh->mAABB.mMax.y, mesh->mAABB.mMax.z };
 
-		return { firstIndex, indexCount, materialIndex, vertexOffset };
+		printf("Mesh Boundbox Min: %.4f, %.4f, %.4f\n", bb.min.x, bb.min.y, bb.min.z);
+		printf("Mesh Boundbox Max: %.4f, %.4f, %.4f\n", bb.max.x, bb.max.y, bb.max.z);
+
+		return { firstIndex, indexCount, materialIndex, vertexOffset, 0, 0, bb };
 	}
 
 

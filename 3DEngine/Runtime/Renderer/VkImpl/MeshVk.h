@@ -15,6 +15,7 @@ public:
 
 	void GenerateMesh() override;
 
+	void AddDrawCall(const DrawCall& call) override;
 
 	vk::Device* device;
 

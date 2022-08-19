@@ -150,6 +150,7 @@
     <ClCompile Include="Runtime\FileSystem\FileSystem.cpp" />
     <ClCompile Include="Runtime\FileSystem\ResourceManager.cpp" />
     <ClCompile Include="Runtime\Model\PMDL.cpp" />
+    <ClCompile Include="Runtime\Renderer\DebugRenderer.cpp" />
     <ClCompile Include="Runtime\Renderer\RenderManager.cpp" />
     <ClCompile Include="Runtime\Renderer\VkImpl\CACAOImpl.cpp" />
     <ClCompile Include="Runtime\Renderer\VkImpl\GlobalData.cpp" />
@@ -200,6 +201,7 @@
     <ClInclude Include="Runtime\Maths\Frustum.h" />
     <ClInclude Include="Runtime\Maths\Rect.h" />
     <ClInclude Include="Runtime\Model\PMDL.h" />
+    <ClInclude Include="Runtime\Renderer\DebugRenderer.h" />
     <ClInclude Include="Runtime\Renderer\GraphicsStructs.h" />
     <ClInclude Include="Runtime\Renderer\Material.h" />
     <ClInclude Include="Runtime\Renderer\Mesh.h" />

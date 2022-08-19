@@ -125,7 +125,7 @@ void CascadeShadowMap::UpdateCascades(DirectionalLight& dirLight, float nearClip
 {
 
 
-	const float cascadeSplitLambda = 0.92f;
+	const float cascadeSplitLambda = 0.875f;
 
 	float cascadeSplits[CascadeCount + 1];
 	
@@ -200,7 +200,7 @@ void CascadeShadowMap::UpdateCascades(DirectionalLight& dirLight, float nearClip
 		glm::mat4 lightViewMatrix = glm::lookAt(frustumCenter - lightDir * -minExtents.z, frustumCenter, glm::vec3(0.0f, 1.0f, 0.0f));
 		glm::mat4 lightOrthoMatrix = glm::ortho(minExtents.x, maxExtents.x, minExtents.y, maxExtents.y, -radius * 6.0f, radius * 6.0f);
 
-		glm::vec4 texSize = glm::vec4((float)size / 3, size, 1.0f, 1.0f);
+		glm::vec4 texSize = glm::vec4((float)size * 9.0f, (float)size * 3.0f, 1.0f, 1.0f);
 
 		if (stabiliseCascades)
 		{
@@ -210,7 +210,7 @@ void CascadeShadowMap::UpdateCascades(DirectionalLight& dirLight, float nearClip
 			float storedW = shadowOrigin.w;
 			shadowOrigin = shadowOrigin * texSize / 2.0f;
 
-			glm::vec4 roundedOrigin = glm::floor(shadowOrigin);
+			glm::vec4 roundedOrigin = glm::round(shadowOrigin);
 			glm::vec4 roundOffset = roundedOrigin - shadowOrigin;
 
 

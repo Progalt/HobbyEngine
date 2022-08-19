@@ -18,7 +18,9 @@ class Frustum
 {
 public:
 
-	Frustum(const glm::mat4& view_proj)
+	Frustum () { }
+
+	void Create(const glm::mat4& view_proj)
 	{
 		glm::mat4 m = glm::transpose(view_proj);
 		mPlanes[Left] = m[3] + m[0];
@@ -56,6 +58,11 @@ public:
 		mPoints[7] = intersection<Right, Top, Far>(crosses);
 	}
 
+	Frustum(const glm::mat4& view_proj)
+	{
+		Create(view_proj);
+	}
+
 	bool Test(const BoundingBox& bb)
 	{
 		for (int i = 0; i < Count; i++)
@@ -80,8 +87,8 @@ public:
 		out = 0; for (int i = 0; i < 8; i++) out += ((mPoints[i].y > bb.max.y) ? 1 : 0); if (out == 8) return false;
 		out = 0; for (int i = 0; i < 8; i++) out += ((mPoints[i].y < bb.min.y) ? 1 : 0); if (out == 8) return false;
 		out = 0; for (int i = 0; i < 8; i++) out += ((mPoints[i].z > bb.max.z) ? 1 : 0); if (out == 8) return false;
-		out = 0; for (int i = 0; i < 8; i++) out += ((mPoints[i].z < bb.min.z) ? 1 : 0); if (out == 8) return false;
-		*/
+		out = 0; for (int i = 0; i < 8; i++) out += ((mPoints[i].z < bb.min.z) ? 1 : 0); if (out == 8) return false;*/
+		
 		return true;
 	}
 

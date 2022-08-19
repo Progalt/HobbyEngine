@@ -23,7 +23,7 @@ void main(uint3 globalInvocId : SV_DispatchThreadID)
 	if (globalInvocId.x > resolution.x || globalInvocId.y > resolution.y)
 		return;
 
-	float2 uv = (float2(globalInvocId.xy) + 0.5f) / float2(resolution);
+	float2 uv = (float2(globalInvocId.xy)) / float2(resolution);
 
 	float2 texelSize = 1.0f / resolution;
 

@@ -66,7 +66,7 @@ public:
 
 	// TODO: This system could probably be improved
 	
-	virtual void QueueMesh(Mesh* mesh, Material* material, glm::mat4 transform = glm::mat4(1.0f), uint32_t firstIndex = 0, uint32_t indexCount = 0, uint32_t vertexOffset = 0) = 0;
+	virtual void QueueMesh(Mesh* mesh, Material* material, glm::mat4 transform = glm::mat4(1.0f), uint32_t firstIndex = 0, uint32_t indexCount = 0, uint32_t vertexOffset = 0, uint32_t drawCallIndex = 0) = 0;
 
 
 	virtual Mesh* NewMesh() = 0;
@@ -94,7 +94,6 @@ public:
 		imguiFunc = imgui;
 	}
 
-	bool updateCascade = true;
 
 	RenderStatistics stats;
 
@@ -103,6 +102,8 @@ public:
 	RenderSettings currentSettings;
 
 	bool shouldUpdateSettings = false;
+
+	bool renderDebug = true;
 
 	int tonemappingMode = 0;
 
@@ -118,6 +119,7 @@ public:
 	bool hasDirLight = false;
 	DirectionalLight directionalLight;
 	std::vector<GPUPointLight> pointLights;
+
 
 protected:
 

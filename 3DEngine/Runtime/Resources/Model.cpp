@@ -64,6 +64,19 @@ void Model::LoadFromFile(const std::string& path, RenderManager* renderManager, 
 	{
 		pmdl::Mesh mesh = pmdl::ReadMesh1(file, &header, i);
 
+		Mesh::DrawCall drawCall;
+		drawCall.firstIndex = mesh.firstIndex;
+		drawCall.firstVertex = mesh.firstVertex;
+		drawCall.indexCount = mesh.indexCount;
+		Log::Info("Model Loader", "BB Min: %.4f, %.4f, %.4f", mesh.boundingBox.min.x, mesh.boundingBox.min.y, mesh.boundingBox.min.z);
+		Log::Info("Model Loader", "BB Max: %.4f, %.4f, %.4f", mesh.boundingBox.max.x, mesh.boundingBox.max.y, mesh.boundingBox.max.z);
+		drawCall.boundingBox.untransformed_min = { mesh.boundingBox.min.x, mesh.boundingBox.min.y, mesh.boundingBox.min.z };
+		drawCall.boundingBox.untransformed_max = { mesh.boundingBox.max.x, mesh.boundingBox.max.y, mesh.boundingBox.max.z };
+
+		//this->mesh->AddDrawCall(drawCall);
+
+		this->mesh->drawCalls.push_back(drawCall);
+
 		submeshes.push_back(mesh);
 	}
 
@@ -164,8 +177,8 @@ void Model::Queue(RenderManager* renderManager, glm::mat4 matrix, uint32_t lodIn
 	for (size_t i = 0; i < submeshes.size(); i++)
 	{
 		if (lodIndex == 0)
-			renderManager->QueueMesh(mesh, materials[submeshes[i].materialIndex], matrix, submeshes[i].firstIndex, submeshes[i].indexCount, submeshes[i].firstVertex);
+			renderManager->QueueMesh(mesh, materials[submeshes[i].materialIndex], matrix, submeshes[i].firstIndex, submeshes[i].indexCount, submeshes[i].firstVertex, i);
 		else 
-			renderManager->QueueMesh(mesh, materials[submeshes[i].materialIndex], matrix, LODs[submeshes[i].firstLOD + lodIndex - 1].firstIndex, LODs[submeshes[i].firstLOD + lodIndex - 1].indexCount, submeshes[i].firstVertex);
+			renderManager->QueueMesh(mesh, materials[submeshes[i].materialIndex], matrix, LODs[submeshes[i].firstLOD + lodIndex - 1].firstIndex, LODs[submeshes[i].firstLOD + lodIndex - 1].indexCount, submeshes[i].firstVertex, i);
 	}
 }

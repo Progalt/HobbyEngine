@@ -77,6 +77,14 @@ namespace pmdl
 		VecType x, y, z, w;
 	};
 
+	struct Vector3
+	{
+		Vector3() : x(0), y(0), z(0) { }
+		Vector3(VecType x, VecType y, VecType z) : x(x), y(y), z(z) {  }
+
+		VecType x, y, z;
+	};
+
 	struct Vertex
 	{
 		float x, y, z;
@@ -99,9 +107,15 @@ namespace pmdl
 		Double
 	};
 
+	struct BoundingBox
+	{
+		Vector3 min, max;
+	};
+
 	struct Mesh
 	{
 		uint32_t firstIndex, indexCount, materialIndex, firstVertex, firstLOD, LODCount;
+		BoundingBox boundingBox;
 	};
 
 	enum BlendMode

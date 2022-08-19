@@ -83,9 +83,16 @@ namespace vk
 
 		if (m_Mapped)
 		{
-			void* buf = (void*)((size_t*)m_MappedBuffer + offset);
+			if (offset == 0)
+			{
+				memcpy(m_MappedBuffer, data, size);
+			}
+			else
+			{
+				void* buf = (void*)((size_t*)m_MappedBuffer + offset);
 
-			memcpy((void*)buf, data, size);
+				memcpy(buf, data, size);
+			}
 		}
 		else
 		{

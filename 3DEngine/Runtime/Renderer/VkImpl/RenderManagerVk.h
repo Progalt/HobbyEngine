@@ -14,6 +14,7 @@
 #include "PostProcessEffectVk.h"
 #include "LightProbeVk.h"
 #include "CACAOImpl.h"
+#include "../DebugRenderer.h"
 
 #define THREAD_GROUP_SIZE 32
 
@@ -37,12 +38,13 @@ public:
 
 	LightProbe* NewLightProbe(uint32_t resolution) override;
 
-	void QueueMesh(Mesh* mesh, Material* material, glm::mat4 transform = glm::mat4(1.0f), uint32_t firstIndex = 0, uint32_t indexCount = 0, uint32_t vertexOffset = 0) override;
+	void QueueMesh(Mesh* mesh, Material* material, glm::mat4 transform = glm::mat4(1.0f), uint32_t firstIndex = 0, uint32_t indexCount = 0, uint32_t vertexOffset = 0, uint32_t drawCallIndex = 0) override;
 
 	struct RenderInfo
 	{
 		vk::Texture* target;
 		uint32_t level;
+		glm::mat4 standardProj;
 
 		uint32_t renderWidth, renderHeight;
 
@@ -62,7 +64,7 @@ public:
 
 	PostProcessEffect* CreatePostProcessEffect(const PostProcessCreateInfo& createInfo) override;
 
-	void RenderDirectionalShadowMap(vk::CommandList& cmdList, CascadeShadowMap* shadowMap);
+	void RenderDirectionalShadowMap(vk::CommandList& cmdList, CascadeShadowMap* shadowMap, RenderInfo& renderInfo);
 
 	struct DrawCmd
 	{
@@ -71,6 +73,7 @@ public:
 		Material* material;
 		uint32_t firstIndex, indexCount, vertexOffset;
 		bool culled;
+		uint32_t drawCallIndex;
 	};
 
 	void RenderDrawCmd(DrawCmd& cmd);
@@ -117,18 +120,18 @@ public:
 
 	struct
 	{
-		int bloomMips = 6;
-		vk::Texture brightTexture[6];
+		int bloomMips = 8;
+		vk::Texture brightTexture[8];
 		vk::Texture bloomOutput;
 
 		vk::ComputePipeline brightPipeline;
 
 		vk::DescriptorLayout layout;
-		vk::Descriptor descriptor[6];
+		vk::Descriptor descriptor[8];
 
 		vk::ComputePipeline upPipeline;
 
-		vk::Descriptor updescriptor[6];
+		vk::Descriptor updescriptor[8];
 
 	
 

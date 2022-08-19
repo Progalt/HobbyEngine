@@ -7,7 +7,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <array>
 #include <imgui.h>
-
+#include "Renderer/DebugRenderer.h"
 #include "Maths/Frustum.h"
 
 #include "Resources/Model.h"
@@ -31,7 +31,6 @@ public:
 		
 		sphere = ResourceManager::GetInstance().NewModel();
 		sphere->LoadFromFile("Resources/Sphere.pmdl", renderManager, true);
-		sphere->materials[0]->emissiveColour = { 1.0f, 0.0f, 0.0f, 1.0f };
 
 		viewPos = { 0.0f, 0.0f, 0.0f };
 
@@ -46,16 +45,19 @@ public:
 		worldTest->GetTransform().SetEuler({ 180.0f, 0.0f, 0.0f });
 		worldTest->GetTransform().SetScale({ 0.05f, 0.05f, 0.05f });
 
-		Actor* SphereActor = scene.NewActor("Sphere");
-		SphereActor->AddComponent<MeshRenderer>()->model = sphere;
-		SphereActor->GetTransform().SetPosition({ 0.0f, -3.0f, 0.0f });
-		SphereActor->AddComponent<PointLight>()->colour = { 1.0f, 0.0f, 0.0f };
-		SphereActor->GetComponent<PointLight>()->radius = 25.0f;
-		SphereActor->GetComponent<PointLight>()->intensity = 150.0f;
-
 		mainCam = scene.NewActor("Main Camera");
 		mainCam->AddComponent<PerspectiveCamera>()->ConstructProjection();
 
+		for (uint32_t i = 0; i < 16; i++)
+		{
+			for (uint32_t j = 0; j < 16; j++)
+			{
+				Actor* actor = scene.NewActor("Sphere" + std::to_string(i * j));
+
+				actor->AddComponent<MeshRenderer>()->model = sphere;
+				actor->GetTransform().SetPosition({ i * 3.0f, j * -3.0f, 0.0f });
+			}
+		}
 
 		//worldTest->GetTransform().SetScale({ 10.0f, 10.0f, 10.0f });
 
@@ -128,6 +130,8 @@ public:
 		//renderManager->AddPostProcessEffect(taaEffect);
 		//renderManager->AddPostProcessEffect(chromaticAberrationEffect);
 		//renderManager->AddPostProcessEffect(filmGrainEffect);
+
+		renderManager->tonemappingMode = 4;
 	}
 
 
@@ -240,6 +244,8 @@ public:
 		}
 
 
+		ImGui::Checkbox("Render Debug", &renderManager->renderDebug);
+
 		ImGui::Separator();
 
 		ImGui::Text("Settings");
@@ -285,37 +291,6 @@ public:
 			ImGui::EndCombo();
 		}
 
-		const char* tonemappingModes[] = { "None", "Filmic", "Unreal", "Uncharted 2", "ACES"};
-		static const char* currentTonemap = "None";
-
-		ImGui::Text("Tonemapping Mode");
-		if (ImGui::BeginCombo("##combo", currentTonemap))
-		{
-			for (int n = 0; n < IM_ARRAYSIZE(tonemappingModes); n++)
-			{
-				bool is_selected = (currentTonemap == tonemappingModes[n]); 
-				if (ImGui::Selectable(tonemappingModes[n], is_selected))
-				{
-					currentTonemap = tonemappingModes[n];
-					if (currentTonemap == "None")
-						renderManager->tonemappingMode = 0;
-					else if (currentTonemap == "Filmic")
-						renderManager->tonemappingMode = 1;
-					else if (currentTonemap == "Unreal")
-						renderManager->tonemappingMode = 2;
-					else if (currentTonemap == "Uncharted 2")
-						renderManager->tonemappingMode = 3;
-					else if (currentTonemap == "ACES")
-						renderManager->tonemappingMode = 4;
-				}
-				if (is_selected)
-				{
-					ImGui::SetItemDefaultFocus();
-				}
-			}
-			ImGui::EndCombo();
-		}
-
 		ImGui::End();
 
 	}
@@ -327,6 +302,8 @@ public:
 
 	void Render() override
 	{
+		DebugRenderer::GetInstance().vertices.clear();
+
 		ticks += 0.05f;
 		info.hasDirectionalLight = 1;
 		info.lightCount = 0;
@@ -414,7 +391,7 @@ public:
 	struct
 	{
 		glm::vec4 sunDir;
-		float fogDensity = 0.002;
+		float fogDensity = 0.0009;
 		float padding[3];
 	} fogData;
 	PostProcessEffect* fogEffect;

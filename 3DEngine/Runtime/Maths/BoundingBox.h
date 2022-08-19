@@ -12,6 +12,8 @@ public:
 
 	glm::vec3 untransformed_min, untransformed_max;
 
+	float radius = 0.0f;
+
 	void Transform(const glm::mat4& model)
 	{
 		min = model * glm::vec4(untransformed_min, 1.0f);
@@ -42,6 +44,8 @@ public:
 
 		untransformed_min = min;
 		untransformed_max = max;
+
+		radius = glm::length(max - min) / 2.0f;
 	}
 
 private:

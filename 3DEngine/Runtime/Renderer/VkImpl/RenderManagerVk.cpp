@@ -631,6 +631,62 @@ RenderManagerVk::RenderManagerVk(Window* window, const RenderManagerCreateInfo& 
 
 	vk::Imgui::Init(&mDevice, window, &mRenderpasses.swapchain);
 
+	// Setupt debug
+	{
+
+		vk::RenderpassCreateInfo rpInfo{};
+		rpInfo.colourAttachments = { &mLightingPipeline.output };
+		rpInfo.depthAttachment = &mGeometryPass.correctedDepthTarget;
+		rpInfo.loadAttachments = true;
+		rpInfo.colourAttachmentInitialLayouts = vk::ImageLayout::General;
+		rpInfo.colourAttachmentFinalLayouts = vk::ImageLayout::General;
+		rpInfo.loadDepth = true;
+		rpInfo.extentWidth = mProperties.renderWidth;
+		rpInfo.extentHeight = mProperties.renderHeight;
+		rpInfo.type = vk::RenderpassType::Offscreen;
+		mDebugPass.renderpass = mDevice.NewRenderpass(&rpInfo);
+
+		vk::VertexDescription vertexDesc{};
+		vertexDesc.bindingDescs =
+		{
+			{ 0, sizeof(glm::vec3) + sizeof(glm::vec4)}
+		};
+
+		vertexDesc.attributeDescs =
+		{
+			{ 0, 0, vk::Format::FORMAT_R32G32B32_SFLOAT, 0 },
+			{ 0, 1, vk::Format::FORMAT_R32G32B32A32_SFLOAT, sizeof(glm::vec3)},
+		};
+
+		vk::ShaderBlob vertexBlob = mDevice.NewShaderBlob();
+		vk::ShaderBlob fragmentBlob = mDevice.NewShaderBlob();
+
+		vertexBlob.CreateFromSource(vk::ShaderStage::Vertex, FileSystem::ReadBytes("Resources/Shaders/debug.vert.spv"));
+		fragmentBlob.CreateFromSource(vk::ShaderStage::Fragment, FileSystem::ReadBytes("Resources/Shaders/debug.frag.spv"));
+
+		vk::PipelineCreateInfo pipelineInfo{};
+		pipelineInfo.renderpass = &mDebugPass.renderpass;
+		pipelineInfo.layout = { };
+		pipelineInfo.pushConstantRanges = {
+			{ vk::ShaderStage::Vertex, 0, sizeof(glm::mat4) }
+		};
+		pipelineInfo.topologyType = vk::Topology::LineList;
+		pipelineInfo.vertexDesc = &vertexDesc;
+		pipelineInfo.depthTest = true;
+		pipelineInfo.depthWrite = false;
+		pipelineInfo.compareOp = vk::CompareOp::Greater;
+		pipelineInfo.shaders = { &vertexBlob, &fragmentBlob };
+
+		mDebugPass.pipeline = mDevice.NewPipeline(&pipelineInfo);
+
+		vertexBlob.Destroy();
+		fragmentBlob.Destroy();
+
+		mDebugPass.vertexBuffer = mDevice.NewBuffer();
+		mDebugPass.vertexBuffer.Create(vk::BufferType::Dynamic, vk::BufferUsage::Vertex, sizeof(DebugRenderer::Vertex) * 8096, nullptr);
+
+	}
+
 }
 
 RenderManagerVk::~RenderManagerVk()
@@ -652,6 +708,10 @@ RenderManagerVk::~RenderManagerVk()
 	mBloom.brightPipeline.Destroy();
 	mBloom.upPipeline.Destroy();
 	mBloom.bloomOutput.Destroy();
+
+	mDebugPass.pipeline.Destroy();
+	mDebugPass.renderpass.Destroy();
+	mDebugPass.vertexBuffer.Destroy();
 
 	for(int i = 0; i < mBloom.bloomMips; i++)
 		mBloom.brightTexture[i].Destroy();
@@ -797,19 +857,26 @@ void RenderManagerVk::Render(CameraInfo& cameraInfo)
 	mCmdList.Begin();
 
 	// First lets render some shadows
+	RenderInfo renderInfo{};
+	renderInfo.data = mGlobalDataStruct;
+	renderInfo.globalManager = globalDataManager;
+	renderInfo.standardProj = cameraInfo.standardProj;
 
+	renderInfo.renderWidth = mProperties.renderWidth;
+	renderInfo.renderHeight = mProperties.renderHeight;
+	renderInfo.target = nullptr;
+	renderInfo.level = 0;
 	
 	if (mSceneInfo.hasDirectionalLight)
 	{
 			mShadowData.directionalShadowMap.UpdateCascades(mSceneInfo.dirLight, cameraInfo.nearPlane,
 				cameraInfo.farPlane, cameraInfo.standardProj, cameraInfo.view);
 
-		RenderDirectionalShadowMap(mCmdList, &mShadowData.directionalShadowMap);
+		RenderDirectionalShadowMap(mCmdList, &mShadowData.directionalShadowMap, renderInfo);
 	}
 
 	// Lets render light probes
 
-	RenderInfo renderInfo{};
 
 	mCmdList.BeginDebugUtilsLabel("Light Probes");
 	for (auto& lightProbe : mLightProbes)
@@ -855,6 +922,7 @@ void RenderManagerVk::Render(CameraInfo& cameraInfo)
 
 	renderInfo.data = mGlobalDataStruct;
 	renderInfo.globalManager = globalDataManager;
+	renderInfo.standardProj = cameraInfo.standardProj;
 
 	renderInfo.renderWidth = mProperties.renderWidth;
 	renderInfo.renderHeight = mProperties.renderHeight;
@@ -863,6 +931,33 @@ void RenderManagerVk::Render(CameraInfo& cameraInfo)
 
 	// Render the scene
 	RenderScene(renderInfo, mCmdList, false, true, true);
+
+	// Render Debug
+	if (renderDebug)
+	{
+		uint32_t count = DebugRenderer::GetInstance().vertices.size();
+		mDebugPass.vertexBuffer.SetData(sizeof(DebugRenderer::Vertex) * count, DebugRenderer::GetInstance().vertices.data());
+
+		mCmdList.BeginDebugUtilsLabel("Debug Pass");
+
+		mCmdList.BeginRenderpass(&mDebugPass.renderpass, false);
+
+		mCmdList.SetLineWidth(1.0f);
+
+		mCmdList.BindPipeline(&mDebugPass.pipeline);
+
+		glm::mat4 mvp = cameraInfo.proj * cameraInfo.view;
+
+		mCmdList.PushConstants(&mDebugPass.pipeline, vk::ShaderStage::Vertex, sizeof(glm::mat4), 0, &mvp);
+
+		mCmdList.BindVertexBuffer(&mDebugPass.vertexBuffer, 0);
+
+		mCmdList.Draw(count, 1, 0, 0);
+
+		mCmdList.EndRenderpass();
+
+		mCmdList.EndDebugUtilsLabel();
+	}
 
 	mLightingPipeline.output.Transition(vk::ImageLayout::General, vk::ImageLayout::ShaderReadOnlyOptimal, mCmdList);
 
@@ -1161,7 +1256,7 @@ void RenderManagerVk::RenderDrawCmd(DrawCmd& cmd)
 
 }
 
-void RenderManagerVk::RenderDirectionalShadowMap(vk::CommandList& cmdList, CascadeShadowMap* shadowMap)
+void RenderManagerVk::RenderDirectionalShadowMap(vk::CommandList& cmdList, CascadeShadowMap* shadowMap, RenderInfo& renderInfo)
 {
 
 	cmdList.BeginDebugUtilsLabel("Directional Light Shadow Pass");
@@ -1170,13 +1265,22 @@ void RenderManagerVk::RenderDirectionalShadowMap(vk::CommandList& cmdList, Casca
 
 	cmdList.BindPipeline(&mShadowData.pipeline);
 
+	Frustum frustum1(shadowMap->data.matrices[0]);
+	Frustum frustum2(shadowMap->data.matrices[0]);
+	Frustum frustum3(shadowMap->data.matrices[0]);
+
+	Frustum frustum[CascadeCount];
+	for (uint32_t i = 0; i < CascadeCount; i++)
+		frustum[i].Create(shadowMap->data.matrices[i]);
+	
+
 	// render to each cascade
 	for (uint32_t i = 0; i < CascadeCount; i++)
 	{
 		// all of it is rendered in one renderpass but the viewport is shifted
 		shadowMap->SetupForRendering(cmdList, i);
 
-		Frustum frustum(shadowMap->data.matrices[i]);
+		
 
 		// Loop through and draw
 		for (auto& cmd : draws)
@@ -1188,15 +1292,18 @@ void RenderManagerVk::RenderDirectionalShadowMap(vk::CommandList& cmdList, Casca
 			if (!mat->castShadows)
 				continue;
 
+			// TODO: Check if the mesh was already rendered in a different frustum and is not visible in this one
 			mesh->boundingBox.Transform(cmd.transform);
-			if (!frustum.Test(mesh->boundingBox))
+			if (!frustum[i].Test(mesh->boundingBox))
 			{
 				// Remove it from the list
 				// and continuee
 				stats.culledMeshes++;
 				continue;
 			}
-
+		
+		
+			
 			struct
 			{
 				glm::mat4 model;
@@ -1234,7 +1341,7 @@ void RenderManagerVk::RenderScene(RenderInfo& renderInfo, vk::CommandList& cmdLi
 
 	// Create a frustum for the current view projection
 	// Objects are culled against this later
-	Frustum frustum(renderInfo.data.proj * renderInfo.data.view);
+	Frustum frustum(renderInfo.standardProj * renderInfo.data.view);
 
 	std::deque<DrawCmd> draws(mDeferredDraws.begin(), mDeferredDraws.end());
 
@@ -1275,9 +1382,20 @@ void RenderManagerVk::RenderScene(RenderInfo& renderInfo, vk::CommandList& cmdLi
 		// Cull the mesh against the frustums
 		// It skips it and removes it from the draw list
 
+		BoundingBox boundingBox = mesh->drawCalls[cmd.drawCallIndex].boundingBox;
+
+		
+
 		// Transform the bounding box to the transform specified
-		mesh->boundingBox.Transform(cmd.transform);
-		if (!frustum.Test(mesh->boundingBox))
+		boundingBox.Transform(cmd.transform);
+
+		//Log::Info("Model Loader", "BB Min: %.4f, %.4f, %.4f", boundingBox.min.x, boundingBox.min.y, boundingBox.min.z);
+		//Log::Info("Model Loader", "BB Max: %.4f, %.4f, %.4f", boundingBox.max.x, boundingBox.max.y, boundingBox.max.z);
+		
+		if (renderDebug)
+			DebugRenderer::GetInstance().DrawBox(boundingBox.min, boundingBox.max, { 0.0f, 1.0f, 0.0f, 1.0f });
+
+		if (!frustum.Test(boundingBox))
 		{
 			// Remove it from the list 
 			// and continuee
@@ -1572,12 +1690,12 @@ void RenderManagerVk::UpdateSettings()
 	shouldUpdateSettings = false;
 }
 
-void RenderManagerVk::QueueMesh(Mesh* mesh, Material* material, glm::mat4 transform, uint32_t firstIndex, uint32_t indexCount, uint32_t vertexOffset)
+void RenderManagerVk::QueueMesh(Mesh* mesh, Material* material, glm::mat4 transform, uint32_t firstIndex, uint32_t indexCount, uint32_t vertexOffset, uint32_t drawCallIndex)
 {
 	if (material->pass == Pass::DontCare || material->pass == Pass::Deferred)
-		mDeferredDraws.push_back({ mesh, transform, material, firstIndex, indexCount, vertexOffset });
+		mDeferredDraws.push_back({ mesh, transform, material, firstIndex, indexCount, vertexOffset, false, drawCallIndex });
 	else
-		mForwardDraws.push_back({ mesh, transform, material, firstIndex, indexCount, vertexOffset });
+		mForwardDraws.push_back({ mesh, transform, material, firstIndex, indexCount, vertexOffset, false, drawCallIndex });
 }
 
 

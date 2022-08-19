@@ -16,6 +16,21 @@ void MeshVk::Destroy()
 		indexBuffer.Destroy();
 }
 
+void MeshVk::AddDrawCall(const DrawCall& call)
+{
+
+	DrawCall c{};
+
+
+	std::vector<glm::vec3> pos;
+	for (uint32_t i = 0; i < call.indexCount ; i++)
+		pos.push_back(positions[indices[(call.firstIndex + i)]]);
+
+	c.boundingBox.CalculateFromVertexData(pos);
+
+	drawCalls.push_back(c);
+}
+
 void MeshVk::GenerateMesh()
 {
 	// calculate the bounding box

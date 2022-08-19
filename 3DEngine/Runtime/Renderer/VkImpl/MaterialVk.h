@@ -44,7 +44,7 @@ public:
 		TextureVk* roughnessTex = (TextureVk*)ResourceManager::GetInstance().GetTexturePtr(roughnessMap);
 		TextureVk* metallicTex = (TextureVk*)ResourceManager::GetInstance().GetTexturePtr(metallicMap);
 
-		paramsBuffer.Create(vk::BufferType::Dynamic, vk::BufferUsage::Uniform, sizeof(MaterialParams), nullptr);
+		paramsBuffer.Create(vk::BufferType::Static, vk::BufferUsage::Uniform, sizeof(MaterialParams), nullptr);
 
 		setUpdate = true;
 
