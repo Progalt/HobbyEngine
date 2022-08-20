@@ -44,6 +44,8 @@ void CascadeShadowMap::Create(vk::Device* device, QualitySetting quality)
 	Log::Info("Renderer", "Created Cascade Shadow Atlas");
 
 	currentQuality = quality;
+
+	shadowSlices.resize(CascadeCount);
 }
 
 void CascadeShadowMap::Recreate(vk::Device* device, QualitySetting quality)
@@ -104,7 +106,8 @@ void CascadeShadowMap::Destroy()
 
 void CascadeShadowMap::SetupForRendering(vk::CommandList& cmdList, uint32_t cascadeIndex)
 {
-	
+	// Only need to begin the renderpass once. 
+	// For future cascades only the viewport and scissor are changed
 	if (!begunRenderpass)
 	{
 		cmdList.BeginRenderpass(&renderpass, false, size * CascadeCount, size);
@@ -125,11 +128,10 @@ void CascadeShadowMap::UpdateCascades(DirectionalLight& dirLight, float nearClip
 {
 
 
-	const float cascadeSplitLambda = 0.875f;
+	const float cascadeSplitLambda = 0.85f;
 
 	float cascadeSplits[CascadeCount + 1];
 	
-
 	float clipRange = farClip - nearClip;
 
 
@@ -139,7 +141,7 @@ void CascadeShadowMap::UpdateCascades(DirectionalLight& dirLight, float nearClip
 	float range = maxZ - minZ;
 	float ratio = maxZ / minZ;
 
-
+	// Compute Split distances
 	for (uint32_t i = 0; i < CascadeCount + 1; i++) {
 		float p = (i + 1) / static_cast<float>(CascadeCount + 1);
 		float log = minZ * std::pow(ratio, p);
@@ -195,13 +197,17 @@ void CascadeShadowMap::UpdateCascades(DirectionalLight& dirLight, float nearClip
 		glm::vec3 minExtents = -maxExtents;
 
 		
-
+		// Compute the final matrices
 		glm::vec3 lightDir = glm::normalize(-dirLight.direction);
 		glm::mat4 lightViewMatrix = glm::lookAt(frustumCenter - lightDir * -minExtents.z, frustumCenter, glm::vec3(0.0f, 1.0f, 0.0f));
 		glm::mat4 lightOrthoMatrix = glm::ortho(minExtents.x, maxExtents.x, minExtents.y, maxExtents.y, -radius * 6.0f, radius * 6.0f);
 
-		glm::vec4 texSize = glm::vec4((float)size * 9.0f, (float)size * 3.0f, 1.0f, 1.0f);
+		glm::vec4 texSize = glm::vec4((float)size, (float)size, 1.0f, 1.0f);
 
+		// Try to stabilise Cascades to texture coordinates 
+		// To avoid shimmering
+
+		// TODO: Fix this. It doesn' work properly. It has jitter when moving
 		if (stabiliseCascades)
 		{
 			glm::mat4 shadowMatrix = lightOrthoMatrix * lightViewMatrix;

@@ -41,4 +41,6 @@ void main()
 	vTangent = aTangent;
 	vNewPos = global.VP * constants.model * vec4(aPosition, 1.0);
 	vOldPos = global.prevVP * constants.prevModel * vec4(aPosition, 1.0);
+
+	gl_Position.y = -gl_Position.y;
 }

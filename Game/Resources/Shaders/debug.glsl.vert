@@ -14,4 +14,6 @@ void main()
 	gl_Position = constants.mvp * vec4(aPosition, 1.0);
 
 	vColour = aColour;
+
+	gl_Position.y = -gl_Position.y;
 }

@@ -206,7 +206,7 @@ public:
 
 		vk::Pipeline pipeline;
 
-		vk::Renderpass renderpass;
+		vk::Renderpass renderpass[2];
 
 		vk::Buffer vertexBuffer;
 

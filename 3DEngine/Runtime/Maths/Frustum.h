@@ -48,14 +48,29 @@ public:
 			glm::cross(glm::vec3(mPlanes[Near]),   glm::vec3(mPlanes[Far]))
 		};
 
-		mPoints[0] = intersection<Left, Bottom, Near>(crosses);
-		mPoints[1] = intersection<Left, Top, Near>(crosses);
-		mPoints[2] = intersection<Right, Bottom, Near>(crosses);
-		mPoints[3] = intersection<Right, Top, Near>(crosses);
-		mPoints[4] = intersection<Left, Bottom, Far>(crosses);
-		mPoints[5] = intersection<Left, Top, Far>(crosses);
-		mPoints[6] = intersection<Right, Bottom, Far>(crosses);
-		mPoints[7] = intersection<Right, Top, Far>(crosses);
+		glm::vec3 frustumCorners[8] = {
+		glm::vec3(-1.0f,  1.0f, -1.0f),
+		glm::vec3(1.0f,  1.0f, -1.0f),
+		glm::vec3(1.0f, -1.0f, -1.0f),
+		glm::vec3(-1.0f, -1.0f, -1.0f),
+		glm::vec3(-1.0f,  1.0f,  1.0f),
+		glm::vec3(1.0f,  1.0f,  1.0f),
+		glm::vec3(1.0f, -1.0f,  1.0f),
+		glm::vec3(-1.0f, -1.0f,  1.0f),
+		};
+
+		// Project frustum corners into world space
+		glm::mat4 invCam = glm::inverse(view_proj);
+		for (uint32_t i = 0; i < 8; i++) {
+			glm::vec4 invCorner = invCam * glm::vec4(frustumCorners[i], 1.0f);
+			mCorners[i] = invCorner / invCorner.w;
+		}
+
+		for (uint32_t i = 0; i < 8; i++) {
+			mCenter += frustumCorners[i];
+		}
+		mCenter /= 8.0f;
+
 	}
 
 	Frustum(const glm::mat4& view_proj)
@@ -80,15 +95,6 @@ public:
 			}
 		}
 
-		// check frustum outside/inside box
-		/*int out;
-		out = 0; for (int i = 0; i < 8; i++) out += ((mPoints[i].x > bb.max.x) ? 1 : 0); if (out == 8) return false;
-		out = 0; for (int i = 0; i < 8; i++) out += ((mPoints[i].x < bb.min.x) ? 1 : 0); if (out == 8) return false;
-		out = 0; for (int i = 0; i < 8; i++) out += ((mPoints[i].y > bb.max.y) ? 1 : 0); if (out == 8) return false;
-		out = 0; for (int i = 0; i < 8; i++) out += ((mPoints[i].y < bb.min.y) ? 1 : 0); if (out == 8) return false;
-		out = 0; for (int i = 0; i < 8; i++) out += ((mPoints[i].z > bb.max.z) ? 1 : 0); if (out == 8) return false;
-		out = 0; for (int i = 0; i < 8; i++) out += ((mPoints[i].z < bb.min.z) ? 1 : 0); if (out == 8) return false;*/
-		
 		return true;
 	}
 
@@ -106,24 +112,12 @@ private:
 		Combinations = Count * (Count - 1) / 2
 	};
 
-	template<Planes i, Planes j>
-	struct ij2k
-	{
-		enum { k = i * (9 - i) / 2 + j - 1 };
-	};
-
-	template<Planes a, Planes b, Planes c>
-	glm::vec3 intersection(const glm::vec3* crosses) const
-	{
-		float D = glm::dot(glm::vec3(mPlanes[a]), crosses[ij2k<b, c>::k]);
-		glm::vec3 res = glm::mat3(crosses[ij2k<b, c>::k], -crosses[ij2k<a, c>::k], crosses[ij2k<a, b>::k]) *
-			glm::vec3(mPlanes[a].w, mPlanes[b].w, mPlanes[c].w);
-		return res * (-1.0f / D);
-	}
 
 	glm::mat4 mViewProj;
 
 	glm::vec4 mPlanes[Count];
-	glm::vec3 mPoints[8];
+
+	glm::vec3 mCorners[8];
+	glm::vec3 mCenter;
 
 };

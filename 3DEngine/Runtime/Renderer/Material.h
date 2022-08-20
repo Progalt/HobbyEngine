@@ -40,6 +40,8 @@ public:
 	float roughness = 0.5f;
 	float metallic = 0.5f;
 
+	float translucency = 0.0f;
+
 	// This updates material parameters.
 	// Currently it does not update material textures
 	bool setUpdate = false;

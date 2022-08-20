@@ -3,11 +3,21 @@
 #include "../Vulkan/Device.h"
 #include "../GraphicsStructs.h"
 
+#include "../../Maths/Frustum.h"
+
 constexpr uint32_t CascadeSize_UltraLow = 512;
 constexpr uint32_t CascadeSize_Low = 1024;
 constexpr uint32_t CascadeSize_Medium = 2048;
 constexpr uint32_t CascadeSize_High = 4096;
 constexpr uint32_t CascadeCount = 3;
+
+struct ShadowSlice
+{
+	glm::vec3 min = glm::vec3(0);
+	glm::vec3 max = glm::vec3(0);
+	glm::vec3 center = glm::vec3(0);
+	Frustum frustum;
+};
 
 class CascadeShadowMap
 {
@@ -32,7 +42,7 @@ public:
 
 	bool begunRenderpass = false;
 
-	bool stabiliseCascades = false;
+	bool stabiliseCascades = true;
 
 	struct DataBuffer
 	{
@@ -52,6 +62,8 @@ public:
 	vk::Buffer uniformBuffer;
 
 	vk::Descriptor descriptor;
+
+	std::vector<ShadowSlice> shadowSlices;
 
 private:
 	

@@ -213,7 +213,7 @@ RenderManagerVk::RenderManagerVk(Window* window, const RenderManagerCreateInfo& 
 		pipelineInfo.renderpass = &mRenderpasses.geometryPass;
 		pipelineInfo.layout = { &mBasePipeline.materialLayout, globalDataManager.GetLayout(vk::ShaderStage::Vertex) };
 		pipelineInfo.pushConstantRanges = {};
-		pipelineInfo.cullMode = vk::CullMode::Front;
+		pipelineInfo.cullMode = vk::CullMode::Back;
 		pipelineInfo.topologyType = vk::Topology::TriangleList;
 		pipelineInfo.vertexDesc = &baseVertexDesc;
 		pipelineInfo.shaders = { &vertexBlob, &fragmentBlob };
@@ -423,8 +423,9 @@ RenderManagerVk::RenderManagerVk(Window* window, const RenderManagerCreateInfo& 
 	}
 
 	{
+
 		probe = NewLightProbe(256);
-		probe->position = { 0.0f, 2.0f, 0.0f };
+		probe->position = { 0.0f, -10.0f, 0.0f };
 
 		mLightProbes.push_back((LightProbeVk*)probe);
 	}
@@ -635,7 +636,7 @@ RenderManagerVk::RenderManagerVk(Window* window, const RenderManagerCreateInfo& 
 	{
 
 		vk::RenderpassCreateInfo rpInfo{};
-		rpInfo.colourAttachments = { &mLightingPipeline.output };
+		rpInfo.colourAttachments = { &mCurrentOutput[0]};
 		rpInfo.depthAttachment = &mGeometryPass.correctedDepthTarget;
 		rpInfo.loadAttachments = true;
 		rpInfo.colourAttachmentInitialLayouts = vk::ImageLayout::General;
@@ -644,7 +645,9 @@ RenderManagerVk::RenderManagerVk(Window* window, const RenderManagerCreateInfo& 
 		rpInfo.extentWidth = mProperties.renderWidth;
 		rpInfo.extentHeight = mProperties.renderHeight;
 		rpInfo.type = vk::RenderpassType::Offscreen;
-		mDebugPass.renderpass = mDevice.NewRenderpass(&rpInfo);
+		mDebugPass.renderpass[0] = mDevice.NewRenderpass(&rpInfo);
+		rpInfo.colourAttachments = { &mCurrentOutput[1] };
+		mDebugPass.renderpass[1] = mDevice.NewRenderpass(&rpInfo);
 
 		vk::VertexDescription vertexDesc{};
 		vertexDesc.bindingDescs =
@@ -665,7 +668,7 @@ RenderManagerVk::RenderManagerVk(Window* window, const RenderManagerCreateInfo& 
 		fragmentBlob.CreateFromSource(vk::ShaderStage::Fragment, FileSystem::ReadBytes("Resources/Shaders/debug.frag.spv"));
 
 		vk::PipelineCreateInfo pipelineInfo{};
-		pipelineInfo.renderpass = &mDebugPass.renderpass;
+		pipelineInfo.renderpass = &mDebugPass.renderpass[0];
 		pipelineInfo.layout = { };
 		pipelineInfo.pushConstantRanges = {
 			{ vk::ShaderStage::Vertex, 0, sizeof(glm::mat4) }
@@ -710,7 +713,8 @@ RenderManagerVk::~RenderManagerVk()
 	mBloom.bloomOutput.Destroy();
 
 	mDebugPass.pipeline.Destroy();
-	mDebugPass.renderpass.Destroy();
+	mDebugPass.renderpass[0].Destroy();
+	mDebugPass.renderpass[1].Destroy();
 	mDebugPass.vertexBuffer.Destroy();
 
 	for(int i = 0; i < mBloom.bloomMips; i++)
@@ -813,7 +817,7 @@ void RenderManagerVk::Render(CameraInfo& cameraInfo)
 
 	
 
-	auto Halton = [](uint32_t i, uint32_t b)
+	/*auto Halton = [](uint32_t i, uint32_t b)
 	{
 		float f = 1.0f;
 		float r = 0.0f;
@@ -833,9 +837,29 @@ void RenderManagerVk::Render(CameraInfo& cameraInfo)
 	float haltonX = 2.0f * Halton(jitterIndex + 1, 2) - 1.0f;
 	float haltonY = 2.0f * Halton(jitterIndex + 1, 3) - 1.0f;
 	float jitterX = (haltonX / (float)mProperties.renderWidth);
-	float jitterY = (haltonY / (float)mProperties.renderWidth);
+	float jitterY = (haltonY / (float)mProperties.renderHeight);*/
 
-	glm::mat4 jitteredMatrix = glm::translate(glm::mat4(1.0f), { jitterX, jitterY, 0.0f });
+	static const glm::vec2 SAMPLE_LOCS_8[8] = {
+		glm::vec2(-7.0f, 1.0f) / 8.0f,
+		glm::vec2(-5.0f, -5.0f) / 8.0f,
+		glm::vec2(-1.0f, -3.0f) / 8.0f,
+		glm::vec2(3.0f, -7.0f) / 8.0f,
+		glm::vec2(5.0f, -1.0f) / 8.0f,
+		glm::vec2(7.0f, 7.0f) / 8.0f,
+		glm::vec2(1.0f, 3.0f) / 8.0f,
+		glm::vec2(-3.0f, 5.0f) / 8.0f };
+
+	const unsigned SubsampleIdx = frameCount % 8;
+
+	const glm::vec2 TexSize(1.0f / glm::vec2(mProperties.renderWidth, mProperties.renderHeight)); // Texel size
+	const glm::vec2 SubsampleSize = TexSize * 2.0f; // That is the size of the subsample in NDC
+
+	const glm::vec2 S = SAMPLE_LOCS_8[SubsampleIdx]; // In [-1, 1]
+
+	glm::vec2 Subsample = S * SubsampleSize; // In [-SubsampleSize, SubsampleSize] range
+	Subsample *= 0.5f;
+
+	glm::mat4 jitteredMatrix = glm::translate(glm::mat4(1.0f), { Subsample.x, Subsample.y, 0.0f });
 
 	if (jitterVertices)
 		mGlobalDataStruct.jitteredVP = jitteredMatrix * cameraInfo.proj * cameraInfo.view;
@@ -844,8 +868,17 @@ void RenderManagerVk::Render(CameraInfo& cameraInfo)
 
 	mGlobalDataStruct.VP = cameraInfo.proj * cameraInfo.view;
 	mGlobalDataStruct.prevVP = cameraInfo.prevViewProj;
-	mGlobalDataStruct.viewPos = glm::vec4(cameraInfo.view_pos, 1.0f);
-	mGlobalDataStruct.inverseProj = glm::inverse(cameraInfo.proj);
+
+	// Inverted to make it play nice with old code
+	mGlobalDataStruct.viewPos = glm::vec4(-cameraInfo.view_pos, 1.0f);
+
+	// Hacky fix.
+	// TODO: Make less hacky
+
+	glm::mat4 correctedProj = cameraInfo.proj;
+	correctedProj[1][1] *= -1.0f;
+ 
+	mGlobalDataStruct.inverseProj = glm::inverse(correctedProj);
 	mGlobalDataStruct.inverseView = glm::inverse(cameraInfo.view);
 	mGlobalDataStruct.view = cameraInfo.view;
 	mGlobalDataStruct.proj = cameraInfo.proj;
@@ -932,32 +965,7 @@ void RenderManagerVk::Render(CameraInfo& cameraInfo)
 	// Render the scene
 	RenderScene(renderInfo, mCmdList, false, true, true);
 
-	// Render Debug
-	if (renderDebug)
-	{
-		uint32_t count = DebugRenderer::GetInstance().vertices.size();
-		mDebugPass.vertexBuffer.SetData(sizeof(DebugRenderer::Vertex) * count, DebugRenderer::GetInstance().vertices.data());
-
-		mCmdList.BeginDebugUtilsLabel("Debug Pass");
-
-		mCmdList.BeginRenderpass(&mDebugPass.renderpass, false);
-
-		mCmdList.SetLineWidth(1.0f);
-
-		mCmdList.BindPipeline(&mDebugPass.pipeline);
-
-		glm::mat4 mvp = cameraInfo.proj * cameraInfo.view;
-
-		mCmdList.PushConstants(&mDebugPass.pipeline, vk::ShaderStage::Vertex, sizeof(glm::mat4), 0, &mvp);
-
-		mCmdList.BindVertexBuffer(&mDebugPass.vertexBuffer, 0);
-
-		mCmdList.Draw(count, 1, 0, 0);
-
-		mCmdList.EndRenderpass();
-
-		mCmdList.EndDebugUtilsLabel();
-	}
+	
 
 	mLightingPipeline.output.Transition(vk::ImageLayout::General, vk::ImageLayout::ShaderReadOnlyOptimal, mCmdList);
 
@@ -1161,6 +1169,33 @@ void RenderManagerVk::Render(CameraInfo& cameraInfo)
 	}
 
 	updatePostProcessStack = false;
+
+	// Render Debug
+	if (renderDebug)
+	{
+		uint32_t count = DebugRenderer::GetInstance().vertices.size();
+		mDebugPass.vertexBuffer.SetData(sizeof(DebugRenderer::Vertex) * count, DebugRenderer::GetInstance().vertices.data());
+
+		mCmdList.BeginDebugUtilsLabel("Debug Pass");
+
+		mCmdList.BeginRenderpass(&mDebugPass.renderpass[prevTarget], false);
+
+		mCmdList.SetLineWidth(1.0f);
+
+		mCmdList.BindPipeline(&mDebugPass.pipeline);
+
+		glm::mat4 mvp = cameraInfo.proj * cameraInfo.view;
+
+		mCmdList.PushConstants(&mDebugPass.pipeline, vk::ShaderStage::Vertex, sizeof(glm::mat4), 0, &mvp);
+
+		mCmdList.BindVertexBuffer(&mDebugPass.vertexBuffer, 0);
+
+		mCmdList.Draw(count, 1, 0, 0);
+
+		mCmdList.EndRenderpass();
+
+		mCmdList.EndDebugUtilsLabel();
+	}
 
 	mCurrentOutput[prevTarget].Transition(vk::ImageLayout::General, vk::ImageLayout::ShaderReadOnlyOptimal, mCmdList);
 
@@ -1563,7 +1598,22 @@ void RenderManagerVk::RenderScene(RenderInfo& renderInfo, vk::CommandList& cmdLi
 
 		cmdList.PushConstants(&mLightingPipeline.pipeline, vk::ShaderStage::Compute, sizeof(int) * 2, 0, &constants);
 
-		cmdList.BindDescriptors({ &mLightingPipeline.descriptor, renderInfo.globalManager.GetDescriptor(vk::ShaderStage::Compute), &mLightingPipeline.shadowDescriptor, &((LightProbeVk*)probe)->lightingDescriptor }, & mLightingPipeline.pipeline, 0);
+		// Get closest probe
+		// TODO: This changes whole scene light probe
+		LightProbeVk* closestProbe = nullptr;
+
+		float closest = FLT_MAX;
+		for (auto& probe : mLightProbes)
+		{
+			float dist = glm::distance(probe->position, glm::vec3(renderInfo.data.viewPos));
+			if (dist < closest)
+			{
+				closestProbe = probe;
+				closest = dist;
+			}
+		}
+
+		cmdList.BindDescriptors({ &mLightingPipeline.descriptor, renderInfo.globalManager.GetDescriptor(vk::ShaderStage::Compute), &mLightingPipeline.shadowDescriptor, &closestProbe->lightingDescriptor }, & mLightingPipeline.pipeline, 0);
 		cmdList.Dispatch((int)ceilf((float)mProperties.renderWidth / THREAD_GROUP_SIZE), (int)ceilf((float)mProperties.renderHeight / THREAD_GROUP_SIZE), 1);
 
 		stats.dispatchCalls++;

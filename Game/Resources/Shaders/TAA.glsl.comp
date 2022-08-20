@@ -58,7 +58,7 @@ void main()
 		}
 	}
 	
-	const vec2 velocity = texelFetch(in_velocity, bestPixel, 0).xy;
+	const vec2 velocity = vec2(0) ;// = texelFetch(in_velocity, bestPixel, 0).xy / 4.0;
 
 	const vec2 prevUV = uv + velocity;
 
@@ -75,6 +75,8 @@ void main()
 	vec3 resolved = mix(history.rgb, current.rgb, blendfactor);
 
 	imageStore(finalOutput, ivec2(gl_GlobalInvocationID.xy), vec4(resolved, 1.0));
+
+
 	
 	/*vec2 velocity = texture(in_velocity, uv).rg;
 

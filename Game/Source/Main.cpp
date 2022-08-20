@@ -42,20 +42,19 @@ public:
 
 		Actor* worldTest = scene.NewActor("World Test");
 		worldTest->AddComponent<MeshRenderer>()->model = model;
-		worldTest->GetTransform().SetEuler({ 180.0f, 0.0f, 0.0f });
 		worldTest->GetTransform().SetScale({ 0.05f, 0.05f, 0.05f });
 
 		mainCam = scene.NewActor("Main Camera");
 		mainCam->AddComponent<PerspectiveCamera>()->ConstructProjection();
 
-		for (uint32_t i = 0; i < 16; i++)
+		for (uint32_t i = 0; i < 8; i++)
 		{
-			for (uint32_t j = 0; j < 16; j++)
+			for (uint32_t j = 0; j < 8; j++)
 			{
 				Actor* actor = scene.NewActor("Sphere" + std::to_string(i * j));
 
 				actor->AddComponent<MeshRenderer>()->model = sphere;
-				actor->GetTransform().SetPosition({ i * 3.0f, j * -3.0f, 0.0f });
+				actor->GetTransform().SetPosition({ i * 3.0f, j * 3.0f, 0.0f });
 			}
 		}
 
@@ -123,11 +122,11 @@ public:
 
 		taaEffect = renderManager->CreatePostProcessEffect(taaCreateInfo);
 
-		renderManager->jitterVertices = false;
+		renderManager->jitterVertices = true;
 
 		renderManager->AddPostProcessEffect(fogEffect);
 		renderManager->AddPostProcessEffect(fxaaEffect);
-		//renderManager->AddPostProcessEffect(taaEffect);
+		renderManager->AddPostProcessEffect(taaEffect);
 		//renderManager->AddPostProcessEffect(chromaticAberrationEffect);
 		//renderManager->AddPostProcessEffect(filmGrainEffect);
 
@@ -154,7 +153,7 @@ public:
 
 		if (input.IsButtonPressed(MouseButton::Right))
 		{
-			newPitch -= (float)offY;
+			newPitch += (float)offY;
 			newYaw += (float)offX;
 
 			if (newPitch > 89.0f)
@@ -307,7 +306,7 @@ public:
 		ticks += 0.05f;
 		info.hasDirectionalLight = 1;
 		info.lightCount = 0;
-		float t = -renderManager->time;
+		float t = renderManager->time;
 		info.dirLight.direction = { 0.0f, sin(glm::radians(t)), -cos(glm::radians(t)), 1.0f};
 		info.dirLight.colour = { 1.0f, 1.0f, 0.95f, 1.0f };
 		info.dirLight.colour *= 5.0f;
@@ -353,7 +352,7 @@ public:
 		cameraInfo.prevViewProj = prevViewProj;
 		cameraInfo.view = mainCamera->GetTransform().ComputeMatrix(glm::mat4(1.0f));
 		cameraInfo.standardProj = camera->projection;
-		cameraInfo.view_pos = -mainCamera->GetTransform().GetPosition();
+		cameraInfo.view_pos = mainCamera->GetTransform().GetPosition();
 
 		renderManager->Render(cameraInfo);
 
@@ -455,7 +454,7 @@ int main(int argc, char* argv[])
 	//_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
 
 	Application::StartInfo startInfo{};
-	startInfo.width = 1280;
+	startInfo.width = 1600;
 	startInfo.height = startInfo.width / 16 * 9;;
 	startInfo.title = "3D Engine";
 
