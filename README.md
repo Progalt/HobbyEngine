@@ -1,15 +1,12 @@
 
 Current it does not have a name. I should probably come up with one at some point.
 
-This Engine is a hobby project. I'm using it to learn but also as a showcase.
+This Engine is a hobby project. I'm using it to learn but also as a showcase. Mostly to learn about the techniques themselves instead of a performance view point. 
 Some things could be redone. My vulkan wrapper to help with vulkan is a few projects old and some even remains from when I
 was first learning vulkan, so it could do with a rewrite following the best practices. 
 
-Progress as of August 6th: 
-![Current Progress Of the engine on August 6th 2022](https://github.com/Progalt/HobbyEngine/blob/master/Images/3DEngineShowcase-August6.png)
-
-and a bit earlier on August 4th: 
-![Current Progress Of the engine on August 4th 2022](https://github.com/Progalt/HobbyEngine/blob/master/Images/3DEngineShowcase-August4.png)
+Engine Screenshot Using Sponza: 
+![The Engine in its current state](https://github.com/Progalt/HobbyEngine/blob/master/Images/UpdateSceneView.png)
 
 ### Performance
 Currently performance is a concern. Running at about 300FPS with Approx. 500 draw calls. Performance could be improved by multi-threading the recording of command lists.
@@ -19,20 +16,16 @@ Though perfomance is not a massive concern as this engine is more for learning. 
 
 ### Current Backends: 
 - Vulkan
+All Shaders are written in glsl. 
 
-Hopefully DirectX 12 in future.
-
-Currently all shaders are written in GLSL. I want to try and rewrite it in HLSL
-as HLSL can be compiled to spir-v for vulkan. 
-
-### Current Features: 
+### Features: 
 - Deferred Rendering
 - Post Process Stack
      + FXAA
      + Fog
      + Chromatic Aberration
      + Film Grain
-     + TAA - Still a work in progress to get it right
+     + TAA
 - Physically Based Lighting - Still Also work in Progress as well. 
     + Diffuse Irradiance. - Can be captured using the scene but its a bit buggy at the moment. 
 - Light Casters
@@ -46,22 +39,11 @@ as HLSL can be compiled to spir-v for vulkan.
 - SSAO - Using FidelityFX CACAO
 - Bloom - Uses a Downsampling and Upsampling blur instead of threshold and guassian blur
 
-### WIP Features: 
-- Screen Space Reflections
-- Clustered Light culling - Cull into tiles on XY and into a linear Z buffer
-- Scene loading and saving. 
-- Resource Streaming
-    I have an idea of how I want to do this for textures. When loading the scene load a smaller mip like 32x32 for example and then when the camera gets closer request the high resolution mips be loaded.
-- Threading
 
+### Old Images
 
-### Planned Features: 
-These are features I want to implement if I get time. 
-Some of these features I would need to research. 
-- GPU Triangle culling - I know how I would do this and while the engine in its current state does not support it. Some changes would allow it. 
-- GPU Skinning - Stores two buffers. One of Normal pose from mesh import and another with the skinned animation. The second buffer is then used for all draw calls where the model is visible. This 
-would require adding the support to my model format.
-- Physics
-- Audio
-- Particle systems - CPU and GPU
-- Raytracing - I would like to make a hybrid renderer, where shadows and reflections can be raytraced and the rest is rasterised. 
+Progress as of August 6th 2022: 
+![Current Progress Of the engine on August 6th 2022](https://github.com/Progalt/HobbyEngine/blob/master/Images/3DEngineShowcase-August6.png)
+
+and a bit earlier on August 4th 2022: 
+![Current Progress Of the engine on August 4th 2022](https://github.com/Progalt/HobbyEngine/blob/master/Images/3DEngineShowcase-August4.png)
